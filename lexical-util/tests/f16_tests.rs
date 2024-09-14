@@ -2,10 +2,11 @@
 
 mod util;
 
-use crate::util::default_proptest_config;
 use lexical_util::f16::f16;
 use lexical_util::num::Float;
 use proptest::prelude::*;
+
+use crate::util::default_proptest_config;
 
 #[test]
 fn as_f32_test() {

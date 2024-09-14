@@ -4,10 +4,11 @@
 #![cfg(feature = "radix")]
 #![doc(hidden)]
 
-use crate::table_binary::*;
-use crate::table_decimal::*;
 use lexical_util::assert::debug_assert_radix;
 use lexical_util::format::radix_from_flags;
+
+use crate::table_binary::*;
+use crate::table_decimal::*;
 
 /// Get lookup table for 2 digit radix conversions.
 ///

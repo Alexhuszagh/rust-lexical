@@ -1,8 +1,8 @@
 mod util;
 
-use crate::util::default_proptest_config;
 #[cfg(feature = "format")]
 use core::num;
+
 use lexical_parse_float::{FromLexical, FromLexicalWithOptions, Options};
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
@@ -16,6 +16,8 @@ use lexical_util::format::NumberFormatBuilder;
 use lexical_util::format::STANDARD;
 use lexical_util::num::Float;
 use proptest::prelude::*;
+
+use crate::util::default_proptest_config;
 
 #[test]
 fn special_bytes_test() {

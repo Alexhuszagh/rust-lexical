@@ -1,6 +1,5 @@
 mod util;
 
-use crate::util::default_proptest_config;
 use lexical_parse_integer::{FromLexical, FromLexicalWithOptions, Options};
 use lexical_util::error::Error;
 #[cfg(feature = "format")]
@@ -9,6 +8,8 @@ use lexical_util::format::STANDARD;
 use proptest::prelude::*;
 #[cfg(feature = "power-of-two")]
 use util::from_radix;
+
+use crate::util::default_proptest_config;
 
 #[test]
 fn u8_decimal_test() {

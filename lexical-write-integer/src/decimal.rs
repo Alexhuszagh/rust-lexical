@@ -13,10 +13,11 @@
 #![cfg(not(feature = "compact"))]
 #![doc(hidden)]
 
-use crate::algorithm::{algorithm, algorithm_u128};
-use crate::table::DIGIT_TO_BASE10_SQUARED;
 use lexical_util::format::{RADIX, RADIX_SHIFT, STANDARD};
 use lexical_util::num::UnsignedInteger;
+
+use crate::algorithm::{algorithm, algorithm_u128};
+use crate::table::DIGIT_TO_BASE10_SQUARED;
 
 /// Fast integral log2.
 ///

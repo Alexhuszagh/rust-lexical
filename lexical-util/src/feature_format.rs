@@ -67,7 +67,8 @@
 //      double parse(const char* string) {
 //          char* end;
 //          double result = strtod(string, &end);
-//          if (std::distance(string, reinterpret_cast<const char*>(end)) != strlen(string)) {
+//          auto endp = reinterpret_cast<const char*>(end);
+//          if (std::distance(string, endp) != strlen(string)) {
 //              throw std::invalid_argument("did not consume entire string.");
 //          }
 //          return result;
@@ -507,7 +508,8 @@
 // -----------
 //
 // Setup:
-//      Save to `main.m` and run `gcc -o main -lobjc -lgnustep-base main.m -fconstant-string-class=NSConstantString`.
+//      Save to `main.m` and run `gcc -o main -lobjc -lgnustep-base main.m
+// -fconstant-string-class=NSConstantString`.
 //
 // Code:
 //      ```text
@@ -693,12 +695,13 @@
 //      db.movie.find()
 //      ```
 
-use crate::error::Error;
-use crate::format_builder::NumberFormatBuilder;
-use crate::format_flags as flags;
 use core::num;
 
 use static_assertions::const_assert;
+
+use crate::error::Error;
+use crate::format_builder::NumberFormatBuilder;
+use crate::format_flags as flags;
 
 /// Add multiple flags to SyntaxFormat.
 macro_rules! from_flag {

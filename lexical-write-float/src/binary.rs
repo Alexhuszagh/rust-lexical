@@ -7,13 +7,14 @@
 #![cfg(feature = "power-of-two")]
 #![doc(hidden)]
 
-use crate::options::{Options, RoundMode};
-use crate::shared;
 use lexical_util::algorithm::rtrim_char_count;
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 use lexical_util::format::NumberFormat;
 use lexical_util::num::{as_cast, Float, Integer, UnsignedInteger};
 use lexical_write_integer::write::WriteInteger;
+
+use crate::options::{Options, RoundMode};
+use crate::shared;
 
 /// Optimized float-to-string algorithm for power of 2 radixes.
 ///
@@ -242,7 +243,8 @@ where
     let shl = calculate_shl(exp, bits_per_digit);
     let value = mantissa << shl;
 
-    // SAFETY: both are safe, if the buffer is large enough to hold the significant digits.
+    // SAFETY: both are safe, if the buffer is large enough to hold the significant
+    // digits.
     let digit_count = unsafe {
         let count = value.write_mantissa::<M, FORMAT>(&mut index_unchecked_mut!(bytes[cursor..]));
         let zeros = rtrim_char_count(&index_unchecked!(bytes[cursor..cursor + count]), b'0');
@@ -313,7 +315,8 @@ where
     let leading_bits = sci_exp;
     let leading_digits = (leading_bits / bits_per_digit) as usize + 1;
 
-    // Now need to write our decimal point and add any additional significant digits.
+    // Now need to write our decimal point and add any additional significant
+    // digits.
     let mut cursor: usize;
     let mut trimmed = false;
     if leading_digits >= digit_count {

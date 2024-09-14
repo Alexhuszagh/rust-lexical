@@ -5,12 +5,13 @@
 #![doc(hidden)]
 #![allow(clippy::excessive_precision)]
 
+use lexical_util::assert::debug_assert_radix;
+use static_assertions::const_assert;
+
 use crate::bigint::Limb;
 use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit, u64_power_limit};
 use crate::table_binary::*;
 use crate::table_decimal::*;
-use lexical_util::assert::debug_assert_radix;
-use static_assertions::const_assert;
 
 // HELPERS
 // -------

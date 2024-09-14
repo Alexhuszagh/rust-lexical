@@ -15,7 +15,8 @@
 //!
 //! 1. Compact for decimal strings uses the Grisu algorithm.
 //! 2. An optimized algorithm based on the Dragonbox algorithm.
-//! 3. An optimized algorithm for formatting to string with power-of-two radixes.
+//! 3. An optimized algorithm for formatting to string with power-of-two
+//!    radixes.
 //! 4. An optimized algorithm for hexadecimal floats.
 //! 5. A fallback algorithm for all other radixes.
 //!
@@ -89,9 +90,6 @@ mod table_dragonbox;
 mod table_grisu;
 
 // Re-exports
-pub use self::api::{ToLexical, ToLexicalWithOptions};
-#[doc(inline)]
-pub use self::options::{Options, OptionsBuilder, RoundMode};
 #[cfg(feature = "f16")]
 pub use lexical_util::bf16::bf16;
 pub use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
@@ -99,3 +97,7 @@ pub use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 pub use lexical_util::f16::f16;
 pub use lexical_util::format::{self, NumberFormatBuilder};
 pub use lexical_util::options::WriteOptions;
+
+pub use self::api::{ToLexical, ToLexicalWithOptions};
+#[doc(inline)]
+pub use self::options::{Options, OptionsBuilder, RoundMode};

@@ -2,20 +2,6 @@
 
 #![doc(hidden)]
 
-#[cfg(not(feature = "compact"))]
-use crate::algorithm::write_float as write_float_decimal;
-#[cfg(feature = "power-of-two")]
-use crate::binary;
-/// Select the back-end.
-#[cfg(feature = "compact")]
-use crate::compact::write_float as write_float_decimal;
-#[cfg(feature = "power-of-two")]
-use crate::hex;
-#[cfg(feature = "radix")]
-use crate::radix;
-
-use crate::float::RawFloat;
-use crate::options::Options;
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
 use lexical_util::constants::FormattedSize;
@@ -23,6 +9,20 @@ use lexical_util::constants::FormattedSize;
 use lexical_util::f16::f16;
 use lexical_util::format::NumberFormat;
 use lexical_write_integer::write::WriteInteger;
+
+#[cfg(not(feature = "compact"))]
+use crate::algorithm::write_float as write_float_decimal;
+#[cfg(feature = "power-of-two")]
+use crate::binary;
+/// Select the back-end.
+#[cfg(feature = "compact")]
+use crate::compact::write_float as write_float_decimal;
+use crate::float::RawFloat;
+#[cfg(feature = "power-of-two")]
+use crate::hex;
+use crate::options::Options;
+#[cfg(feature = "radix")]
+use crate::radix;
 
 /// Write float trait.
 pub trait WriteFloat: RawFloat {

@@ -2,14 +2,16 @@
 
 mod util;
 
-use crate::util::default_proptest_config;
 use core::num;
+
 use lexical_util::constants::BUFFER_SIZE;
 use lexical_util::format::NumberFormatBuilder;
 use lexical_util::num::Float;
 use lexical_write_float::float::{ExtendedFloat80, RawFloat};
 use lexical_write_float::{compact, Options, RoundMode};
 use proptest::prelude::*;
+
+use crate::util::default_proptest_config;
 
 const DECIMAL: u128 = NumberFormatBuilder::decimal();
 
@@ -23,13 +25,10 @@ fn check_normalize(mant: u64, exp: i32, ymant: u64, yexp: i32) {
         compact::normalize(&mut x);
         assert_eq!(x.mant & (1 << 63), 1 << 63);
     }
-    assert_eq!(
-        x,
-        ExtendedFloat80 {
-            mant: ymant,
-            exp: yexp
-        }
-    );
+    assert_eq!(x, ExtendedFloat80 {
+        mant: ymant,
+        exp: yexp
+    });
 }
 
 #[test]
@@ -85,227 +84,134 @@ fn normalized_boundaries_test() {
 
 #[test]
 fn from_f32_test() {
-    assert_eq!(
-        compact::from_float(0.0f32),
-        ExtendedFloat80 {
-            mant: 0,
-            exp: -149
-        }
-    );
-    assert_eq!(
-        compact::from_float(-0.0f32),
-        ExtendedFloat80 {
-            mant: 0,
-            exp: -149
-        }
-    );
-    assert_eq!(
-        compact::from_float(1e-45f32),
-        ExtendedFloat80 {
-            mant: 1,
-            exp: -149
-        }
-    );
-    assert_eq!(
-        compact::from_float(1e-40f32),
-        ExtendedFloat80 {
-            mant: 71362,
-            exp: -149
-        }
-    );
-    assert_eq!(
-        compact::from_float(2e-40f32),
-        ExtendedFloat80 {
-            mant: 142725,
-            exp: -149
-        }
-    );
-    assert_eq!(
-        compact::from_float(1e-20f32),
-        ExtendedFloat80 {
-            mant: 12379400,
-            exp: -90
-        }
-    );
-    assert_eq!(
-        compact::from_float(2e-20f32),
-        ExtendedFloat80 {
-            mant: 12379400,
-            exp: -89
-        }
-    );
-    assert_eq!(
-        compact::from_float(1.0f32),
-        ExtendedFloat80 {
-            mant: 8388608,
-            exp: -23
-        }
-    );
-    assert_eq!(
-        compact::from_float(2.0f32),
-        ExtendedFloat80 {
-            mant: 8388608,
-            exp: -22
-        }
-    );
-    assert_eq!(
-        compact::from_float(1e20f32),
-        ExtendedFloat80 {
-            mant: 11368684,
-            exp: 43
-        }
-    );
-    assert_eq!(
-        compact::from_float(2e20f32),
-        ExtendedFloat80 {
-            mant: 11368684,
-            exp: 44
-        }
-    );
-    assert_eq!(
-        compact::from_float(3.402823e38f32),
-        ExtendedFloat80 {
-            mant: 16777213,
-            exp: 104
-        }
-    );
+    assert_eq!(compact::from_float(0.0f32), ExtendedFloat80 {
+        mant: 0,
+        exp: -149
+    });
+    assert_eq!(compact::from_float(-0.0f32), ExtendedFloat80 {
+        mant: 0,
+        exp: -149
+    });
+    assert_eq!(compact::from_float(1e-45f32), ExtendedFloat80 {
+        mant: 1,
+        exp: -149
+    });
+    assert_eq!(compact::from_float(1e-40f32), ExtendedFloat80 {
+        mant: 71362,
+        exp: -149
+    });
+    assert_eq!(compact::from_float(2e-40f32), ExtendedFloat80 {
+        mant: 142725,
+        exp: -149
+    });
+    assert_eq!(compact::from_float(1e-20f32), ExtendedFloat80 {
+        mant: 12379400,
+        exp: -90
+    });
+    assert_eq!(compact::from_float(2e-20f32), ExtendedFloat80 {
+        mant: 12379400,
+        exp: -89
+    });
+    assert_eq!(compact::from_float(1.0f32), ExtendedFloat80 {
+        mant: 8388608,
+        exp: -23
+    });
+    assert_eq!(compact::from_float(2.0f32), ExtendedFloat80 {
+        mant: 8388608,
+        exp: -22
+    });
+    assert_eq!(compact::from_float(1e20f32), ExtendedFloat80 {
+        mant: 11368684,
+        exp: 43
+    });
+    assert_eq!(compact::from_float(2e20f32), ExtendedFloat80 {
+        mant: 11368684,
+        exp: 44
+    });
+    assert_eq!(compact::from_float(3.402823e38f32), ExtendedFloat80 {
+        mant: 16777213,
+        exp: 104
+    });
 }
 
 #[test]
 fn from_f64_test() {
-    assert_eq!(
-        compact::from_float(0.0f64),
-        ExtendedFloat80 {
-            mant: 0,
-            exp: -1074
-        }
-    );
-    assert_eq!(
-        compact::from_float(-0.0f64),
-        ExtendedFloat80 {
-            mant: 0,
-            exp: -1074
-        }
-    );
-    assert_eq!(
-        compact::from_float(5e-324f64),
-        ExtendedFloat80 {
-            mant: 1,
-            exp: -1074
-        }
-    );
-    assert_eq!(
-        compact::from_float(1e-250f64),
-        ExtendedFloat80 {
-            mant: 6448907850777164,
-            exp: -883
-        }
-    );
-    assert_eq!(
-        compact::from_float(1e-150f64),
-        ExtendedFloat80 {
-            mant: 7371020360979573,
-            exp: -551
-        }
-    );
-    assert_eq!(
-        compact::from_float(1e-45f64),
-        ExtendedFloat80 {
-            mant: 6427752177035961,
-            exp: -202
-        }
-    );
-    assert_eq!(
-        compact::from_float(1e-40f64),
-        ExtendedFloat80 {
-            mant: 4903985730770844,
-            exp: -185
-        }
-    );
-    assert_eq!(
-        compact::from_float(2e-40f64),
-        ExtendedFloat80 {
-            mant: 4903985730770844,
-            exp: -184
-        }
-    );
-    assert_eq!(
-        compact::from_float(1e-20f64),
-        ExtendedFloat80 {
-            mant: 6646139978924579,
-            exp: -119
-        }
-    );
-    assert_eq!(
-        compact::from_float(2e-20f64),
-        ExtendedFloat80 {
-            mant: 6646139978924579,
-            exp: -118
-        }
-    );
-    assert_eq!(
-        compact::from_float(1.0f64),
-        ExtendedFloat80 {
-            mant: 4503599627370496,
-            exp: -52
-        }
-    );
-    assert_eq!(
-        compact::from_float(2.0f64),
-        ExtendedFloat80 {
-            mant: 4503599627370496,
-            exp: -51
-        }
-    );
-    assert_eq!(
-        compact::from_float(1e20f64),
-        ExtendedFloat80 {
-            mant: 6103515625000000,
-            exp: 14
-        }
-    );
-    assert_eq!(
-        compact::from_float(2e20f64),
-        ExtendedFloat80 {
-            mant: 6103515625000000,
-            exp: 15
-        }
-    );
-    assert_eq!(
-        compact::from_float(1e40f64),
-        ExtendedFloat80 {
-            mant: 8271806125530277,
-            exp: 80
-        }
-    );
-    assert_eq!(
-        compact::from_float(2e40f64),
-        ExtendedFloat80 {
-            mant: 8271806125530277,
-            exp: 81
-        }
-    );
-    assert_eq!(
-        compact::from_float(1e150f64),
-        ExtendedFloat80 {
-            mant: 5503284107318959,
-            exp: 446
-        }
-    );
-    assert_eq!(
-        compact::from_float(1e250f64),
-        ExtendedFloat80 {
-            mant: 6290184345309700,
-            exp: 778
-        }
-    );
-    assert_eq!(
-        compact::from_float(1.7976931348623157e308),
-        ExtendedFloat80 {
-            mant: 9007199254740991,
-            exp: 971
-        }
-    );
+    assert_eq!(compact::from_float(0.0f64), ExtendedFloat80 {
+        mant: 0,
+        exp: -1074
+    });
+    assert_eq!(compact::from_float(-0.0f64), ExtendedFloat80 {
+        mant: 0,
+        exp: -1074
+    });
+    assert_eq!(compact::from_float(5e-324f64), ExtendedFloat80 {
+        mant: 1,
+        exp: -1074
+    });
+    assert_eq!(compact::from_float(1e-250f64), ExtendedFloat80 {
+        mant: 6448907850777164,
+        exp: -883
+    });
+    assert_eq!(compact::from_float(1e-150f64), ExtendedFloat80 {
+        mant: 7371020360979573,
+        exp: -551
+    });
+    assert_eq!(compact::from_float(1e-45f64), ExtendedFloat80 {
+        mant: 6427752177035961,
+        exp: -202
+    });
+    assert_eq!(compact::from_float(1e-40f64), ExtendedFloat80 {
+        mant: 4903985730770844,
+        exp: -185
+    });
+    assert_eq!(compact::from_float(2e-40f64), ExtendedFloat80 {
+        mant: 4903985730770844,
+        exp: -184
+    });
+    assert_eq!(compact::from_float(1e-20f64), ExtendedFloat80 {
+        mant: 6646139978924579,
+        exp: -119
+    });
+    assert_eq!(compact::from_float(2e-20f64), ExtendedFloat80 {
+        mant: 6646139978924579,
+        exp: -118
+    });
+    assert_eq!(compact::from_float(1.0f64), ExtendedFloat80 {
+        mant: 4503599627370496,
+        exp: -52
+    });
+    assert_eq!(compact::from_float(2.0f64), ExtendedFloat80 {
+        mant: 4503599627370496,
+        exp: -51
+    });
+    assert_eq!(compact::from_float(1e20f64), ExtendedFloat80 {
+        mant: 6103515625000000,
+        exp: 14
+    });
+    assert_eq!(compact::from_float(2e20f64), ExtendedFloat80 {
+        mant: 6103515625000000,
+        exp: 15
+    });
+    assert_eq!(compact::from_float(1e40f64), ExtendedFloat80 {
+        mant: 8271806125530277,
+        exp: 80
+    });
+    assert_eq!(compact::from_float(2e40f64), ExtendedFloat80 {
+        mant: 8271806125530277,
+        exp: 81
+    });
+    assert_eq!(compact::from_float(1e150f64), ExtendedFloat80 {
+        mant: 5503284107318959,
+        exp: 446
+    });
+    assert_eq!(compact::from_float(1e250f64), ExtendedFloat80 {
+        mant: 6290184345309700,
+        exp: 778
+    });
+    assert_eq!(compact::from_float(1.7976931348623157e308), ExtendedFloat80 {
+        mant: 9007199254740991,
+        exp: 971
+    });
 }
 
 fn check_mul(xmant: u64, xexp: i32, ymant: u64, yexp: i32, zmant: u64, zexp: i32) {

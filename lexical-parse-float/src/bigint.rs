@@ -4,27 +4,32 @@
 
 #![doc(hidden)]
 
+use core::{cmp, mem, ops, ptr, slice};
+
 #[cfg(feature = "radix")]
 use crate::float::ExtendedFloat80;
 use crate::float::RawFloat;
 use crate::limits::{u32_power_limit, u64_power_limit};
 #[cfg(not(feature = "compact"))]
 use crate::table::get_large_int_power;
-use core::{cmp, mem, ops, ptr, slice};
 
 /// Index an array without bounds checking.
 ///
 /// # Safety
 ///
 /// Safe if `index < array.len()`.
+#[cfg(feature = "safe")]
+macro_rules! index_unchecked {
+    ($x:ident[$i:expr]) => {
+        $x[$i]
+    };
+}
+
+#[cfg(not(feature = "safe"))]
 macro_rules! index_unchecked {
     ($x:ident[$i:expr]) => {
         // SAFETY: safe if `index < array.len()`.
-        if cfg!(feature = "safe") {
-            &$x[$i]
-        } else {
-            $x.get_unchecked($i)
-        }
+        $x.get_unchecked($i)
     };
 }
 
@@ -63,8 +68,10 @@ pub struct Bigint {
     /// This is pretty much the same number of digits for any radix, since the
     ///  significant digits balances out the zeros from the exponent:
     ///     1. Decimal is 1091 digits, 767 mantissa digits + 324 exponent zeros.
-    ///     2. Base 6 is 1097 digits, or 680 mantissa digits + 417 exponent zeros.
-    ///     3. Base 36 is 1086 digits, or 877 mantissa digits + 209 exponent zeros.
+    ///     2. Base 6 is 1097 digits, or 680 mantissa digits + 417 exponent
+    ///        zeros.
+    ///     3. Base 36 is 1086 digits, or 877 mantissa digits + 209 exponent
+    ///        zeros.
     ///
     /// However, the number of bytes required is larger for large radixes:
     /// for decimal, we need `log2(10**1091) ≅ 3600`, while for base 36
@@ -217,7 +224,8 @@ impl Bigfloat {
         Some(())
     }
 
-    /// Shift-left the entire buffer n bits, where bits is less than the limb size.
+    /// Shift-left the entire buffer n bits, where bits is less than the limb
+    /// size.
     #[inline(always)]
     pub fn shl_bits(&mut self, n: usize) -> Option<()> {
         shl_bits(&mut self.data, n)
@@ -427,7 +435,8 @@ impl<const SIZE: usize> StackVec<SIZE> {
         unsafe { ptr::read(self.as_mut_ptr().add(self.len())) }
     }
 
-    /// Remove an item from the end of the vector and return it, or None if empty.
+    /// Remove an item from the end of the vector and return it, or None if
+    /// empty.
     #[inline(always)]
     pub fn pop(&mut self) -> Option<Limb> {
         if self.is_empty() {
@@ -529,7 +538,8 @@ impl<const SIZE: usize> StackVec<SIZE> {
     #[inline(always)]
     pub fn hi16(&self) -> (u16, bool) {
         let rview = self.rview();
-        // SAFETY: the buffer must be at least length bytes long which we check on the match.
+        // SAFETY: the buffer must be at least length bytes long which we check on the
+        // match.
         unsafe {
             match rview.len() {
                 0 => (0, false),
@@ -545,7 +555,8 @@ impl<const SIZE: usize> StackVec<SIZE> {
     #[inline(always)]
     pub fn hi32(&self) -> (u32, bool) {
         let rview = self.rview();
-        // SAFETY: the buffer must be at least length bytes long which we check on the match.
+        // SAFETY: the buffer must be at least length bytes long which we check on the
+        // match.
         unsafe {
             match rview.len() {
                 0 => (0, false),
@@ -561,7 +572,8 @@ impl<const SIZE: usize> StackVec<SIZE> {
     #[inline(always)]
     pub fn hi64(&self) -> (u64, bool) {
         let rview = self.rview();
-        // SAFETY: the buffer must be at least length bytes long which we check on the match.
+        // SAFETY: the buffer must be at least length bytes long which we check on the
+        // match.
         unsafe {
             match rview.len() {
                 0 => (0, false),
@@ -767,7 +779,8 @@ impl<'a, T: 'a> ReverseView<'a, T> {
     pub unsafe fn get_unchecked(&self, index: usize) -> &T {
         debug_assert!(index < self.inner.len());
         let len = self.inner.len();
-        // SAFETY: Safe as long as the index < length, so len - index - 1 >= 0 and <= len.
+        // SAFETY: Safe as long as the index < length, so len - index - 1 >= 0 and <=
+        // len.
         unsafe { self.inner.get_unchecked(len - index - 1) }
     }
 
@@ -1010,13 +1023,15 @@ pub fn pow<const SIZE: usize>(x: &mut StackVec<SIZE>, base: u32, mut exp: u32) -
 // SCALAR
 // ------
 
-/// Add two small integers and return the resulting value and if overflow happens.
+/// Add two small integers and return the resulting value and if overflow
+/// happens.
 #[inline(always)]
 pub fn scalar_add(x: Limb, y: Limb) -> (Limb, bool) {
     x.overflowing_add(y)
 }
 
-/// Multiply two small integers (with carry) (and return the overflow contribution).
+/// Multiply two small integers (with carry) (and return the overflow
+/// contribution).
 ///
 /// Returns the (low, high) components.
 #[inline(always)]
@@ -1415,45 +1430,78 @@ pub fn bit_length(x: &[Limb]) -> u32 {
 
 /// Get the base, odd radix, and the power-of-two for the type.
 #[inline(always)]
+#[cfg(feature = "radix")]
+pub const fn split_radix(radix: u32) -> (u32, u32) {
+    match radix {
+        2 => (0, 1),
+        3 => (3, 0),
+        4 => (0, 2),
+        5 => (5, 0),
+        6 => (3, 1),
+        7 => (7, 0),
+        8 => (0, 3),
+        9 => (9, 0),
+        10 => (5, 1),
+        11 => (11, 0),
+        12 => (6, 1),
+        13 => (13, 0),
+        14 => (7, 1),
+        15 => (15, 0),
+        16 => (0, 4),
+        17 => (17, 0),
+        18 => (9, 1),
+        19 => (19, 0),
+        20 => (5, 2),
+        21 => (21, 0),
+        22 => (11, 1),
+        23 => (23, 0),
+        24 => (3, 3),
+        25 => (25, 0),
+        26 => (13, 1),
+        27 => (27, 0),
+        28 => (7, 2),
+        29 => (29, 0),
+        30 => (15, 1),
+        31 => (31, 0),
+        32 => (0, 5),
+        33 => (33, 0),
+        34 => (17, 1),
+        35 => (35, 0),
+        36 => (9, 2),
+        // Any other radix should be unreachable.
+        _ => (0, 0),
+    }
+}
+
+/// Get the base, odd radix, and the power-of-two for the type.
+#[inline(always)]
+#[cfg(all(feature = "power-of-two", not(feature = "radix")))]
 pub const fn split_radix(radix: u32) -> (u32, u32) {
     match radix {
         // Is also needed for decimal floats, due to `negative_digit_comp`.
         2 => (0, 1),
-        3 if cfg!(feature = "radix") => (3, 0),
-        4 if cfg!(feature = "power-of-two") => (0, 2),
+        4 => (0, 2),
         // Is also needed for decimal floats, due to `negative_digit_comp`.
         5 => (5, 0),
-        6 if cfg!(feature = "radix") => (3, 1),
-        7 if cfg!(feature = "radix") => (7, 0),
-        8 if cfg!(feature = "power-of-two") => (0, 3),
-        9 if cfg!(feature = "radix") => (9, 0),
+        8 => (0, 3),
         10 => (5, 1),
-        11 if cfg!(feature = "radix") => (11, 0),
-        12 if cfg!(feature = "radix") => (6, 1),
-        13 if cfg!(feature = "radix") => (13, 0),
-        14 if cfg!(feature = "radix") => (7, 1),
-        15 if cfg!(feature = "radix") => (15, 0),
-        16 if cfg!(feature = "power-of-two") => (0, 4),
-        17 if cfg!(feature = "radix") => (17, 0),
-        18 if cfg!(feature = "radix") => (9, 1),
-        19 if cfg!(feature = "radix") => (19, 0),
-        20 if cfg!(feature = "radix") => (5, 2),
-        21 if cfg!(feature = "radix") => (21, 0),
-        22 if cfg!(feature = "radix") => (11, 1),
-        23 if cfg!(feature = "radix") => (23, 0),
-        24 if cfg!(feature = "radix") => (3, 3),
-        25 if cfg!(feature = "radix") => (25, 0),
-        26 if cfg!(feature = "radix") => (13, 1),
-        27 if cfg!(feature = "radix") => (27, 0),
-        28 if cfg!(feature = "radix") => (7, 2),
-        29 if cfg!(feature = "radix") => (29, 0),
-        30 if cfg!(feature = "radix") => (15, 1),
-        31 if cfg!(feature = "radix") => (31, 0),
-        32 if cfg!(feature = "power-of-two") => (0, 5),
-        33 if cfg!(feature = "radix") => (33, 0),
-        34 if cfg!(feature = "radix") => (17, 1),
-        35 if cfg!(feature = "radix") => (35, 0),
-        36 if cfg!(feature = "radix") => (9, 2),
+        16 => (0, 4),
+        32 => (0, 5),
+        // Any other radix should be unreachable.
+        _ => (0, 0),
+    }
+}
+
+/// Get the base, odd radix, and the power-of-two for the type.
+#[inline(always)]
+#[cfg(not(feature = "power-of-two"))]
+pub const fn split_radix(radix: u32) -> (u32, u32) {
+    match radix {
+        // Is also needed for decimal floats, due to `negative_digit_comp`.
+        2 => (0, 1),
+        // Is also needed for decimal floats, due to `negative_digit_comp`.
+        5 => (5, 0),
+        10 => (5, 1),
         // Any other radix should be unreachable.
         _ => (0, 0),
     }
@@ -1510,7 +1558,8 @@ pub const fn split_radix(radix: u32) -> (u32, u32) {
 //  Platforms where native 64-bit multiplication is supported and
 //  you can extract hi-lo for 64-bit multiplications.
 //      - aarch64 (Requires `UMULH` and `MUL` to capture high and low bits).
-//      - powerpc64 (Requires `MULHDU` and `MULLD` to capture high and low bits).
+//      - powerpc64 (Requires `MULHDU` and `MULLD` to capture high and low
+//        bits).
 //      - riscv64 (Requires `MUL` and `MULH` to capture high and low bits).
 //
 //  # Unsupported

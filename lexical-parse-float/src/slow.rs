@@ -6,14 +6,8 @@
 
 #![doc(hidden)]
 
-#[cfg(feature = "radix")]
-use crate::bigint::Bigfloat;
-use crate::bigint::{Bigint, Limb, LIMB_BITS};
-use crate::float::{extended_to_float, ExtendedFloat80, RawFloat};
-use crate::limits::{u32_power_limit, u64_power_limit};
-use crate::number::Number;
-use crate::shared;
 use core::cmp;
+
 #[cfg(not(feature = "compact"))]
 use lexical_parse_integer::algorithm;
 use lexical_util::buffer::Buffer;
@@ -23,6 +17,14 @@ use lexical_util::digit::digit_to_char_const;
 use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{AsBytes, BytesIter};
 use lexical_util::num::{AsPrimitive, Integer};
+
+#[cfg(feature = "radix")]
+use crate::bigint::Bigfloat;
+use crate::bigint::{Bigint, Limb, LIMB_BITS};
+use crate::float::{extended_to_float, ExtendedFloat80, RawFloat};
+use crate::limits::{u32_power_limit, u64_power_limit};
+use crate::number::Number;
+use crate::shared;
 
 // ALGORITHM
 // ---------
@@ -111,7 +113,8 @@ pub fn digit_comp<F: RawFloat, const FORMAT: u128>(
     }
 }
 
-/// Generate the significant digits with a positive exponent relative to mantissa.
+/// Generate the significant digits with a positive exponent relative to
+/// mantissa.
 pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
     mut bigmant: Bigint,
     exponent: i32,
@@ -143,7 +146,8 @@ pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
     fp
 }
 
-/// Generate the significant digits with a negative exponent relative to mantissa.
+/// Generate the significant digits with a negative exponent relative to
+/// mantissa.
 ///
 /// This algorithm is quite simple: we have the significant digits `m1 * b^N1`,
 /// where `m1` is the bigint mantissa, `b` is the radix, and `N1` is the radix
@@ -249,7 +253,8 @@ pub fn negative_digit_comp<F: RawFloat, const FORMAT: u128>(
 /// - `count` - The total number of parsed digits
 /// - `counter` - The number of parsed digits since creating the current u32
 /// - `step` - The maximum number of digits for the radix that can fit in a u32.
-/// - `max_digits` - The maximum number of digits that can affect floating-point rounding.
+/// - `max_digits` - The maximum number of digits that can affect floating-point
+///   rounding.
 #[cfg(not(feature = "compact"))]
 macro_rules! try_parse_8digits {
     (
@@ -485,7 +490,8 @@ pub fn parse_mantissa<const FORMAT: u128>(num: Number, max_digits: usize) -> (Bi
 ///
 /// - `iter` - An iterator over all bytes in the buffer
 /// - `num` - The actual digits of the real floating point number.
-/// - `den` - The theoretical digits created by `b+h` to determine if `b` or `b+1`
+/// - `den` - The theoretical digits created by `b+h` to determine if `b` or
+///   `b+1`
 #[cfg(feature = "radix")]
 macro_rules! integer_compare {
     ($iter:ident, $num:ident, $den:ident, $radix:ident) => {{
@@ -522,7 +528,8 @@ macro_rules! integer_compare {
 ///
 /// - `iter` - An iterator over all bytes in the buffer
 /// - `num` - The actual digits of the real floating point number.
-/// - `den` - The theoretical digits created by `b+h` to determine if `b` or `b+1`
+/// - `den` - The theoretical digits created by `b+h` to determine if `b` or
+///   `b+1`
 #[cfg(feature = "radix")]
 macro_rules! fraction_compare {
     ($iter:ident, $num:ident, $den:ident, $radix:ident) => {{
@@ -660,9 +667,11 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
 
 /// Compare digits between the generated values the ratio and the actual view.
 ///
-/// - `number` - The representation of the float as a big number, with the parsed digits.
+/// - `number` - The representation of the float as a big number, with the
+///   parsed digits.
 /// - `num` - The actual digits of the real floating point number.
-/// - `den` - The theoretical digits created by `b+h` to determine if `b` or `b+1`
+/// - `den` - The theoretical digits created by `b+h` to determine if `b` or
+///   `b+1`
 #[cfg(feature = "radix")]
 pub fn compare_bytes<const FORMAT: u128>(
     number: Number,

@@ -1,6 +1,7 @@
 #![cfg(all(feature = "format", feature = "parse"))]
 
 use core::num;
+
 use lexical_util::format::{NumberFormat, NumberFormatBuilder};
 use lexical_util::iterator::AsBytes;
 use static_assertions::const_assert;

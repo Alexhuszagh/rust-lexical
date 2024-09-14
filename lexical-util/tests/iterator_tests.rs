@@ -61,6 +61,7 @@ fn digits_iterator_test() {
 #[cfg(feature = "format")]
 fn skip_iterator_test() {
     use core::num;
+
     use lexical_util::format::{NumberFormat, NumberFormatBuilder};
     use static_assertions::const_assert;
 

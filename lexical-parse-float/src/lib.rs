@@ -72,15 +72,16 @@
 //!
 //! # Safety
 //!
-//! The primary use of unsafe code is in the big integer implementation, which for
-//! performance reasons requires unchecked indexing at certain points, where rust
-//! cannot elide the index check. The use of unsafe code can be found in the
-//! calculation of the [hi] bits, however, every invocation requires the buffer to
-//! be of sufficient [length][longbits]. The other major source is the implementation
-//! of methods such as [push_unchecked], however, the safety invariants for each caller
-//! to create a safe API are documented and has similar safety guarantees to a regular
-//! vector. All other invocations of unsafe code are indexing a buffer where the index
-//! is proven to be within bounds within a few lines of code of the unsafe index.
+//! The primary use of unsafe code is in the big integer implementation, which
+//! for performance reasons requires unchecked indexing at certain points, where
+//! rust cannot elide the index check. The use of unsafe code can be found in
+//! the calculation of the [hi] bits, however, every invocation requires the
+//! buffer to be of sufficient [length][longbits]. The other major source is the
+//! implementation of methods such as [push_unchecked], however, the safety
+//! invariants for each caller to create a safe API are documented and has
+//! similar safety guarantees to a regular vector. All other invocations of
+//! unsafe code are indexing a buffer where the index is proven to be within
+//! bounds within a few lines of code of the unsafe index.
 //!
 //! # Design
 //!
@@ -128,9 +129,6 @@ mod table_radix;
 mod table_small;
 
 // Re-exports
-pub use self::api::{FromLexical, FromLexicalWithOptions};
-#[doc(inline)]
-pub use self::options::{Options, OptionsBuilder};
 #[cfg(feature = "f16")]
 pub use lexical_util::bf16::bf16;
 pub use lexical_util::error::Error;
@@ -139,3 +137,7 @@ pub use lexical_util::f16::f16;
 pub use lexical_util::format::{self, NumberFormatBuilder};
 pub use lexical_util::options::ParseOptions;
 pub use lexical_util::result::Result;
+
+pub use self::api::{FromLexical, FromLexicalWithOptions};
+#[doc(inline)]
+pub use self::options::{Options, OptionsBuilder};

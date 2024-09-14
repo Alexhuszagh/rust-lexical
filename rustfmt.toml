@@ -14,3 +14,6 @@ imports_indent = "Block"
 imports_layout = "HorizontalVertical"
 indent_style = "Block"
 match_arm_blocks = true
+overflow_delimited_expr = true
+group_imports = "StdExternalCrate"
+wrap_comments = true

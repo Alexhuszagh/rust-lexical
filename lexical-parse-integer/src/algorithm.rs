@@ -16,23 +16,22 @@
 //! code is quite small while handling all of the internal complexity.
 //!
 //! 1. Helpers to process ok and error results for both complete and partial
-//!     parsers. They have different APIs, and mixing the APIs leads to
-//!     substantial performance hits.
-//! 2. Overflow checking on invalid digits for partial parsers, while
-//!     just returning invalid digits for complete parsers.
+//!    parsers. They have different APIs, and mixing the APIs leads to
+//!    substantial performance hits.
+//! 2. Overflow checking on invalid digits for partial parsers, while just
+//!    returning invalid digits for complete parsers.
 //! 3. A format-aware sign parser.
 //! 4. Digit parsing algorithms which explicitly wrap on overflow, for no
-//!     additional overhead. This has major performance wins for **most**
-//!     real-world integers, so most valid input will be substantially faster.
-//! 5. An algorithm to detect if overflow occurred. This is comprehensive,
-//!     and short-circuits for common cases.
+//!    additional overhead. This has major performance wins for **most**
+//!    real-world integers, so most valid input will be substantially faster.
+//! 5. An algorithm to detect if overflow occurred. This is comprehensive, and
+//!    short-circuits for common cases.
 //! 6. A parsing algorithm for unsigned integers, always producing positive
-//!     values. This avoids any unnecessary branching.
+//!    values. This avoids any unnecessary branching.
 //! 7. Multi-digit optimizations for larger sizes.
 
 #![doc(hidden)]
 
-use crate::Options;
 use lexical_util::buffer::Buffer;
 use lexical_util::digit::char_to_digit_const;
 use lexical_util::error::Error;
@@ -40,6 +39,8 @@ use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
 use lexical_util::num::{as_cast, Integer};
 use lexical_util::result::Result;
+
+use crate::Options;
 
 // HELPERS
 
@@ -96,8 +97,9 @@ macro_rules! fmt_invalid_digit {
     (
         $value:ident, $iter:ident, $c:expr, $start_index:ident, $invalid_digit:ident, $is_end:expr
     ) => {{
-        // NOTE: If we have non-contiguous iterators, we could have a skip character here
-        // at the boundary. This does not affect safety but it does affect correctness.
+        // NOTE: If we have non-contiguous iterators, we could have a skip character
+        // here at the boundary. This does not affect safety but it does affect
+        // correctness.
         debug_assert!($iter.is_contiguous() || $is_end);
 
         let base_suffix = NumberFormat::<FORMAT>::BASE_SUFFIX;
@@ -319,9 +321,10 @@ where
 /// This bound is when `radix.pow(digits.len()) - 1 <= T::MAX` but the condition
 /// above is a faster (conservative) approximation of this.
 ///
-/// Consider radix 16 as it has the highest information density per digit and will thus overflow the earliest:
-/// `u8::MAX` is `ff` - any str of len 2 is guaranteed to not overflow.
-/// `i8::MAX` is `7f` - only a str of len 1 is guaranteed to not overflow.
+/// Consider radix 16 as it has the highest information density per digit and
+/// will thus overflow the earliest: `u8::MAX` is `ff` - any str of len 2 is
+/// guaranteed to not overflow. `i8::MAX` is `7f` - only a str of len 1 is
+/// guaranteed to not overflow.
 ///
 /// This is based off of [core/num](core).
 ///
@@ -334,25 +337,37 @@ where
 ///
 /// core: <https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1480>
 macro_rules! parse_1digit_unchecked {
-($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $is_end:expr) => {{
-    // This is a slower parsing algorithm, going 1 digit at a time, but doing it in an unchecked loop.
-    let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
-    while let Some(&c) = $iter.next() {
-        let digit = match char_to_digit_const(c, radix) {
-            Some(v) => v,
-            None if cfg!(feature = "format") => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, $is_end),
-            None => return $invalid_digit!($value, $iter.cursor()),
-        };
-        // multiply first since compilers are good at optimizing things out and will do a fused mul/add
-        // We must do this after getting the digit for partial parsers
-        $value = $value.wrapping_mul(as_cast(radix)).$add_op(as_cast(digit));
-    }
-}};
+    (
+        $value:ident,
+        $iter:ident,
+        $add_op:ident,
+        $start_index:ident,
+        $invalid_digit:ident,
+        $is_end:expr
+    ) => {{
+        // This is a slower parsing algorithm, going 1 digit at a time, but doing it in
+        // an unchecked loop.
+        let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
+        while let Some(&c) = $iter.next() {
+            let digit = match char_to_digit_const(c, radix) {
+                Some(v) => v,
+                None if cfg!(feature = "format") => {
+                    fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, $is_end)
+                },
+                None => return $invalid_digit!($value, $iter.cursor()),
+            };
+            // multiply first since compilers are good at optimizing things out and will do
+            // a fused mul/add We must do this after getting the digit for
+            // partial parsers
+            $value = $value.wrapping_mul(as_cast(radix)).$add_op(as_cast(digit));
+        }
+    }};
 }
 
 /// Run a loop where the integer could overflow.
 ///
-/// This is a standard, unoptimized algorithm. This is based off of [core/num](core)
+/// This is a standard, unoptimized algorithm. This is based off of
+/// [core/num](core)
 ///
 /// * `value` - The current parsed value.
 /// * `iter` - An iterator over all bytes in the input.
@@ -363,22 +378,34 @@ macro_rules! parse_1digit_unchecked {
 ///
 /// core: <https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1505>
 macro_rules! parse_1digit_checked {
-($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $overflow:ident) => {{
-    // This is a slower parsing algorithm, going 1 digit at a time, but doing it in an unchecked loop.
-    let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
-    while let Some(&c) = $iter.next() {
-        let digit = match char_to_digit_const(c, radix) {
-            Some(v) => v,
-            None if cfg!(feature = "format") => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, true),
-            None => return $invalid_digit!($value, $iter.cursor()),
-        };
-        // multiply first since compilers are good at optimizing things out and will do a fused mul/add
-        $value = match $value.checked_mul(as_cast(radix)).and_then(|x| x.$add_op(as_cast(digit))) {
-            Some(value) => value,
-            None => return into_error!($overflow, $iter.cursor() - 1),
+    (
+        $value:ident,
+        $iter:ident,
+        $add_op:ident,
+        $start_index:ident,
+        $invalid_digit:ident,
+        $overflow:ident
+    ) => {{
+        // This is a slower parsing algorithm, going 1 digit at a time, but doing it in
+        // an unchecked loop.
+        let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
+        while let Some(&c) = $iter.next() {
+            let digit = match char_to_digit_const(c, radix) {
+                Some(v) => v,
+                None if cfg!(feature = "format") => {
+                    fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, true)
+                },
+                None => return $invalid_digit!($value, $iter.cursor()),
+            };
+            // multiply first since compilers are good at optimizing things out and will do
+            // a fused mul/add
+            $value =
+                match $value.checked_mul(as_cast(radix)).and_then(|x| x.$add_op(as_cast(digit))) {
+                    Some(value) => value,
+                    None => return into_error!($overflow, $iter.cursor() - 1),
+                }
         }
-    }
-}};
+    }};
 }
 
 // OVERALL DIGITS
@@ -398,30 +425,39 @@ macro_rules! parse_1digit_checked {
 /// * `no_multi_digit` - If to disable multi-digit optimizations.
 /// * `is_end` - If iter corresponds to the full input.
 macro_rules! parse_digits_unchecked {
-($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $no_multi_digit:expr, $is_end:expr) => {{
-    let can_multi = can_try_parse_multidigits::<_, FORMAT>(&$iter);
-    let use_multi = can_multi && !$no_multi_digit;
+    (
+        $value:ident,
+        $iter:ident,
+        $add_op:ident,
+        $start_index:ident,
+        $invalid_digit:ident,
+        $no_multi_digit:expr,
+        $is_end:expr
+    ) => {{
+        let can_multi = can_try_parse_multidigits::<_, FORMAT>(&$iter);
+        let use_multi = can_multi && !$no_multi_digit;
 
-    // these cannot overflow. also, we use at most 3 for a 128-bit float and 1 for a 64-bit float
-    // NOTE: Miri will complain about this if we use radices >= 16 but since they won't go
-    // into `try_parse_8digits!` or `try_parse_4digits` it will be optimized out and the
-    // overflow won't matter.
-    let format = NumberFormat::<FORMAT> {};
-    if use_multi && T::BITS >= 64 && $iter.length() >= 8 {
-        // Try our fast, 8-digit at a time optimizations.
-        let radix8 = T::from_u32(format.radix8());
-        while let Some(value) = try_parse_8digits::<T, _, FORMAT>(&mut $iter) {
-            $value = $value.wrapping_mul(radix8).$add_op(value);
+        // these cannot overflow. also, we use at most 3 for a 128-bit float and 1 for a
+        // 64-bit float NOTE: Miri will complain about this if we use radices >=
+        // 16 but since they won't go into `try_parse_8digits!` or
+        // `try_parse_4digits` it will be optimized out and the overflow won't
+        // matter.
+        let format = NumberFormat::<FORMAT> {};
+        if use_multi && T::BITS >= 64 && $iter.length() >= 8 {
+            // Try our fast, 8-digit at a time optimizations.
+            let radix8 = T::from_u32(format.radix8());
+            while let Some(value) = try_parse_8digits::<T, _, FORMAT>(&mut $iter) {
+                $value = $value.wrapping_mul(radix8).$add_op(value);
+            }
+        } else if use_multi && T::BITS == 32 && $iter.length() >= 4 {
+            // Try our fast, 8-digit at a time optimizations.
+            let radix4 = T::from_u32(format.radix4());
+            while let Some(value) = try_parse_4digits::<T, _, FORMAT>(&mut $iter) {
+                $value = $value.wrapping_mul(radix4).$add_op(value);
+            }
         }
-    } else if use_multi && T::BITS == 32 && $iter.length() >= 4 {
-        // Try our fast, 8-digit at a time optimizations.
-        let radix4 = T::from_u32(format.radix4());
-        while let Some(value) = try_parse_4digits::<T, _, FORMAT>(&mut $iter) {
-            $value = $value.wrapping_mul(radix4).$add_op(value);
-        }
-    }
-    parse_1digit_unchecked!($value, $iter, $add_op, $start_index, $invalid_digit, $is_end)
-}};
+        parse_1digit_unchecked!($value, $iter, $add_op, $start_index, $invalid_digit, $is_end)
+    }};
 }
 
 /// Run  checked loop where digits are processed with overflow checking.
@@ -438,7 +474,8 @@ macro_rules! parse_digits_unchecked {
 /// * `invalid_digit` - Behavior when an invalid digit is found.
 /// * `overflow` - If the error is overflow or underflow.
 /// * `no_multi_digit` - If to disable multi-digit optimizations.
-/// * `overflow_digits` - The number of digits before we need to consider checked ops.
+/// * `overflow_digits` - The number of digits before we need to consider
+///   checked ops.
 macro_rules! parse_digits_checked {
     (
         $value:ident,

@@ -2,11 +2,12 @@
 
 #![doc(hidden)]
 
-use crate::float::{ExtendedFloat80, RawFloat};
-use crate::mask::{lower_n_halfway, lower_n_mask};
 #[cfg(feature = "power-of-two")]
 use lexical_util::format::NumberFormat;
 use lexical_util::num::AsPrimitive;
+
+use crate::float::{ExtendedFloat80, RawFloat};
+use crate::mask::{lower_n_halfway, lower_n_mask};
 
 // 8 DIGIT
 // -------

@@ -2,8 +2,6 @@
 
 #![doc(hidden)]
 
-use crate::options::Options;
-use crate::write::WriteFloat;
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
 use lexical_util::constants::FormattedSize;
@@ -12,6 +10,9 @@ use lexical_util::f16::f16;
 use lexical_util::format::STANDARD;
 use lexical_util::options::WriteOptions;
 use lexical_util::{to_lexical, to_lexical_with_options};
+
+use crate::options::Options;
+use crate::write::WriteFloat;
 
 /// Check if a buffer is sufficiently large.
 #[inline(always)]

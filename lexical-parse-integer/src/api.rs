@@ -2,10 +2,11 @@
 
 #![doc(hidden)]
 
-use crate::options::{Options, STANDARD as DEFAULT_OPTIONS};
-use crate::parse::ParseInteger;
 use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::{from_lexical, from_lexical_with_options};
+
+use crate::options::{Options, STANDARD as DEFAULT_OPTIONS};
+use crate::parse::ParseInteger;
 
 /// Implement FromLexical for numeric type.
 ///

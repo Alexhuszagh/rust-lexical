@@ -2,14 +2,14 @@
 //!
 //! This is adapted from [fast-float-rust](https://github.com/aldanor/fast-float-rust),
 //! a port of [fast_float](https://github.com/fastfloat/fast_float) to Rust.
-//!
 
 #![doc(hidden)]
+
+use lexical_util::format::NumberFormat;
 
 use crate::float::RawFloat;
 #[cfg(feature = "nightly")]
 use crate::fpu::set_precision;
-use lexical_util::format::NumberFormat;
 
 /// Representation of a number as the significant digits and exponent.
 ///
@@ -46,10 +46,10 @@ impl<'a> Number<'a> {
 
     /// The fast path algorithmn using machine-sized integers and floats.
     ///
-    /// This is extracted into a separate function so that it can be attempted before constructing
-    /// a Decimal. This only works if both the mantissa and the exponent
-    /// can be exactly represented as a machine float, since IEE-754 guarantees
-    /// no rounding will occur.
+    /// This is extracted into a separate function so that it can be attempted
+    /// before constructing a Decimal. This only works if both the mantissa
+    /// and the exponent can be exactly represented as a machine float,
+    /// since IEE-754 guarantees no rounding will occur.
     ///
     /// There is an exception: disguised fast-path cases, where we can shift
     /// powers-of-10 from the exponent to the significant digits.
@@ -58,11 +58,13 @@ impl<'a> Number<'a> {
     pub fn try_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> Option<F> {
         let format = NumberFormat::<FORMAT> {};
         debug_assert!(format.mantissa_radix() == format.exponent_base());
-        // The fast path crucially depends on arithmetic being rounded to the correct number of bits
-        // without any intermediate rounding. On x86 (without SSE or SSE2) this requires the precision
-        // of the x87 FPU stack to be changed so that it directly rounds to 64/32 bit.
-        // The `set_precision` function takes care of setting the precision on architectures which
-        // require setting it by changing the global state (like the control word of the x87 FPU).
+        // The fast path crucially depends on arithmetic being rounded to the correct
+        // number of bits without any intermediate rounding. On x86 (without SSE
+        // or SSE2) this requires the precision of the x87 FPU stack to be
+        // changed so that it directly rounds to 64/32 bit. The `set_precision`
+        // function takes care of setting the precision on architectures which
+        // require setting it by changing the global state (like the control word of the
+        // x87 FPU).
         #[cfg(feature = "nightly")]
         let _cw = set_precision::<F>();
 

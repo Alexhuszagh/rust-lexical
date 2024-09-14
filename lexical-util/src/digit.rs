@@ -96,7 +96,8 @@ pub const fn char_is_digit(c: u8, radix: u32) -> bool {
     char_to_digit(c, radix).is_some()
 }
 
-/// Convert a digit to a character. This uses a pre-computed table to avoid branching.
+/// Convert a digit to a character. This uses a pre-computed table to avoid
+/// branching.
 ///
 /// # Panics
 ///

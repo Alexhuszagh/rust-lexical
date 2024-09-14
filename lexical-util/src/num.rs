@@ -4,11 +4,12 @@
 //! types, and trait bounds, and conversions for working with
 //! numbers in generic code.
 
+use core::{fmt, mem, ops};
+
 #[cfg(feature = "f16")]
 use crate::bf16::bf16;
 #[cfg(feature = "f16")]
 use crate::f16::f16;
-use core::{fmt, mem, ops};
 
 // AS PRIMITIVE
 // ------------
@@ -632,7 +633,8 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     const SIGN_MASK: Self::Unsigned;
     /// Bitmask for the exponent, including the hidden bit.
     const EXPONENT_MASK: Self::Unsigned;
-    /// Bitmask for the hidden bit in exponent, which is an implicit 1 in the fraction.
+    /// Bitmask for the hidden bit in exponent, which is an implicit 1 in the
+    /// fraction.
     const HIDDEN_BIT_MASK: Self::Unsigned;
     /// Bitmask for the mantissa (fraction), excluding the hidden bit.
     const MANTISSA_MASK: Self::Unsigned;
@@ -1241,36 +1243,27 @@ fn floorf(x: f32) -> f32 {
  * Return the logarithm of x
  *
  * Method :
- *   1. Argument Reduction: find k and f such that
- *                      x = 2^k * (1+f),
- *         where  sqrt(2)/2 < 1+f < sqrt(2) .
+ *   1. Argument Reduction: find k and f such that x = 2^k * (1+f), where
+ *      sqrt(2)/2 < 1+f < sqrt(2) .
  *
- *   2. Approximation of log(1+f).
- *      Let s = f/(2+f) ; based on log(1+f) = log(1+s) - log(1-s)
- *               = 2s + 2/3 s**3 + 2/5 s**5 + .....,
- *               = 2s + s*R
- *      We use a special Remez algorithm on [0,0.1716] to generate
- *      a polynomial of degree 14 to approximate R The maximum error
- *      of this polynomial approximation is bounded by 2**-58.45. In
- *      other words,
- *                      2      4      6      8      10      12      14
- *          R(z) ~ Lg1*s +Lg2*s +Lg3*s +Lg4*s +Lg5*s  +Lg6*s  +Lg7*s
- *      (the values of Lg1 to Lg7 are listed in the program)
- *      and
- *          |      2          14          |     -58.45
- *          | Lg1*s +...+Lg7*s    -  R(z) | <= 2
- *          |                             |
- *      Note that 2s = f - s*f = f - hfsq + s*hfsq, where hfsq = f*f/2.
- *      In order to guarantee error in log below 1ulp, we compute log
- *      by
- *              log(1+f) = f - s*(f - R)        (if f is not too large)
- *              log(1+f) = f - (hfsq - s*(hfsq+R)).     (better accuracy)
+ *   2. Approximation of log(1+f). Let s = f/(2+f) ; based on log(1+f) =
+ *      log(1+s) - log(1-s) = 2s + 2/3 s**3 + 2/5 s**5 + ....., = 2s + s*R We
+ *      use a special Remez algorithm on [0,0.1716] to generate a polynomial
+ *      of degree 14 to approximate R The maximum error of this polynomial
+ *      approximation is bounded by 2**-58.45. In other words, 2      4
+ *      6      8      10      12      14 R(z) ~ Lg1*s +Lg2*s +Lg3*s +Lg4*s
+ *      +Lg5*s  +Lg6*s  +Lg7*s (the values of Lg1 to Lg7 are listed in the
+ *      program) and |      2          14          |     -58.45 | Lg1*s
+ *      +...+Lg7*s    -  R(z) | <= 2 |                             | Note
+ *      that 2s = f - s*f = f - hfsq + s*hfsq, where hfsq = f*f/2. In order
+ *      to guarantee error in log below 1ulp, we compute log by log(1+f) = f
+ *      - s*(f - R)        (if f is not too large) log(1+f) = f - (hfsq -
+ *      s*(hfsq+R)).     (better accuracy)
  *
- *      3. Finally,  log(x) = k*ln2 + log(1+f).
- *                          = k*ln2_hi+(f-(hfsq-(s*(hfsq+R)+k*ln2_lo)))
- *         Here ln2 is split into two floating point number:
- *                      ln2_hi + ln2_lo,
- *         where n*ln2_hi is always exact for |n| < 2000.
+ *      3. Finally,  log(x) = k*ln2 + log(1+f). =
+ *         k*ln2_hi+(f-(hfsq-(s*(hfsq+R)+k*ln2_lo))) Here ln2 is split into
+ *         two floating point number: ln2_hi + ln2_lo, where n*ln2_hi is
+ *         always exact for |n| < 2000.
  *
  * Special cases:
  *      log(x) is NaN with signal if x < 0 (including -INF) ;
@@ -1308,7 +1301,7 @@ fn logd(mut x: f64) -> f64 {
     let mut k: i32 = 0;
 
     if (hx < 0x00100000) || ((hx >> 31) != 0) {
-        /* x < 2**-126  */
+        /* x < 2**-126 */
         if ui << 1 == 0 {
             return -1. / (x * x); /* log(+-0)=-inf */
         }
@@ -1366,10 +1359,10 @@ fn logf(mut x: f32) -> f32 {
     const LN2_HI: f32 = 6.9313812256e-01; /* 0x3f317180 */
     const LN2_LO: f32 = 9.0580006145e-06; /* 0x3717f7d1 */
     /* |(log(1+s)-log(1-s))/s - Lg(s)| < 2**-34.24 (~[-4.95e-11, 4.97e-11]). */
-    const LG1: f32 = 0.66666662693; /*  0xaaaaaa.0p-24*/
-    const LG2: f32 = 0.40000972152; /*  0xccce13.0p-25 */
-    const LG3: f32 = 0.28498786688; /*  0x91e9ee.0p-25 */
-    const LG4: f32 = 0.24279078841; /*  0xf89e26.0p-26 */
+    const LG1: f32 = 0.66666662693; /* 0xaaaaaa.0p-24 */
+    const LG2: f32 = 0.40000972152; /* 0xccce13.0p-25 */
+    const LG3: f32 = 0.28498786688; /* 0x91e9ee.0p-25 */
+    const LG4: f32 = 0.24279078841; /* 0xf89e26.0p-26 */
 
     let x1p25 = f32::from_bits(0x4c000000); // 0x1p25f === 2 ^ 25
 
@@ -1377,7 +1370,7 @@ fn logf(mut x: f32) -> f32 {
     let mut k = 0i32;
 
     if (ix < 0x00800000) || ((ix >> 31) != 0) {
-        /* x < 2**-126  */
+        /* x < 2**-126 */
         if ix << 1 == 0 {
             return -1. / (x * x); /* log(+-0)=-inf */
         }

@@ -6,11 +6,9 @@
 #![cfg(feature = "parse")]
 
 pub use crate::buffer::Buffer;
-
 // Re-export our digit iterators.
 #[cfg(not(feature = "format"))]
 pub use crate::noskip::{AsBytes, Bytes};
-
 #[cfg(feature = "format")]
 pub use crate::skip::{AsBytes, Bytes};
 
@@ -58,7 +56,8 @@ pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> + Buffer<'a> {
         unsafe { self.set_cursor(0) };
     }
 
-    /// Get a slice to the full buffer, which may or may not be the same as `as_slice`.
+    /// Get a slice to the full buffer, which may or may not be the same as
+    /// `as_slice`.
     fn as_full_slice(&self) -> &'a [u8];
 
     /// Get the current number of values returned by the iterator.
@@ -154,7 +153,8 @@ pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> + Buffer<'a> {
         }
     }
 
-    /// Peek the next value and consume it if the read value matches the expected one.
+    /// Peek the next value and consume it if the read value matches the
+    /// expected one.
     #[inline(always)]
     fn read_if<Pred: FnOnce(&u8) -> bool>(&mut self, pred: Pred) -> Option<Self::Item> {
         if let Some(peeked) = self.peek() {

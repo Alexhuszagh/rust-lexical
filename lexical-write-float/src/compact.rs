@@ -15,16 +15,13 @@
 //! 1. The exponent is inferred, rather than explicitly store.
 //! 2. The mantissas are stored in hex, rather than decimal.
 //! 3. Forcing and disabling exponent notation is now supported.
-//! 4. Controlling the maximum and minimum number of significant digits is supported.
+//! 4. Controlling the maximum and minimum number of significant digits is
+//!    supported.
 //! 5. Support for trimming floats (".0") is also included.
 
 #![cfg(feature = "compact")]
 #![doc(hidden)]
 
-use crate::float::{ExtendedFloat80, RawFloat};
-use crate::options::Options;
-use crate::shared;
-use crate::table::GRISU_POWERS_OF_TEN;
 use lexical_util::algorithm::rtrim_char_count;
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
@@ -33,6 +30,11 @@ use lexical_util::digit::digit_to_char_const;
 use lexical_util::f16::f16;
 use lexical_util::format::NumberFormat;
 use lexical_util::num::{AsPrimitive, Float};
+
+use crate::float::{ExtendedFloat80, RawFloat};
+use crate::options::Options;
+use crate::shared;
+use crate::table::GRISU_POWERS_OF_TEN;
 
 /// Compact float-to-string algorithm for decimal strings.
 ///
@@ -191,7 +193,8 @@ pub unsafe fn write_float_negative_exponent<const FORMAT: u128>(
     let mut cursor = sci_exp + 1;
 
     // Write out significant digits.
-    // SAFETY: safe if the buffer is large enough to hold all the significant digits.
+    // SAFETY: safe if the buffer is large enough to hold all the significant
+    // digits.
     unsafe {
         let src = digits.as_ptr();
         let dst = &mut bytes[cursor..cursor + digit_count];
@@ -503,7 +506,8 @@ pub fn normalized_boundaries<F: Float>(fp: &ExtendedFloat80) -> (ExtendedFloat80
 /// set. The result is not normalized.
 ///
 /// Algorithm:
-///     1. Non-signed multiplication of mantissas (requires 2x as many bits as input).
+///     1. Non-signed multiplication of mantissas (requires 2x as many bits as
+///        input).
 ///     2. Normalization of the result (not done here).
 ///     3. Addition of exponents.
 pub fn mul(x: &ExtendedFloat80, y: &ExtendedFloat80) -> ExtendedFloat80 {

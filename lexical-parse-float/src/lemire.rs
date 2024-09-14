@@ -11,7 +11,8 @@ use crate::number::Number;
 use crate::shared;
 use crate::table::{LARGEST_POWER_OF_FIVE, POWER_OF_FIVE_128, SMALLEST_POWER_OF_FIVE};
 
-/// Ensure truncation of digits doesn't affect our computation, by doing 2 passes.
+/// Ensure truncation of digits doesn't affect our computation, by doing 2
+/// passes.
 #[inline(always)]
 pub fn lemire<F: LemireFloat>(num: &Number, lossy: bool) -> ExtendedFloat80 {
     // If significant digits were truncated, then we can have rounding error
@@ -113,8 +114,8 @@ pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> Extende
     // need to round down.
     //
     // This will only occur if:
-    //  1. The lower 64 bits of the 128-bit representation is 0.
-    //      IE, 5^q fits in single 64-bit word.
+    //  1. The lower 64 bits of the 128-bit representation is 0. IE, 5^q fits in
+    //     single 64-bit word.
     //  2. The least-significant bit prior to truncated mantissa is odd.
     //  3. All the bits truncated when shifting to mantissa bits + 1 are 0.
     //
@@ -164,7 +165,8 @@ pub fn compute_error<F: LemireFloat>(q: i64, mut w: u64) -> ExtendedFloat80 {
 /// Compute the error from a mantissa scaled to the exponent.
 #[inline(always)]
 pub fn compute_error_scaled<F: LemireFloat>(q: i64, mut w: u64, lz: i32) -> ExtendedFloat80 {
-    // Want to normalize the float, but this is faster than ctlz on most architectures.
+    // Want to normalize the float, but this is faster than ctlz on most
+    // architectures.
     let hilz = (w >> 63) as i32 ^ 1;
     w <<= hilz;
     let power2 = power(q as i32) + F::EXPONENT_BIAS - hilz - lz - 62;
@@ -190,9 +192,10 @@ fn full_multiplication(a: u64, b: u64) -> (u64, u64) {
     (r as u64, (r >> 64) as u64)
 }
 
-// This will compute or rather approximate w * 5**q and return a pair of 64-bit words
-// approximating the result, with the "high" part corresponding to the most significant
-// bits and the low part corresponding to the least significant bits.
+// This will compute or rather approximate w * 5**q and return a pair of 64-bit
+// words approximating the result, with the "high" part corresponding to the
+// most significant bits and the low part corresponding to the least significant
+// bits.
 fn compute_product_approx(q: i64, w: u64, precision: usize) -> (u64, u64) {
     debug_assert!(q >= SMALLEST_POWER_OF_FIVE as i64);
     debug_assert!(q <= LARGEST_POWER_OF_FIVE as i64);

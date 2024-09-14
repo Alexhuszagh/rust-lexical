@@ -2,6 +2,7 @@ mod stackvec;
 
 #[cfg(feature = "radix")]
 use core::cmp;
+
 #[cfg(feature = "radix")]
 use lexical_parse_float::bigint::Bigfloat;
 use lexical_parse_float::bigint::Bigint;

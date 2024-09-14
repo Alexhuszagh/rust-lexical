@@ -4,9 +4,10 @@
 //! bindings.
 
 use core::{fmt, mem};
-use static_assertions::const_assert;
 #[cfg(feature = "std")]
 use std::error;
+
+use static_assertions::const_assert;
 
 /// Error code during parsing, indicating failure type.
 #[non_exhaustive]

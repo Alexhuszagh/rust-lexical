@@ -5,11 +5,12 @@
 #![doc(hidden)]
 
 #[cfg(not(feature = "radix"))]
-use crate::table_decimal::*;
-#[cfg(not(feature = "radix"))]
 use lexical_util::assert::debug_assert_radix;
 #[cfg(not(feature = "radix"))]
 use lexical_util::format::radix_from_flags;
+
+#[cfg(not(feature = "radix"))]
+use crate::table_decimal::*;
 
 /// Get lookup table for 2 digit radix conversions.
 ///

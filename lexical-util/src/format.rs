@@ -245,15 +245,15 @@
 //! - [is_valid_punctuation]
 //! - [is_valid_radix]
 
+use static_assertions::const_assert;
+
+use crate::error::Error;
 #[cfg(feature = "format")]
 pub use crate::feature_format::*;
 pub use crate::format_builder::*;
 pub use crate::format_flags::*;
 #[cfg(not(feature = "format"))]
 pub use crate::not_feature_format::*;
-
-use crate::error::Error;
-use static_assertions::const_assert;
 
 /// Determine if the format packed struct is valid.
 #[inline(always)]

@@ -1,6 +1,7 @@
 #![cfg(feature = "format")]
 
 use core::num;
+
 use lexical_util::format;
 
 #[test]

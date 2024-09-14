@@ -9,17 +9,6 @@
 
 #![doc(hidden)]
 
-#[cfg(any(feature = "compact", feature = "radix"))]
-use crate::bellerophon::bellerophon;
-#[cfg(feature = "power-of-two")]
-use crate::binary::{binary, slow_binary};
-use crate::float::{extended_to_float, ExtendedFloat80, LemireFloat};
-#[cfg(not(feature = "compact"))]
-use crate::lemire::lemire;
-use crate::number::Number;
-use crate::options::Options;
-use crate::shared;
-use crate::slow::slow_radix;
 #[cfg(not(feature = "compact"))]
 use lexical_parse_integer::algorithm;
 #[cfg(feature = "f16")]
@@ -33,6 +22,18 @@ use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
 use lexical_util::result::Result;
 use lexical_util::step::u64_step;
+
+#[cfg(any(feature = "compact", feature = "radix"))]
+use crate::bellerophon::bellerophon;
+#[cfg(feature = "power-of-two")]
+use crate::binary::{binary, slow_binary};
+use crate::float::{extended_to_float, ExtendedFloat80, LemireFloat};
+#[cfg(not(feature = "compact"))]
+use crate::lemire::lemire;
+use crate::number::Number;
+use crate::options::Options;
+use crate::shared;
+use crate::slow::slow_radix;
 
 // API
 // ---
@@ -87,14 +88,16 @@ pub trait ParseFloat: LemireFloat {
         parse_partial::<Self, FORMAT>(bytes, options)
     }
 
-    /// Forward complete parser parameters to the backend, using only the fast path.
+    /// Forward complete parser parameters to the backend, using only the fast
+    /// path.
     #[cfg_attr(not(feature = "compact"), inline(always))]
     fn fast_path_complete<const FORMAT: u128>(bytes: &[u8], options: &Options) -> Result<Self> {
         check_radix!(FORMAT);
         fast_path_complete::<Self, FORMAT>(bytes, options)
     }
 
-    /// Forward partial parser parameters to the backend, using only the fast path.
+    /// Forward partial parser parameters to the backend, using only the fast
+    /// path.
     #[cfg_attr(not(feature = "compact"), inline(always))]
     fn fast_path_partial<const FORMAT: u128>(
         bytes: &[u8],
@@ -515,7 +518,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     //      We've tried:
     //          - checking for explicit overflow, via `overflowing_mul`.
     //          - counting the max number of steps.
-    //          - subslicing the string, and only processing the first `step` digits.
+    //          - subslicing the string, and only processing the first `step`
+    //            digits.
     //          - pre-computing the maximum power, and only adding until then.
     //
     //      All of these lead to substantial performance penalty.

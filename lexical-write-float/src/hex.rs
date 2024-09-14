@@ -17,6 +17,12 @@
 #![cfg(feature = "power-of-two")]
 #![doc(hidden)]
 
+use lexical_util::algorithm::rtrim_char_count;
+use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
+use lexical_util::format::NumberFormat;
+use lexical_util::num::{Float, Integer};
+use lexical_write_integer::write::WriteInteger;
+
 use crate::binary::{
     calculate_shl,
     fast_ceildiv,
@@ -27,11 +33,6 @@ use crate::binary::{
 };
 use crate::options::Options;
 use crate::shared;
-use lexical_util::algorithm::rtrim_char_count;
-use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
-use lexical_util::format::NumberFormat;
-use lexical_util::num::{Float, Integer};
-use lexical_write_integer::write::WriteInteger;
 
 /// Optimized float-to-string algorithm for hexadecimal strings.
 ///

@@ -1,4 +1,5 @@
-//! The maximum digits that can be held in a u64 for a given radix without overflow.
+//! The maximum digits that can be held in a u64 for a given radix without
+//! overflow.
 //!
 //! This is useful for 128-bit division and operations, since it can
 //! reduces the number of inefficient, non-native operations.
@@ -139,8 +140,8 @@ pub const fn max_step(radix: u32, bits: usize, is_signed: bool) -> usize {
     }
 }
 
-/// Calculate the number of digits that can be processed without overflowing a u64.
-/// Helper function since this is used for 128-bit division.
+/// Calculate the number of digits that can be processed without overflowing a
+/// u64. Helper function since this is used for 128-bit division.
 #[inline(always)]
 pub const fn u64_step(radix: u32) -> usize {
     min_step(radix, 64, false)

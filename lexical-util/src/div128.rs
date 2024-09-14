@@ -3,10 +3,10 @@
 //! # Fast Algorithms
 //!
 //! The more optimized algorithms for calculating the divisor constants are
-//! based off of the paper "Division by Invariant Integers Using Multiplication",
-//! by T. Granlund and P. Montgomery, in "Proc. of the SIGPLAN94 Conference
-//! on Programming Language Design and Implementation", available online
-//! [here](https://gmplib.org/~tege/divcnst-pldi94.pdf).
+//! based off of the paper "Division by Invariant Integers Using
+//! Multiplication", by T. Granlund and P. Montgomery, in "Proc. of the
+//! SIGPLAN94 Conference on Programming Language Design and Implementation",
+//! available online [here](https://gmplib.org/~tege/divcnst-pldi94.pdf).
 //!
 //! This approach is derived from the Rust algorithm for formatting 128-bit
 //! values, and therefore is similarly dual-licensed under MIT/Apache-2.0.
@@ -59,7 +59,8 @@ pub const fn pow2_u128_divrem(n: u128, mask: u64, shr: u32) -> (u128, u64) {
     (quot, rem)
 }
 
-/// Fast division/remainder algorithm for u128, without a fast native approximation.
+/// Fast division/remainder algorithm for u128, without a fast native
+/// approximation.
 #[inline(always)]
 #[allow(clippy::many_single_char_names)]
 pub fn fast_u128_divrem(
@@ -79,7 +80,8 @@ pub fn fast_u128_divrem(
     (quot, rem)
 }
 
-/// Fast division/remainder algorithm for u128, without a fast native approximation.
+/// Fast division/remainder algorithm for u128, without a fast native
+/// approximation.
 #[inline(always)]
 #[allow(clippy::many_single_char_names)]
 pub fn moderate_u128_divrem(n: u128, d: u64, factor: u128, factor_shr: u32) -> (u128, u64) {
@@ -117,8 +119,8 @@ pub fn slow_u128_divrem(n: u128, d: u64, d_ctlz: u32) -> (u128, u64) {
     let mut r: u128 = n >> sr;
     let mut carry: u64 = 0;
 
-    // Don't use a range because they may generate references to memcpy in unoptimized code
-    // Loop invariants:  r < d; carry is 0 or 1
+    // Don't use a range because they may generate references to memcpy in
+    // unoptimized code Loop invariants:  r < d; carry is 0 or 1
     let mut i = 0;
     while i < sr {
         i += 1;

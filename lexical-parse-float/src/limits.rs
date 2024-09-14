@@ -498,7 +498,8 @@ pub const fn u64_power_limit(radix: u32) -> u32 {
 /// digits required to exactly represent that float. This makes sense,
 /// and the exact reference and I quote is:
 ///
-///  > A necessary and sufficient condition for all numbers representable in radix β
+///  > A necessary and sufficient condition for all numbers representable in
+///  > radix β
 ///  > with a finite number of digits to be representable in radix γ with a
 ///  > finite number of digits is that β should divide an integer power of γ.
 ///
@@ -529,7 +530,8 @@ pub const fn u64_power_limit(radix: u32) -> u32 {
 ///     p2 = 113
 ///
 /// In Python:
-///     `-emin + p2 + math.floor((emin+ 1)*math.log(2, b)-math.log(1-2**(-p2), b))`
+///     `-emin + p2 + math.floor((emin+ 1)*math.log(2, b)-math.log(1-2**(-p2),
+/// b))`
 ///
 /// This was used to calculate the maximum number of digits for [2, 36].
 ///

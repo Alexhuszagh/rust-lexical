@@ -5,8 +5,9 @@
 
 #![cfg(all(feature = "parse", not(feature = "format")))]
 
-use crate::{buffer::Buffer, iterator::BytesIter};
 use core::{mem, ptr};
+
+use crate::{buffer::Buffer, iterator::BytesIter};
 
 // AS DIGITS
 // ---------

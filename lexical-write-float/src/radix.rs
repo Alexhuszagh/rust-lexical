@@ -12,14 +12,15 @@
 #![cfg(feature = "radix")]
 #![doc(hidden)]
 
-use crate::options::{Options, RoundMode};
-use crate::shared;
 use lexical_util::algorithm::{ltrim_char_count, rtrim_char_count};
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 use lexical_util::digit::{char_to_digit_const, digit_to_char_const};
 use lexical_util::format::NumberFormat;
 use lexical_util::num::Float;
 use lexical_write_integer::write::WriteInteger;
+
+use crate::options::{Options, RoundMode};
+use crate::shared;
 
 // ALGORITHM
 // ---------
@@ -278,7 +279,8 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     }
 
     // Now, write our scientific notation.
-    // SAFETY: safe if bytes is large enough to store the largest float with the smallest radix.
+    // SAFETY: safe if bytes is large enough to store the largest float with the
+    // smallest radix.
     unsafe { shared::write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent()) };
 
     cursor
@@ -356,7 +358,8 @@ pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
     // Write the fraction component.
     // We've only consumed `integer_count` digits, since this input
     // may have been truncated.
-    // SAFETY: safe since `integer_count < digits.len()` since `digit_count < digits.len()`.
+    // SAFETY: safe since `integer_count < digits.len()` since `digit_count <
+    // digits.len()`.
     let digits = unsafe { &index_unchecked!(digits[integer_count..]) };
     let fraction_count = digit_count.saturating_sub(integer_length);
     if fraction_count > 0 {
@@ -486,7 +489,8 @@ pub unsafe fn truncate_and_round(
             (max_digits, false)
         } else {
             // Above halfway or at halfway and even, round-up
-            // SAFETY: safe if `digit_count <= digits.len()`, because `max_digits < digit_count`.
+            // SAFETY: safe if `digit_count <= digits.len()`, because `max_digits <
+            // digit_count`.
             let digits = unsafe { &mut index_unchecked_mut!(buffer[start..start + max_digits]) };
             unsafe { shared::round_up(digits, max_digits, radix) }
         }

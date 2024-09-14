@@ -5,6 +5,7 @@
 // and is similarly licensed under an Apache2.0/MIT license
 
 use core::f64;
+
 use lexical_parse_float::libm;
 
 #[test]
@@ -167,7 +168,8 @@ fn powd_infinity_as_base() {
 #[test]
 fn infinity_as_exponent() {
     // Positive/Negative base greater than 1:
-    // (pos/neg > 1 ^ Infinity should be Infinity - note this excludes NAN as the base)
+    // (pos/neg > 1 ^ Infinity should be Infinity - note this excludes NAN as the
+    // base)
     powd_test_sets_as_base(&ALL[5..(ALL.len() - 2)], f64::INFINITY, f64::INFINITY);
 
     // (pos/neg > 1 ^ -Infinity should be 0.0)
@@ -227,7 +229,8 @@ fn special_cases() {
     powd_test_sets(ALL, &|v: f64| libm::powd(v, -1.0), &|v: f64| 1.0 / v);
 
     // Factoring -1 out:
-    // (negative anything ^ integer should be (-1 ^ integer) * (positive anything ^ integer))
+    // (negative anything ^ integer should be (-1 ^ integer) * (positive anything ^
+    // integer))
     [POS_ZERO, NEG_ZERO, POS_ONE, NEG_ONE, POS_EVENS, NEG_EVENS].iter().for_each(|int_set| {
         int_set.iter().for_each(|int| {
             powd_test_sets(ALL, &|v: f64| libm::powd(-v, *int), &|v: f64| {

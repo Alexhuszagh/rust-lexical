@@ -45,20 +45,22 @@
 //!
 //! # Safety
 //!
-//! This module uses a some more unsafe code for moderately acceptable performance. The
-//! compact decimal serializer has no non-local safety invariants, which since it's
-//! focused on code size rather than performance, this tradeoff is acceptable and it
-//! uses a temporary, over-allocated buffer as an intermediate.
+//! This module uses a some more unsafe code for moderately acceptable
+//! performance. The compact decimal serializer has no non-local safety
+//! invariants, which since it's focused on code size rather than performance,
+//! this tradeoff is acceptable and it uses a temporary, over-allocated buffer
+//! as an intermediate.
 //!
 //! The decimal writer relies on pre-computed tables and an exact calculation
 //! of the digit count ([digit_count]) to avoid any overhead. Avoid intermediary
-//! copies is **CRITICAL** for fast performance so the entire buffer must be known
-//! but assigned to use algorithms the compiler cannot easily verify. This is
-//! because we use multi-digit optimizations with our pre-computed tables,
-//! so we cannot just iterate over the slice and assign iteratively. Using checked
-//! indexing can lead to 30%+ decreases in performance. However, with careful analysis
-//! and factoring of the code, it's fairly easy to demonstrate the safety as long
-//! as the caller enusres at least the required number of digits are provided.
+//! copies is **CRITICAL** for fast performance so the entire buffer must be
+//! known but assigned to use algorithms the compiler cannot easily verify. This
+//! is because we use multi-digit optimizations with our pre-computed tables,
+//! so we cannot just iterate over the slice and assign iteratively. Using
+//! checked indexing can lead to 30%+ decreases in performance. However, with
+//! careful analysis and factoring of the code, it's fairly easy to demonstrate
+//! the safety as long as the caller enusres at least the required number of
+//! digits are provided.
 //!
 //! Our algorithms work like this, carving off the lower digits and writing them
 //! to the back of the buffer.
@@ -99,13 +101,15 @@
 //! tables are large enough so there are no non-local safety considerations
 //! there. The current logic call stack is:
 //! 1. [to_lexical]
-//! 2. [decimal][dec], compact, or radix (gts the correct tables and calls algorithm)
+//! 2. [decimal][dec], compact, or radix (gts the correct tables and calls
+//!    algorithm)
 //! 3. [algorithm]
 //!
-//! [decimal][dec], compact, and radix therefore **MUST** be safe and do type check
-//! of the bounds to avoid too much expoosure to unsafety. Only [algorithm] should
-//! have any unsafety associated with it. That is, as long as the direct caller
-//! has ensure the proper buffer is allocated, there are non-local safety invariants.
+//! [decimal][dec], compact, and radix therefore **MUST** be safe and do type
+//! check of the bounds to avoid too much expoosure to unsafety. Only
+//! [algorithm] should have any unsafety associated with it. That is, as long as
+//! the direct caller has ensure the proper buffer is allocated, there are
+//! non-local safety invariants.
 //!
 //! [digit_count]: crate::decimal::DigitCount
 //! [to_lexical]: crate::ToLexical::to_lexical
@@ -135,9 +139,10 @@ mod table_decimal;
 mod table_radix;
 
 // Re-exports
-pub use self::api::{ToLexical, ToLexicalWithOptions};
-#[doc(inline)]
-pub use self::options::{Options, OptionsBuilder};
 pub use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 pub use lexical_util::format::{self, NumberFormatBuilder};
 pub use lexical_util::options::WriteOptions;
+
+pub use self::api::{ToLexical, ToLexicalWithOptions};
+#[doc(inline)]
+pub use self::options::{Options, OptionsBuilder};

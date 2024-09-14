@@ -1,4 +1,5 @@
 use core::num;
+
 use lexical_write_float::options::{self, Options, OptionsBuilder};
 
 #[test]
