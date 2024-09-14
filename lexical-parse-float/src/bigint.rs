@@ -12,6 +12,22 @@ use crate::limits::{u32_power_limit, u64_power_limit};
 use crate::table::get_large_int_power;
 use core::{cmp, mem, ops, ptr, slice};
 
+/// Index an array without bounds checking.
+///
+/// # Safety
+///
+/// Safe if `index < array.len()`.
+macro_rules! index_unchecked {
+    ($x:ident[$i:expr]) => {
+        // SAFETY: safe if `index < array.len()`.
+        if cfg!(feature = "safe") {
+            &$x[$i]
+        } else {
+            $x.get_unchecked($i)
+        }
+    };
+}
+
 // BIGINT
 // ------
 
@@ -265,15 +281,15 @@ pub struct StackVec<const SIZE: usize> {
 /// - `fn`      - The callback to extract the high bits.
 macro_rules! hi {
     (@1 $self:ident, $rview:ident, $t:ident, $fn:ident) => {{
-        $fn(unsafe { index_unchecked!($rview[0]) as $t })
+        $fn(unsafe { *index_unchecked!($rview[0]) as $t })
     }};
 
     // # Safety
     //
     // Safe as long as the `stackvec.len() >= 2`.
     (@2 $self:ident, $rview:ident, $t:ident, $fn:ident) => {{
-        let r0 = unsafe { index_unchecked!($rview[0]) as $t };
-        let r1 = unsafe { index_unchecked!($rview[1]) as $t };
+        let r0 = unsafe { *index_unchecked!($rview[0]) as $t };
+        let r1 = unsafe { *index_unchecked!($rview[1]) as $t };
         $fn(r0, r1)
     }};
 
@@ -289,9 +305,9 @@ macro_rules! hi {
     //
     // Safe as long as the `stackvec.len() >= 3`.
     (@3 $self:ident, $rview:ident, $t:ident, $fn:ident) => {{
-        let r0 = unsafe { index_unchecked!($rview[0]) as $t };
-        let r1 = unsafe { index_unchecked!($rview[1]) as $t };
-        let r2 = unsafe { index_unchecked!($rview[2]) as $t };
+        let r0 = unsafe { *index_unchecked!($rview[0]) as $t };
+        let r1 = unsafe { *index_unchecked!($rview[1]) as $t };
+        let r2 = unsafe { *index_unchecked!($rview[2]) as $t };
         $fn(r0, r1, r2)
     }};
 
@@ -1205,7 +1221,7 @@ pub fn large_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Optio
     // multiplication.
     if y.len() == 1 {
         // SAFETY: safe since `y.len() == 1`.
-        small_mul(x, unsafe { index_unchecked!(y[0]) })?;
+        small_mul(x, unsafe { *index_unchecked!(y[0]) })?;
     } else {
         *x = long_mul(y, x)?;
     }

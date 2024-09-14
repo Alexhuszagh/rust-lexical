@@ -33,10 +33,6 @@
 //! * `safe` - Ensure only memory-safe indexing is used.
 //! * `nightly` - Enable assembly instructions to control FPU rounding modes.
 //!
-//! `safe` has a fairly minimal impact, since all parsers are memory-safe
-//! by default except where unsafe functionality can trivially be proven
-//! correct.
-//!
 //! # Note
 //!
 //! Only documented functionality is considered part of the public API:
@@ -74,24 +70,35 @@
 //! The minimum, standard, required version is 1.63.0, for const generic
 //! support. Older versions of lexical support older Rust versions.
 //!
+//! # Safety
+//!
+//! The primary use of unsafe code is in the big integer implementation, which for
+//! performance reasons requires unchecked indexing at certain points, where rust
+//! cannot elide the index check. The use of unsafe code can be found in the
+//! calculation of the [hi] bits, however, every invocation requires the buffer to
+//! be of sufficient [length][longbits]. The other major source is the implementation
+//! of methods such as [push_unchecked], however, the safety invariants for each caller
+//! to create a safe API are documented and has similar safety guarantees to a regular
+//! vector. All other invocations of unsafe code are indexing a buffer where the index
+//! is proven to be within bounds within a few lines of code of the unsafe index.
+//!
 //! # Design
 //!
 //! - [Algorithm Approach](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/Algorithm.md)
 //! - [Benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/Benchmarks.md)
+//! - [Comprehensive Benchmarks](https://github.com/Alexhuszagh/lexical-benchmarks)
 //! - [Big Integer Implementation](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/BigInteger.md)
+//!
+//! [hi]: <https://github.com/Alexhuszagh/rust-lexical/blob/15d4c8c92d70b1fb9bd6d33f582ffe27e0e74f99/lexical-parse-float/src/bigint.rs#L266>
+//! [longbits]: <https://github.com/Alexhuszagh/rust-lexical/blob/15d4c8c92d70b1fb9bd6d33f582ffe27e0e74f99/lexical-parse-float/src/bigint.rs#L550-L557>
+//! [push_unchecked]: <https://github.com/Alexhuszagh/rust-lexical/blob/15d4c8c92d70b1fb9bd6d33f582ffe27e0e74f99/lexical-parse-float/src/bigint.rs#L377-L386>
 
-// Inline ASM was stabilized in 1.59.0.
-// FIXME: Remove when the MSRV for Rustc >= 1.59.0.
-#![allow(stable_features)]
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
 #![allow(unused_unsafe)]
 #![cfg_attr(feature = "lint", warn(unsafe_op_in_unsafe_fn))]
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(feature = "nightly", feature(asm))]
 
-#[macro_use]
-mod index;
 #[macro_use]
 pub mod shared;
 

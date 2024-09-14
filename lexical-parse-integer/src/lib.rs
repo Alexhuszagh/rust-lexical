@@ -53,6 +53,7 @@
 //!
 //! - [Algorithm Approach](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-integer/docs/Algorithm.md)
 //! - [Benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-integer/docs/Benchmarks.md)
+//! - [Comprehensive Benchmarks](https://github.com/Alexhuszagh/lexical-benchmarks)
 
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.

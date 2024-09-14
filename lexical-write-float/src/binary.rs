@@ -31,6 +31,7 @@ use lexical_write_integer::write::WriteInteger;
 ///
 /// Panics if exponent notation is used, and the exponent base and
 /// mantissa radix are not the same in `FORMAT`.
+// TODO: This needs to be safe
 pub unsafe fn write_float<F: Float, const FORMAT: u128>(
     float: F,
     bytes: &mut [u8],

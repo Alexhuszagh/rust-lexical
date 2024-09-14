@@ -337,7 +337,7 @@ fn mul_test() {
 
 fn grisu<T: RawFloat>(f: T, expected: &str, k: i32) {
     let mut buffer = [b'\x00'; 32];
-    let (count, real_k) = unsafe { compact::grisu(f, &mut buffer) };
+    let (count, real_k) = compact::grisu(f, &mut buffer);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
     assert_eq!(k, real_k);
@@ -356,7 +356,7 @@ fn grisu_test() {
 
 fn write_float<T: RawFloat, const FORMAT: u128>(f: T, options: &Options, expected: &str) {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let count = unsafe { compact::write_float::<_, FORMAT>(f, &mut buffer, options) };
+    let count = compact::write_float::<_, FORMAT>(f, &mut buffer, options);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -640,7 +640,7 @@ fn f32_roundtrip_test() {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
     let options = Options::builder().build().unwrap();
     for &float in F32_DATA.iter() {
-        let count = unsafe { compact::write_float::<_, DECIMAL>(float, &mut buffer, &options) };
+        let count = compact::write_float::<_, DECIMAL>(float, &mut buffer, &options);
         let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
         let roundtrip = actual.parse::<f32>();
         assert_eq!(roundtrip, Ok(float));
@@ -754,7 +754,7 @@ fn f64_roundtrip_test() {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
     let options = Options::builder().build().unwrap();
     for &float in F64_DATA.iter() {
-        let count = unsafe { compact::write_float::<_, DECIMAL>(float, &mut buffer, &options) };
+        let count = compact::write_float::<_, DECIMAL>(float, &mut buffer, &options);
         let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
         let roundtrip = actual.parse::<f64>();
         assert_eq!(roundtrip, Ok(float));
@@ -769,7 +769,7 @@ default_quickcheck! {
         if f.is_special() {
             true
         } else {
-            let count = unsafe { compact::write_float::<_, DECIMAL>(f, &mut buffer, &options) };
+            let count = compact::write_float::<_, DECIMAL>(f, &mut buffer, &options);
             let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
             let roundtrip = actual.parse::<f32>();
             roundtrip == Ok(f)
@@ -783,7 +783,7 @@ default_quickcheck! {
         if f.is_special() {
             true
         } else {
-            let count = unsafe { compact::write_float::<_, DECIMAL>(f, &mut buffer, &options) };
+            let count = compact::write_float::<_, DECIMAL>(f, &mut buffer, &options);
             let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
             let roundtrip = actual.parse::<f64>();
             roundtrip == Ok(f)
@@ -800,7 +800,7 @@ proptest! {
         let options = Options::builder().build().unwrap();
         let f = f.abs();
         if !f.is_special() {
-            let count = unsafe { compact::write_float::<_, DECIMAL>(f, &mut buffer, &options) };
+            let count = compact::write_float::<_, DECIMAL>(f, &mut buffer, &options);
             let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
             let roundtrip = actual.parse::<f32>();
             prop_assert_eq!(roundtrip, Ok(f))
@@ -813,7 +813,7 @@ proptest! {
         let options = Options::builder().build().unwrap();
         let f = f.abs();
         if !f.is_special() {
-            let count = unsafe { compact::write_float::<_, DECIMAL>(f, &mut buffer, &options) };
+            let count = compact::write_float::<_, DECIMAL>(f, &mut buffer, &options);
             let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
             let roundtrip = actual.parse::<f64>();
             prop_assert_eq!(roundtrip, Ok(f))

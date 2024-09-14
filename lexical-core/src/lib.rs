@@ -296,6 +296,7 @@
 //! - [Parsing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-integer/docs/Benchmarks.md)
 //! - [Writing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-float/docs/Benchmarks.md)
 //! - [Writing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-integer/docs/Benchmarks.md)
+//! - [Comprehensive Benchmarks](https://github.com/Alexhuszagh/lexical-benchmarks)
 //!
 //! A comprehensive analysis of lexical commits and their performance can be found in [benchmarks].
 //!

@@ -30,7 +30,13 @@
 macro_rules! i {
     ($array:ident, $index:expr) => {
         // SAFETY: safe if `index < array.len()`.
-        unsafe { index_unchecked!($array[$index]) }
+        unsafe {
+            if cfg!(feature = "safe") {
+                $array[$index]
+            } else {
+                *$array.get_unchecked($index)
+            }
+        }
     };
 }
 
