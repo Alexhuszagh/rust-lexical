@@ -28,10 +28,21 @@ fi
 # we want comprehensive tests so let's do everything
 # Test the write-float correctness tests.
 cd "${home}"
-cd lexical-write-float/etc/correctness
+cd lexical-parse-float/etc/correctness
 cargo +nightly miri run $FEATURES --release --bin test-parse-golang
 # NOTE: This is **extraordinarily slow, mostly because of how the data is parsed
 # as TOML which makes loading it take forever.
 if [ -z $COMPREHENSIVE ]; then
     cargo +nightly miri run $FEATURES --release --bin test-parse-unittests
+fi
+
+# we want comprehensive tests so let's do everything
+# Test the write-float correctness tests.
+cd "${home}"
+cd lexical-write-float/etc/correctness
+cargo +nightly miri run $FEATURES --release --bin random
+cargo +nightly miri run $FEATURES --release --bin shorter_interval
+# NOTE: This is **extraordinarily slow.
+if [ -z $COMPREHENSIVE ]; then
+    cargo +nightly miri run $FEATURES --release --bin simple_random
 fi
