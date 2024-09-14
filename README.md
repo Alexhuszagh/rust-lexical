@@ -329,16 +329,12 @@ lexical-core should also work on a wide variety of other architectures and ISAs.
 
 The currently supported versions are:
 - v1.0.x
-- v0.8.x
-- v0.7.x (Maintenance)
-- v0.6.x (Maintenance)
+
+Due to security considerations, all other versions have been yanked.
 
 **Rustc Compatibility**
 
-- v0.8.x supports 1.63+, including stable, beta, and nightly.
-- v0.8.x supports 1.51+, including stable, beta, and nightly.
-- v0.7.x supports 1.37+, including stable, beta, and nightly.
-- v0.6.x supports Rustc 1.24+, including stable, beta, and nightly.
+- v1.0.x supports 1.63+, including stable, beta, and nightly.
 
 Please report any errors compiling a supported lexical-core version on a compatible Rustc version.
 
