@@ -18,30 +18,30 @@ exclude = [
 ]
 
 [dependencies.lexical-util]
-version = "1.0.0"
+version = "1.0.1"
 default-features = false
 path = "../lexical-util"
 
 [dependencies.lexical-parse-integer]
-version = "1.0.0"
+version = "1.0.1"
 optional = true
 default-features = false
 path = "../lexical-parse-integer"
 
 [dependencies.lexical-parse-float]
-version = "1.0.0"
+version = "1.0.1"
 optional = true
 default-features = false
 path = "../lexical-parse-float"
 
 [dependencies.lexical-write-integer]
-version = "1.0.0"
+version = "1.0.1"
 optional = true
 default-features = false
 path = "../lexical-write-integer"
 
 [dependencies.lexical-write-float]
-version = "1.0.0"
+version = "1.0.1"
 optional = true
 default-features = false
 path = "../lexical-write-float"
