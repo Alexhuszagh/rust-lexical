@@ -302,7 +302,6 @@ where
         // decimal point index, shift all digits right by 1, then write it.
         let shifted = digit_count - leading_digits;
         let buf = &mut bytes[leading_digits..digit_count + 1];
-        safe_assert!(buf.len() > shifted);
         for i in (0..shifted).rev() {
             buf[i + 1] = buf[i];
         }
@@ -317,7 +316,7 @@ where
     if !trimmed && exact_count > digit_count {
         // Check if we need to write more trailing digits.
         let zeros = exact_count - digit_count;
-        [cursor..cursor + zeros].fill(b'0');
+        bytes[cursor..cursor + zeros].fill(b'0');
         cursor += zeros;
     }
 

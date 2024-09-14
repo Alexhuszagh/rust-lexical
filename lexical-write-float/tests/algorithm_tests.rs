@@ -261,7 +261,8 @@ fn write_float_scientific(mant: u64, exp: i32, options: &Options, expected: &str
     };
     let digit_count = f64::digit_count(fp.mant);
     let sci_exp = fp.exp + digit_count as i32 - 1;
-    let count = algorithm::write_float_scientific::<f64, DECIMAL>(&mut buffer, fp, sci_exp, &options);
+    let count =
+        algorithm::write_float_scientific::<f64, DECIMAL>(&mut buffer, fp, sci_exp, &options);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }

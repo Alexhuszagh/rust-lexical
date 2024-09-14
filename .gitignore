@@ -6,6 +6,7 @@ Cargo.lock
 /build
 *.pyc
 TODO.md
+*.diff
 
 # Perftools
 perf.data

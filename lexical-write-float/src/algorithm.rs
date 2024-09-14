@@ -58,24 +58,18 @@ pub fn write_float<F: RawFloat, const FORMAT: u128>(
     // later into the algorithms, since we can determine the right path
     // and write the significant digits without using an intermediate buffer
     // in most cases.
-
-    // SAFETY: All the underlying methods are safe, this just needs to have other
-    // API compatibility and this will remove the unsafe block.
-    // TODO: This should be safe now
-    unsafe {
-        write_float!(
-            float,
-            FORMAT,
-            sci_exp,
-            options,
-            write_float_scientific,
-            write_float_positive_exponent,
-            write_float_negative_exponent,
-            generic => F,
-            bytes => bytes,
-            args => fp, sci_exp, options,
-        )
-    }
+    write_float!(
+        float,
+        FORMAT,
+        sci_exp,
+        options,
+        write_float_scientific,
+        write_float_positive_exponent,
+        write_float_negative_exponent,
+        generic => F,
+        bytes => bytes,
+        args => fp, sci_exp, options,
+    )
 }
 
 /// Write float to string in scientific notation.
@@ -155,8 +149,7 @@ pub fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u128>(
     // to round carry over. This is rare, but it could happen, and would
     // require a shift after. The good news is: if we have a shift, we
     // only need to move 1 digit.
-    let digits = &mut bytes[..cursor];
-    digits.fill(b'0');
+    bytes[..cursor].fill(b'0');
 
     // Write out our significant digits.
     // SAFETY: safe, if we have enough bytes to write the significant digits.

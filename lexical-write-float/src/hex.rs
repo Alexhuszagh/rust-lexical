@@ -50,8 +50,7 @@ use crate::shared;
 /// Panics if the radix for the significant digits is not 16, if
 /// the exponent base is not 2, or if the radix for the exponent
 /// digits is not 10.
-// TODO: Here
-pub unsafe fn write_float<F: Float, const FORMAT: u128>(
+pub fn write_float<F: Float, const FORMAT: u128>(
     float: F,
     bytes: &mut [u8],
     options: &Options,
@@ -108,6 +107,7 @@ where
         sci_exp = 0;
     }
 
+    // SAFETY: Safe, just other API methods need to be migrated in.
     write_float!(
         float,
         FORMAT,
@@ -134,7 +134,7 @@ where
 /// The mantissa must be truncated and rounded, prior to calling this,
 /// based on the number of maximum digits.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-pub unsafe fn write_float_scientific<M, const FORMAT: u128>(
+pub fn write_float_scientific<M, const FORMAT: u128>(
     bytes: &mut [u8],
     mantissa: M,
     exp: i32,
@@ -163,14 +163,11 @@ where
     let shl = calculate_shl(exp, bits_per_digit);
     let value = mantissa << shl;
 
-    // SAFETY: safe since the buffer must be larger than `M::FORMATTED_SIZE`.
-    let digit_count = unsafe {
-        let count = value.write_mantissa::<M, FORMAT>(&mut index_unchecked_mut!(bytes[1..]));
-        index_unchecked_mut!(bytes[0] = bytes[1]);
-        index_unchecked_mut!(bytes[1]) = decimal_point;
-        let zeros = rtrim_char_count(&index_unchecked!(bytes[2..count + 1]), b'0');
-        count - zeros
-    };
+    let count = value.write_mantissa::<M, FORMAT>(&mut bytes[1..]);
+    bytes[0] = bytes[1];
+    bytes[1] = decimal_point;
+    let zeros = rtrim_char_count(&bytes[2..count + 1], b'0');
+    let digit_count = count - zeros;
     // Extra 1 since we have the decimal point.
     let mut cursor = digit_count + 1;
 
@@ -184,27 +181,21 @@ where
         cursor -= 1;
     } else if exact_count < 2 {
         // Need to have at least 1 digit, the trailing `.0`.
-        unsafe { index_unchecked_mut!(bytes[cursor]) = b'0' };
+        bytes[cursor] = b'0';
         cursor += 1;
     } else if exact_count > digit_count {
         // NOTE: Neither `exact_count >= digit_count >= 2`.
         // We need to write `exact_count - (cursor - 1)` digits, since
         // cursor includes the decimal point.
         let digits_end = exact_count + 1;
-        // SAFETY: this is safe as long as the buffer was large enough
-        // to hold `min_significant_digits + 1`.
-        unsafe {
-            slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..digits_end]), b'0');
-        }
+        bytes[cursor..digits_end].fill(b'0');
         cursor = digits_end;
     }
 
     // Now, write our scientific notation.
     // SAFETY: safe if bytes is large enough to store all digits.
     let scaled_sci_exp = scale_sci_exp(sci_exp, bits_per_digit, bits_per_base);
-    unsafe {
-        shared::write_exponent::<FORMAT>(bytes, &mut cursor, scaled_sci_exp, options.exponent())
-    };
+    shared::write_exponent::<FORMAT>(bytes, &mut cursor, scaled_sci_exp, options.exponent());
 
     cursor
 }

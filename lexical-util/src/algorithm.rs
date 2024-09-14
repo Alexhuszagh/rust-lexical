@@ -4,7 +4,7 @@ use crate::num::Integer;
 
 /// Copy bytes from source to destination.
 ///
-/// This is only used in our compactt and radix integer formatted, so
+/// This is only used in our compact and radix integer formatted, so
 /// performance isn't the highest consideration here.
 #[inline(always)]
 #[cfg(feature = "write")]

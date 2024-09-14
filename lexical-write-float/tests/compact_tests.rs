@@ -556,9 +556,8 @@ fn f32_roundtrip_test() {
 fn write_float_scientific(digits: &mut [u8], k: i32, options: &Options, expected: &str) {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
     let ndigits = digits.len();
-    let count = unsafe {
-        compact::write_float_scientific::<DECIMAL>(&mut buffer, digits, ndigits, k, &options)
-    };
+    let count =
+        compact::write_float_scientific::<DECIMAL>(&mut buffer, digits, ndigits, k, &options);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -591,9 +590,13 @@ fn write_float_scientific_test() {
 fn write_float_positive_exponent(digits: &mut [u8], k: i32, options: &Options, expected: &str) {
     let mut buffer = [b'\x00'; 512];
     let ndigits = digits.len();
-    let count = unsafe {
-        compact::write_float_positive_exponent::<DECIMAL>(&mut buffer, digits, ndigits, k, &options)
-    };
+    let count = compact::write_float_positive_exponent::<DECIMAL>(
+        &mut buffer,
+        digits,
+        ndigits,
+        k,
+        &options,
+    );
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -618,9 +621,13 @@ fn write_float_positive_exponent_test() {
 fn write_float_negative_exponent(digits: &mut [u8], k: i32, options: &Options, expected: &str) {
     let mut buffer = [b'\x00'; 512];
     let ndigits = digits.len();
-    let count = unsafe {
-        compact::write_float_negative_exponent::<DECIMAL>(&mut buffer, digits, ndigits, k, &options)
-    };
+    let count = compact::write_float_negative_exponent::<DECIMAL>(
+        &mut buffer,
+        digits,
+        ndigits,
+        k,
+        &options,
+    );
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
