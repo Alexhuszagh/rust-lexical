@@ -44,3 +44,8 @@ harness = false
 name = "random"
 path = "random.rs"
 harness = false
+
+[[bench]]
+name = "special"
+path = "special.rs"
+harness = false
