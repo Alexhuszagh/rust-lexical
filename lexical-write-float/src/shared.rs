@@ -47,17 +47,14 @@ pub fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, bool) {
 }
 
 /// Round the number of digits based on the maximum digits, for decimal digits.
+///
 /// `digits` is a mutable buffer of the current digits, `digit_count` is the
 /// length of the written digits in `digits`, and `exp` is the decimal exponent
 /// relative to the digits. Returns the digit count, resulting exp, and if
 /// the input carried to the next digit.
-///
-/// # Safety
-///
-/// Safe as long as `digit_count <= digits.len()`.
 #[allow(clippy::comparison_chain)]
 #[cfg_attr(not(feature = "compact"), inline(always))]
-pub unsafe fn truncate_and_round_decimal(
+pub fn truncate_and_round_decimal(
     digits: &mut [u8],
     digit_count: usize,
     options: &Options,
@@ -111,26 +108,19 @@ pub unsafe fn truncate_and_round_decimal(
 }
 
 /// Write the sign for the exponent.
-///
-/// # Safety
-///
-/// Safe if `bytes` is large enough to hold the largest possible exponent,
-/// with an extra byte for the sign.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-pub unsafe fn write_exponent_sign<const FORMAT: u128>(
+pub fn write_exponent_sign<const FORMAT: u128>(
     bytes: &mut [u8],
     cursor: &mut usize,
     exp: i32,
 ) -> u32 {
     let format = NumberFormat::<{ FORMAT }> {};
     if exp < 0 {
-        // SAFETY: safe if bytes is large enough to hold the output
-        unsafe { index_unchecked_mut!(bytes[*cursor]) = b'-' };
+        bytes[*cursor] = b'-';
         *cursor += 1;
         exp.wrapping_neg() as u32
     } else if cfg!(feature = "format") && format.required_exponent_sign() {
-        // SAFETY: safe if bytes is large enough to hold the output
-        unsafe { index_unchecked_mut!(bytes[*cursor]) = b'+' };
+        bytes[*cursor] = b'+';
         *cursor += 1;
         exp as u32
     } else {
@@ -139,24 +129,17 @@ pub unsafe fn write_exponent_sign<const FORMAT: u128>(
 }
 
 /// Write the symbol, sign, and digits for the exponent.
-///
-/// # Safety
-///
-/// Safe if the buffer can hold all the significant digits and the sign
-/// starting from cursor.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-pub unsafe fn write_exponent<const FORMAT: u128>(
+pub fn write_exponent<const FORMAT: u128>(
     bytes: &mut [u8],
     cursor: &mut usize,
     exp: i32,
     exponent_character: u8,
 ) {
-    *cursor += unsafe {
-        index_unchecked_mut!(bytes[*cursor]) = exponent_character;
-        *cursor += 1;
-        let positive_exp: u32 = write_exponent_sign::<FORMAT>(bytes, cursor, exp);
-        positive_exp.write_exponent::<u32, FORMAT>(&mut index_unchecked_mut!(bytes[*cursor..]))
-    };
+    bytes[*cursor] = exponent_character;
+    *cursor += 1;
+    let positive_exp: u32 = write_exponent_sign::<FORMAT>(bytes, cursor, exp);
+    *cursor += positive_exp.write_exponent::<u32, FORMAT>(&mut bytes[*cursor..]);
 }
 
 /// Detect the notation to use for the float formatter and call the appropriate

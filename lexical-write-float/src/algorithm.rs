@@ -48,7 +48,7 @@ use crate::table::*;
 /// is large enough to hold the significant digits.
 // TODO: Migrate to safe
 #[inline(always)]
-pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
+pub fn write_float<F: RawFloat, const FORMAT: u128>(
     float: F,
     bytes: &mut [u8],
     options: &Options,
@@ -65,29 +65,27 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
     // and write the significant digits without using an intermediate buffer
     // in most cases.
 
+    // SAFETY: All the underlying methods are safe, this just needs to have other
+    // API compatibility and this will remove the unsafe block.
     // TODO: This should be safe now
-    write_float!(
-        float,
-        FORMAT,
-        sci_exp,
-        options,
-        write_float_scientific,
-        write_float_positive_exponent,
-        write_float_negative_exponent,
-        generic => F,
-        bytes => bytes,
-        args => fp, sci_exp, options,
-    )
+    unsafe {
+        write_float!(
+            float,
+            FORMAT,
+            sci_exp,
+            options,
+            write_float_scientific,
+            write_float_positive_exponent,
+            write_float_negative_exponent,
+            generic => F,
+            bytes => bytes,
+            args => fp, sci_exp, options,
+        )
+    }
 }
 
 /// Write float to string in scientific notation.
-///
-/// # Safety
-///
-/// Safe as long as `bytes` is large enough to hold the number of digits
-/// and the scientific notation's exponent digits.
-// TODO: Migrate to safe
-pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
+pub fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     fp: ExtendedFloat80,
     sci_exp: i32,
@@ -113,46 +111,35 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     let exact_count = shared::min_exact_digits(digit_count, options);
 
     // Write any trailing digits.
-    // SAFETY: safe, if we have enough bytes to write the significant digits.
     let mut cursor: usize;
-    unsafe {
-        index_unchecked_mut!(bytes[0] = bytes[1]);
-        index_unchecked_mut!(bytes[1]) = decimal_point;
-
-        if !format.no_exponent_without_fraction() && digit_count == 1 && options.trim_floats() {
-            cursor = 1;
-        } else if digit_count < exact_count {
-            // Adjust the number of digits written, by appending zeros.
-            cursor = digit_count + 1;
-            let zeros = exact_count - digit_count;
-            unsafe {
-                index_unchecked_mut!(bytes[cursor..cursor + zeros]).fill(b'0');
-            }
-            cursor += zeros;
-        } else if digit_count == 1 {
-            index_unchecked_mut!(bytes[2]) = b'0';
-            cursor = 3;
-        } else {
-            cursor = digit_count + 1;
-        }
+    bytes[0] = bytes[1];
+    bytes[1] = decimal_point;
+    if !format.no_exponent_without_fraction() && digit_count == 1 && options.trim_floats() {
+        cursor = 1;
+    } else if digit_count < exact_count {
+        // Adjust the number of digits written, by appending zeros.
+        cursor = digit_count + 1;
+        let zeros = exact_count - digit_count;
+        bytes[cursor..cursor + zeros].fill(b'0');
+        cursor += zeros;
+    } else if digit_count == 1 {
+        bytes[2] = b'0';
+        cursor = 3;
+    } else {
+        cursor = digit_count + 1;
     }
 
     // Now, write our scientific notation.
     // SAFETY: safe since bytes must be large enough to store all digits.
-    unsafe { shared::write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent()) };
+    shared::write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent());
 
     cursor
 }
 
 /// Write negative float to string without scientific notation.
+///
 /// Has a negative exponent (shift right) and no scientific notation.
-///
-/// # Safety
-///
-/// Safe as long as `bytes` is large enough to hold the number of
-/// significant digits and the leading zeros.
-// TODO: Migrate to safe
-pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u128>(
+pub fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     fp: ExtendedFloat80,
     sci_exp: i32,
@@ -167,12 +154,12 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
 
     // Write our 0 digits.
     let mut cursor = sci_exp + 1;
-    debug_assert!(cursor >= 2);
+    debug_assert!(cursor >= 2, "must have a buffer >= 2 to write our 0 digits");
     // We write 0 digits even over the decimal point, since we might have
     // to round carry over. This is rare, but it could happen, and would
     // require a shift after. The good news is: if we have a shift, we
     // only need to move 1 digit.
-    let digits: &mut [u8] = &mut bytes[..cursor];
+    let digits = &mut bytes[..cursor];
     digits.fill(b'0');
 
     // Write out our significant digits.
@@ -189,28 +176,25 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     if carried && cursor == 2 {
         // Rounded-up, and carried to the first byte, so instead of having
         // 0.9999, we have 1.0.
-        // SAFETY: safe if `bytes.len() >= 3`.
         unsafe {
-            index_unchecked_mut!(bytes[0]) = b'1';
+            bytes[0] = b'1';
             if options.trim_floats() {
                 cursor = 1;
                 trimmed = true;
             } else {
-                index_unchecked_mut!(bytes[1]) = decimal_point;
-                index_unchecked_mut!(bytes[2]) = b'0';
+                bytes[1] = decimal_point;
+                bytes[2] = b'0';
                 cursor = 3;
             }
         }
     } else if carried {
         // Carried, so we need to remove 1 zero before our digits.
-        // SAFETY: safe if `bytes.len() > cursor && cursor > 0`.
         unsafe {
-            index_unchecked_mut!(bytes[1]) = decimal_point;
-            index_unchecked_mut!(bytes[cursor - 1] = bytes[cursor]);
+            bytes[1] = decimal_point;
+            bytes[cursor - 1] = bytes[cursor];
         }
     } else {
-        // SAFETY: safe if `bytes.len() >= 2`.
-        unsafe { index_unchecked_mut!(bytes[1]) = decimal_point };
+        bytes[1] = decimal_point;
         cursor += digit_count;
     }
 
@@ -221,11 +205,7 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     // Cursor is 1 if we trimmed floats, in which case skip this.
     if !trimmed && digit_count < exact_count {
         let zeros = exact_count - digit_count;
-        // TOOD: Migrate to safe
-        // SAFETY: safe if bytes is large enough to hold the significant digits.
-        unsafe {
-            index_unchecked_mut!(bytes[cursor..cursor + zeros]).fill(b'0');
-        }
+        bytes[cursor..cursor + zeros].fill(b'0');
         cursor += zeros;
     }
 
@@ -233,13 +213,9 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
 }
 
 /// Write positive float to string without scientific notation.
+///
 /// Has a positive exponent (shift left) and no scientific notation.
-///
-/// # Safety
-///
-/// Safe as long as `bytes` is large enough to hold the number of
-/// significant digits and the (optional) trailing zeros.
-pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u128>(
+pub fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     fp: ExtendedFloat80,
     sci_exp: i32,
@@ -257,7 +233,8 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
     // and then adjust the decimal point. However, with truncating and remove
     // trailing zeros, we **don't** know the exact digit count **yet**.
     let digit_count = F::write_digits(bytes, fp.mant);
-    let (mut digit_count, carried) = shared::truncate_and_round_decimal(bytes, digit_count, options);
+    let (mut digit_count, carried) =
+        shared::truncate_and_round_decimal(bytes, digit_count, options);
 
     // Now, check if we have shift digits.
     let leading_digits = sci_exp as usize + 1 + carried as usize;
@@ -266,19 +243,14 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
     if leading_digits >= digit_count {
         // Great: we have more leading digits than we wrote, can write trailing zeros
         // and an optional decimal point.
-        // SAFETY: safe if the buffer is large enough to hold the significant digits.
-        unsafe {
-            let digits = &mut index_unchecked_mut!(bytes[digit_count..leading_digits]);
-            digits.fill(b'0');
-        }
+        bytes[digit_count..leading_digits].fill(b'0');
         cursor = leading_digits;
         digit_count = leading_digits;
         // Only write decimal point if we're not trimming floats.
         if !options.trim_floats() {
-            // SAFETY: safe if `bytes.len() >= cursor + 2`.
-            unsafe { index_unchecked_mut!(bytes[cursor]) = decimal_point };
+            bytes[cursor] = decimal_point;
             cursor += 1;
-            unsafe { index_unchecked_mut!(bytes[cursor]) = b'0' };
+            bytes[cursor] = b'0';
             cursor += 1;
             digit_count += 1;
         } else {
@@ -287,20 +259,15 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
     } else {
         // Need to shift digits internally, and write the decimal point.
         // First, move the digits right by 1 after leading digits.
-        // SAFETY: safe if the buffer is large enough to hold the significant digits.
         let count = digit_count - leading_digits;
-        unsafe {
-            let buf = &mut index_unchecked_mut!(bytes[leading_digits..digit_count + 1]);
-            safe_assert!(buf.len() > count);
-            for i in (0..count).rev() {
-                index_unchecked_mut!(buf[i + 1] = buf[i]);
-            }
+        let buf = &mut bytes[leading_digits..digit_count + 1];
+        assert!(buf.len() > count);
+        for i in (0..count).rev() {
+            buf[i + 1] = buf[i];
         }
 
         // Now, write the decimal point.
-        // SAFETY: safe if the above step was safe, since `leading_digits <
-        // digit_count`.
-        unsafe { index_unchecked_mut!(bytes[leading_digits]) = decimal_point };
+        bytes[leading_digits] = decimal_point;
         cursor = digit_count + 1;
     }
 
@@ -313,11 +280,7 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
     if !trimmed && exact_count > digit_count {
         // Check if we need to write more trailing digits.
         let zeros = exact_count - digit_count;
-        // SAFETY: safe if the buffer is large enough to hold the significant digits.
-        unsafe {
-            let digits = &mut index_unchecked_mut!(bytes[cursor..cursor + zeros]);
-            digits.fill(b'0');
-        }
+        bytes[cursor..cursor + zeros].fill(b'0');
         cursor += zeros;
     }
 
@@ -433,8 +396,8 @@ pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // SAFETY: safe, since value must be finite and therefore in the correct range.
     // `-324 <= exponent <= 308`, so `x * log10(2) - log10(4 / 3)` must be in
     // `-98 <= x <= 93`, so the final value must be in [-93, 98] (for f64). We have
-    // precomputed powers for [-292, 326] for f64 (same logic applies for f32) so this
-    // is **ALWAYS** safe.
+    // precomputed powers for [-292, 326] for f64 (same logic applies for f32) so
+    // this is **ALWAYS** safe.
     let pow5 = unsafe { F::dragonbox_power(-minus_k) };
     let mut xi = F::compute_left_endpoint(&pow5, beta);
     let mut zi = F::compute_right_endpoint(&pow5, beta);
@@ -501,8 +464,8 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // SAFETY: safe, since value must be finite and therefore in the correct range.
     // `-324 <= exponent <= 308`, so `x * log10(2)` must be in
     // `-98 <= x <= 93`, so the final value must be in [-93, 98] (for f64). We have
-    // precomputed powers for [-292, 326] for f64 (same logic applies for f32) so this
-    // is **ALWAYS** safe.
+    // precomputed powers for [-292, 326] for f64 (same logic applies for f32) so
+    // this is **ALWAYS** safe.
     let pow5 = unsafe { F::dragonbox_power(-minus_k) };
     let beta = exponent + floor_log2_pow10(-minus_k);
 
@@ -635,8 +598,8 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let minus_k = floor_log10_pow2(exponent) - F::KAPPA as i32;
     // SAFETY: safe, since value must be finite and therefore in the correct range.
     // `-324 <= exponent <= 308`, so `x * log10(2)` must be in [-98, 93] (for f64).
-    // We have precomputed powers for [-292, 326] for f64 (same logic applies for f32)
-    // so this is **ALWAYS** safe.
+    // We have precomputed powers for [-292, 326] for f64 (same logic applies for
+    // f32) so this is **ALWAYS** safe.
     let pow5 = unsafe { F::dragonbox_power(-minus_k) };
     let beta = exponent + floor_log2_pow10(-minus_k);
 
@@ -729,8 +692,8 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
     assert!(F::KAPPA <= 2);
     // SAFETY: safe, since value must be finite and therefore in the correct range.
     // `-324 <= exponent <= 308`, so `x * log10(2)` must be in [-100, 92] (for f64).
-    // We have precomputed powers for [-292, 326] for f64 (same logic applies for f32)
-    // so this is **ALWAYS** safe.
+    // We have precomputed powers for [-292, 326] for f64 (same logic applies for
+    // f32) so this is **ALWAYS** safe.
     let pow5: <F as DragonboxFloat>::Power = unsafe { F::dragonbox_power(-minus_k) };
     let beta = exponent + floor_log2_pow10(-minus_k);
 
@@ -781,7 +744,9 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
 
         // Ensure we haven't re-assigned exponent or minus_k.
         assert!(float.exponent() == exponent);
-        debug_assert!(minus_k == floor_log10_pow2(float.exponent() - shorter as i32) - F::KAPPA as i32);
+        debug_assert!(
+            minus_k == floor_log10_pow2(float.exponent() - shorter as i32) - F::KAPPA as i32
+        );
 
         extended_float(significand, minus_k + F::KAPPA as i32)
     }

@@ -351,9 +351,12 @@ fn write_float_positive_exponent(mant: u64, exp: i32, options: &Options, expecte
     };
     let digit_count = f64::digit_count(fp.mant);
     let sci_exp = fp.exp + digit_count as i32 - 1;
-    let count = unsafe {
-        algorithm::write_float_positive_exponent::<f64, DECIMAL>(&mut buffer, fp, sci_exp, &options)
-    };
+    let count = algorithm::write_float_positive_exponent::<f64, DECIMAL>(
+        &mut buffer,
+        fp,
+        sci_exp,
+        &options,
+    );
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -437,9 +440,12 @@ fn write_float_negative_exponent(mant: u64, exp: i32, options: &Options, expecte
     };
     let digit_count = f64::digit_count(fp.mant);
     let sci_exp = fp.exp + digit_count as i32 - 1;
-    let count = unsafe {
-        algorithm::write_float_negative_exponent::<f64, DECIMAL>(&mut buffer, fp, sci_exp, &options)
-    };
+    let count = algorithm::write_float_negative_exponent::<f64, DECIMAL>(
+        &mut buffer,
+        fp,
+        sci_exp,
+        &options,
+    );
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }

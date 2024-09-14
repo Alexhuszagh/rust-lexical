@@ -74,8 +74,7 @@ pub fn write_float<F: RawFloat, const FORMAT: u128>(
         // SAFETY: safe since `digits.len()` is large enough to always hold
         // the generated digits, which is always <= 18.
         let (start, k) = grisu(float, &mut digits);
-        let (end, carried) =
-            unsafe { shared::truncate_and_round_decimal(&mut digits, start, options) };
+        let (end, carried) = shared::truncate_and_round_decimal(&mut digits, start, options);
         (end, k + start as i32 - end as i32, carried)
     };
 
