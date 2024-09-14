@@ -50,9 +50,8 @@ where
         sci_exp = 0;
     }
 
-    let count = unsafe {
-        hex::write_float_scientific::<_, FORMAT>(&mut buffer, mantissa, exp, sci_exp, options)
-    };
+    let count =
+        hex::write_float_scientific::<_, FORMAT>(&mut buffer, mantissa, exp, sci_exp, options);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -389,7 +388,7 @@ where
     <T as Float>::Unsigned: WriteInteger + FormattedSize,
 {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let count = unsafe { hex::write_float::<_, FORMAT>(f, &mut buffer, options) };
+    let count = hex::write_float::<_, FORMAT>(f, &mut buffer, options);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }

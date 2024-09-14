@@ -179,9 +179,8 @@ where
         sci_exp = 0;
     }
 
-    let count = unsafe {
-        binary::write_float_scientific::<_, FORMAT>(&mut buffer, mantissa, exp, sci_exp, options)
-    };
+    let count =
+        binary::write_float_scientific::<_, FORMAT>(&mut buffer, mantissa, exp, sci_exp, options);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -466,15 +465,13 @@ fn write_float_negative_exponent<T: Float, const FORMAT: u128>(
     let exp = f.exponent();
     let sci_exp = exp + mantissa_bits - 1;
 
-    let count = unsafe {
-        binary::write_float_negative_exponent::<_, FORMAT>(
-            &mut buffer,
-            mantissa,
-            exp,
-            sci_exp,
-            options,
-        )
-    };
+    let count = binary::write_float_negative_exponent::<_, FORMAT>(
+        &mut buffer,
+        mantissa,
+        exp,
+        sci_exp,
+        options,
+    );
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -709,15 +706,13 @@ fn write_float_positive_exponent<T: Float, const FORMAT: u128>(
         sci_exp = 0;
     }
 
-    let count = unsafe {
-        binary::write_float_positive_exponent::<_, FORMAT>(
-            &mut buffer,
-            mantissa,
-            exp,
-            sci_exp,
-            options,
-        )
-    };
+    let count = binary::write_float_positive_exponent::<_, FORMAT>(
+        &mut buffer,
+        mantissa,
+        exp,
+        sci_exp,
+        options,
+    );
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -954,7 +949,7 @@ where
     <T as Float>::Unsigned: WriteInteger + FormattedSize,
 {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let count = unsafe { binary::write_float::<_, FORMAT>(f, &mut buffer, options) };
+    let count = binary::write_float::<_, FORMAT>(f, &mut buffer, options);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -1100,7 +1095,7 @@ default_quickcheck! {
             true
         } else {
             let f = f.abs();
-            let count = unsafe { binary::write_float::<_, BINARY>(f, &mut buffer, &options) };
+            let count = binary::write_float::<_, BINARY>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 2, b'e');
             roundtrip == f
         }
@@ -1113,7 +1108,7 @@ default_quickcheck! {
             true
         } else {
             let f = f.abs();
-            let count = unsafe { binary::write_float::<_, OCTAL>(f, &mut buffer, &options) };
+            let count = binary::write_float::<_, OCTAL>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 8, b'e');
             roundtrip == f
         }
@@ -1126,7 +1121,7 @@ default_quickcheck! {
             true
         } else {
             let f = f.abs();
-            let count = unsafe { binary::write_float::<_, BINARY>(f, &mut buffer, &options) };
+            let count = binary::write_float::<_, BINARY>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 2, b'e');
             roundtrip == f
         }
@@ -1139,7 +1134,7 @@ default_quickcheck! {
             true
         } else {
             let f = f.abs();
-            let count = unsafe { binary::write_float::<_, OCTAL>(f, &mut buffer, &options) };
+            let count = binary::write_float::<_, OCTAL>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 8, b'e');
             roundtrip == f
         }
@@ -1155,7 +1150,7 @@ proptest! {
         let options = Options::builder().build().unwrap();
         if !f.is_special() {
             let f = f.abs();
-            let count = unsafe { binary::write_float::<_, BINARY>(f, &mut buffer, &options) };
+            let count = binary::write_float::<_, BINARY>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 2, b'e');
             prop_assert_eq!(roundtrip, f)
         }
@@ -1167,7 +1162,7 @@ proptest! {
         let options = Options::builder().build().unwrap();
         if !f.is_special() {
             let f = f.abs();
-            let count = unsafe { binary::write_float::<_, OCTAL>(f, &mut buffer, &options) };
+            let count = binary::write_float::<_, OCTAL>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 8, b'e');
             prop_assert_eq!(roundtrip, f)
         }
@@ -1179,7 +1174,7 @@ proptest! {
         let options = Options::builder().build().unwrap();
         if !f.is_special() {
             let f = f.abs();
-            let count = unsafe { binary::write_float::<_, BINARY>(f, &mut buffer, &options) };
+            let count = binary::write_float::<_, BINARY>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 2, b'e');
             prop_assert_eq!(roundtrip, f)
         }
@@ -1191,7 +1186,7 @@ proptest! {
         let options = Options::builder().build().unwrap();
         if !f.is_special() {
             let f = f.abs();
-            let count = unsafe { binary::write_float::<_, OCTAL>(f, &mut buffer, &options) };
+            let count = binary::write_float::<_, OCTAL>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 8, b'e');
             prop_assert_eq!(roundtrip, f)
         }

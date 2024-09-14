@@ -95,7 +95,7 @@ where
     <T as Float>::Unsigned: WriteInteger + FormattedSize,
 {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let count = unsafe { radix::write_float::<_, FORMAT>(f, &mut buffer, options) };
+    let count = radix::write_float::<_, FORMAT>(f, &mut buffer, options);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -243,7 +243,7 @@ macro_rules! test_radix {
         } else {
             $options.clone()
         };
-        let count = unsafe { radix::write_float::<_, FORMAT>($f, &mut $buffer, &options) };
+        let count = radix::write_float::<_, FORMAT>($f, &mut $buffer, &options);
         let roundtrip = $parse(&$buffer[..count], $radix, options.exponent());
         assert_relative_eq!($f, roundtrip, epsilon = 1e-6, max_relative = 3e-6);
     }};
@@ -306,12 +306,12 @@ fn base21_test() {
     let mut buffer = [b'\x00'; 512];
     let options = Options::builder().exponent(b'^').build().unwrap();
     let f = 2879632400000000000000000.0f32;
-    let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+    let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
     let roundtrip = parse_f32(&buffer[..count], 21, b'^');
     assert_relative_eq!(f, roundtrip, epsilon = 1e-5, max_relative = 1e-5);
 
     let f = 48205284000000000000000000000000000000.0f32;
-    let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+    let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
     let roundtrip = parse_f32(&buffer[..count], 21, b'^');
     assert_relative_eq!(f, roundtrip, epsilon = 1e-5, max_relative = 1e-5);
 
@@ -321,17 +321,17 @@ fn base21_test() {
         .build()
         .unwrap();
     let f = 105861640000000000000000000000000000000.0f32;
-    let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+    let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
     let roundtrip = parse_f32(&buffer[..count], 21, b'^');
     assert_relative_eq!(f, roundtrip, epsilon = 1e-1, max_relative = 1e-1);
 
     let f = 63900220000000000000000000000000000000.0f32;
-    let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+    let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
     let roundtrip = parse_f32(&buffer[..count], 21, b'^');
     assert_relative_eq!(f, roundtrip, epsilon = 1e-1, max_relative = 1e-1);
 
     let f = 48205284000000000000000000000000000000.0f32;
-    let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+    let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
     assert_eq!(b"4.C44^17", &buffer[..count]);
 
     let options = Options::builder()
@@ -341,7 +341,7 @@ fn base21_test() {
         .build()
         .unwrap();
     let f = 48205284000000000000000000000000000000.0f32;
-    let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+    let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
     assert_eq!(b"4C440700000000000000000000000.0", &buffer[..count]);
 }
 
@@ -370,7 +370,7 @@ default_quickcheck! {
             true
         } else {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE3>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 3, b'e');
             relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
         }
@@ -383,7 +383,7 @@ default_quickcheck! {
             true
         } else {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE5>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 5, b'e');
             relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
         }
@@ -396,7 +396,7 @@ default_quickcheck! {
             true
         } else {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 21, b'^');
             relative_eq!(f, roundtrip, epsilon=1e-5, max_relative=1e-5)
         }
@@ -409,7 +409,7 @@ default_quickcheck! {
             true
         } else {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE3>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 3, b'e');
             relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
         }
@@ -422,7 +422,7 @@ default_quickcheck! {
             true
         } else {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE5>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 5, b'e');
             relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
         }
@@ -435,7 +435,7 @@ default_quickcheck! {
             true
         } else {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 21, b'^');
             relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
         }
@@ -451,7 +451,7 @@ proptest! {
         let options = Options::builder().build().unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE3>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 3, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6);
             prop_assert!(equal)
@@ -464,7 +464,7 @@ proptest! {
         let options = Options::builder().build().unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE5>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 5, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6);
             prop_assert!(equal)
@@ -477,7 +477,7 @@ proptest! {
         let options = Options::builder().exponent(b'^').build().unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 21, b'^');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-5, max_relative=1e-5);
             prop_assert!(equal)
@@ -493,7 +493,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE3>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 3, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -509,7 +509,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE5>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 5, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -526,7 +526,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 21, b'^');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -542,7 +542,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE3>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 3, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -558,7 +558,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE5>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 5, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -575,7 +575,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 21, b'^');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -593,7 +593,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE3>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 3, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -611,7 +611,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE5>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 5, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -630,7 +630,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 21, b'^');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -648,7 +648,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE3>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 3, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -666,7 +666,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE5>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 5, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -685,7 +685,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f32 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
             let roundtrip = parse_f32(&buffer[..count], 21, b'^');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -698,7 +698,7 @@ proptest! {
         let options = Options::builder().build().unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE3>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 3, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6);
             prop_assert!(equal)
@@ -711,7 +711,7 @@ proptest! {
         let options = Options::builder().build().unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE5>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 5, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6);
             prop_assert!(equal)
@@ -724,7 +724,7 @@ proptest! {
         let options = Options::builder().exponent(b'^').build().unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 21, b'^');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6);
             prop_assert!(equal)
@@ -740,7 +740,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE3>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 3, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -756,7 +756,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE5>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 5, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -773,7 +773,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 21, b'^');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -789,7 +789,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE3>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 3, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -805,7 +805,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE5>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 5, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -822,7 +822,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 21, b'^');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -840,7 +840,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE3>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 3, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -858,7 +858,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE5>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 5, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -877,7 +877,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 21, b'^');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -895,7 +895,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE3>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 3, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -913,7 +913,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE5>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 5, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
@@ -932,7 +932,7 @@ proptest! {
             .unwrap();
         if !(is_overflow!(@f64 f)) {
             let f = f.abs();
-            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let count = radix::write_float::<_, BASE21>(f, &mut buffer, &options);
             let roundtrip = parse_f64(&buffer[..count], 21, b'^');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)

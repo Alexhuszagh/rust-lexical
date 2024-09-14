@@ -6,7 +6,6 @@
 //!
 //! It is therefore also subject to a Apache2.0/MIT license.
 
-#![cfg(feature = "nightly")]
 #![doc(hidden)]
 
 pub use fpu_precision::set_precision;

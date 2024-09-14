@@ -27,8 +27,6 @@ path = "../lexical-core"
 default = ["std", "write-integers", "write-floats", "parse-integers", "parse-floats"]
 # Use the standard library.
 std = ["lexical-core/std"]
-# Add support for nightly-only features.
-nightly = ["lexical-core/nightly"]
 # Add support for writing integers.
 write-integers = ["lexical-core/write-integers", "write", "integers"]
 # Add support for writing floats.

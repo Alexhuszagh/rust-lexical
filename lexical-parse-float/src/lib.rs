@@ -30,8 +30,6 @@
 //! * `radix` - Add support for strings of any radix.
 //! * `format` - Add support for parsing custom integer formats.
 //! * `compact` - Reduce code size at the cost of performance.
-//! * `safe` - Ensure only memory-safe indexing is used.
-//! * `nightly` - Enable assembly instructions to control FPU rounding modes.
 //!
 //! # Note
 //!

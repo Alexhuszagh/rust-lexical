@@ -8,7 +8,6 @@
 use lexical_util::format::NumberFormat;
 
 use crate::float::RawFloat;
-#[cfg(feature = "nightly")]
 use crate::fpu::set_precision;
 
 /// Representation of a number as the significant digits and exponent.
@@ -65,7 +64,6 @@ impl<'a> Number<'a> {
         // function takes care of setting the precision on architectures which
         // require setting it by changing the global state (like the control word of the
         // x87 FPU).
-        #[cfg(feature = "nightly")]
         let _cw = set_precision::<F>();
 
         if self.is_fast_path::<F, FORMAT>() {
@@ -105,7 +103,6 @@ impl<'a> Number<'a> {
         let format = NumberFormat::<FORMAT> {};
         debug_assert!(format.mantissa_radix() == format.exponent_base());
 
-        #[cfg(feature = "nightly")]
         let _cw = set_precision::<F>();
 
         let radix = format.radix();

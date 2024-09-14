@@ -713,6 +713,15 @@ pub trait Float: Number + ops::Neg<Output = Self> {
         !self.is_odd()
     }
 
+    /// Returns true if the float needs a negative sign when serializing it.
+    ///
+    /// This is true if it's `-0.0` or it's below 0 and not NaN. But inf values
+    /// need the sign.
+    #[inline(always)]
+    fn needs_negative_sign(self) -> bool {
+        self.is_sign_negative() && !self.is_nan()
+    }
+
     /// Get exponent component from the float.
     #[inline(always)]
     fn exponent(self) -> i32 {

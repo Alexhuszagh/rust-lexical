@@ -46,11 +46,6 @@ radix = ["lexical-util/radix", "power-of-two"]
 format = ["lexical-util/format"]
 # Reduce code size at the cost of performance.
 compact = ["lexical-util/compact"]
-# Ensure only safe indexing is used. This is a no-op, since all
-# examples of potential memory unsafety are trivial to prove safe.
-safe = []
-# Add support for nightly-only features.
-nightly = []
 
 # Internal only features.
 # Enable the lint checks.

@@ -18,14 +18,6 @@ use crate::table::get_large_int_power;
 /// # Safety
 ///
 /// Safe if `index < array.len()`.
-#[cfg(feature = "safe")]
-macro_rules! index_unchecked {
-    ($x:ident[$i:expr]) => {
-        $x[$i]
-    };
-}
-
-#[cfg(not(feature = "safe"))]
 macro_rules! index_unchecked {
     ($x:ident[$i:expr]) => {
         // SAFETY: safe if `index < array.len()`.

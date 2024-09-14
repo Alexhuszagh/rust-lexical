@@ -220,7 +220,7 @@ fn compute_right_closed_directed_test() {
 }
 
 fn write_digits_f32(buffer: &mut [u8], value: u64, expected: &str) {
-    let count = unsafe { f32::write_digits(buffer, value) };
+    let count = f32::write_digits(buffer, value);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -237,7 +237,7 @@ fn write_digits_f32_test() {
 }
 
 fn write_digits_f64(buffer: &mut [u8], value: u64, expected: &str) {
-    let count = unsafe { f64::write_digits(buffer, value) };
+    let count = f64::write_digits(buffer, value);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -261,9 +261,8 @@ fn write_float_scientific(mant: u64, exp: i32, options: &Options, expected: &str
     };
     let digit_count = f64::digit_count(fp.mant);
     let sci_exp = fp.exp + digit_count as i32 - 1;
-    let count = unsafe {
-        algorithm::write_float_scientific::<f64, DECIMAL>(&mut buffer, fp, sci_exp, &options)
-    };
+    let count =
+        algorithm::write_float_scientific::<f64, DECIMAL>(&mut buffer, fp, sci_exp, &options);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -351,9 +350,12 @@ fn write_float_positive_exponent(mant: u64, exp: i32, options: &Options, expecte
     };
     let digit_count = f64::digit_count(fp.mant);
     let sci_exp = fp.exp + digit_count as i32 - 1;
-    let count = unsafe {
-        algorithm::write_float_positive_exponent::<f64, DECIMAL>(&mut buffer, fp, sci_exp, &options)
-    };
+    let count = algorithm::write_float_positive_exponent::<f64, DECIMAL>(
+        &mut buffer,
+        fp,
+        sci_exp,
+        &options,
+    );
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -437,9 +439,12 @@ fn write_float_negative_exponent(mant: u64, exp: i32, options: &Options, expecte
     };
     let digit_count = f64::digit_count(fp.mant);
     let sci_exp = fp.exp + digit_count as i32 - 1;
-    let count = unsafe {
-        algorithm::write_float_negative_exponent::<f64, DECIMAL>(&mut buffer, fp, sci_exp, &options)
-    };
+    let count = algorithm::write_float_negative_exponent::<f64, DECIMAL>(
+        &mut buffer,
+        fp,
+        sci_exp,
+        &options,
+    );
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -587,7 +592,7 @@ const F64_DATA: [f64; 33] = [
 
 fn write_float<T: RawFloat, const FORMAT: u128>(f: T, options: &Options, expected: &str) {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let count = unsafe { algorithm::write_float::<_, FORMAT>(f, &mut buffer, options) };
+    let count = algorithm::write_float::<_, FORMAT>(f, &mut buffer, options);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -646,7 +651,7 @@ fn f32_roundtrip_test() {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
     let options = Options::builder().build().unwrap();
     for &float in F32_DATA.iter() {
-        let count = unsafe { algorithm::write_float::<_, DECIMAL>(float, &mut buffer, &options) };
+        let count = algorithm::write_float::<_, DECIMAL>(float, &mut buffer, &options);
         let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
         let roundtrip = actual.parse::<f32>();
         assert_eq!(roundtrip, Ok(float));
@@ -723,7 +728,7 @@ fn f64_roundtrip_test() {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
     let options = Options::builder().build().unwrap();
     for &float in F64_DATA.iter() {
-        let count = unsafe { algorithm::write_float::<_, DECIMAL>(float, &mut buffer, &options) };
+        let count = algorithm::write_float::<_, DECIMAL>(float, &mut buffer, &options);
         let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
         let roundtrip = actual.parse::<f64>();
         assert_eq!(roundtrip, Ok(float));
@@ -760,7 +765,7 @@ default_quickcheck! {
         if f.is_special() {
             true
         } else {
-            let count = unsafe { algorithm::write_float::<_, DECIMAL>(f, &mut buffer, &options) };
+            let count = algorithm::write_float::<_, DECIMAL>(f, &mut buffer, &options);
             let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
             let roundtrip = actual.parse::<f32>();
             roundtrip == Ok(f)
@@ -774,7 +779,7 @@ default_quickcheck! {
         if f.is_special() {
             true
         } else {
-            let count = unsafe { algorithm::write_float::<_, DECIMAL>(f, &mut buffer, &options) };
+            let count = algorithm::write_float::<_, DECIMAL>(f, &mut buffer, &options);
             let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
             let roundtrip = actual.parse::<f64>();
             roundtrip == Ok(f)
@@ -791,7 +796,7 @@ proptest! {
         let options = Options::builder().build().unwrap();
         let f = f.abs();
         if !f.is_special() {
-            let count = unsafe { algorithm::write_float::<_, DECIMAL>(f, &mut buffer, &options) };
+            let count = algorithm::write_float::<_, DECIMAL>(f, &mut buffer, &options);
             let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
             let roundtrip = actual.parse::<f32>();
             prop_assert_eq!(roundtrip, Ok(f))
@@ -804,7 +809,7 @@ proptest! {
         let options = Options::builder().build().unwrap();
         let f = f.abs();
         if !f.is_special() {
-            let count = unsafe { algorithm::write_float::<_, DECIMAL>(f, &mut buffer, &options) };
+            let count = algorithm::write_float::<_, DECIMAL>(f, &mut buffer, &options);
             let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
             let roundtrip = actual.parse::<f64>();
             prop_assert_eq!(roundtrip, Ok(f))

@@ -20,25 +20,19 @@ pub fn min_exact_digits(digit_count: usize, options: &Options) -> usize {
 ///
 /// Round up the last digit, incrementally handling all subsequent
 /// digits in case of overflow.
-///
-/// # Safety
-///
-/// Safe as long as `count <= digits.len()`.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, bool) {
-    debug_assert!(count <= digits.len());
+pub fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, bool) {
+    debug_assert!(count <= digits.len(), "rounding up requires digits.len() >= count");
 
     let mut index = count;
     let max_char = digit_to_char_const(radix - 1, radix);
     while index != 0 {
-        // SAFETY: safe if `count <= digits.len()`, since then
-        // `index > 0 && index <= digits.len()`.
-        let c = unsafe { index_unchecked!(digits[index - 1]) };
+        let c = digits[index - 1];
         if c < max_char {
             // SAFETY: safe since `index > 0 && index <= digits.len()`.
             let digit = char_to_valid_digit_const(c, radix);
             let rounded = digit_to_char_const(digit + 1, radix);
-            unsafe { index_unchecked_mut!(digits[index - 1]) = rounded };
+            digits[index - 1] = rounded;
             return (index, false);
         }
         // Don't have to assign b'0' otherwise, since we're just carrying
@@ -47,24 +41,20 @@ pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, b
     }
 
     // Means all digits were max digit: we need to round up.
-    // SAFETY: safe since `digits.len() > 1`.
-    unsafe { index_unchecked_mut!(digits[0]) = b'1' };
+    digits[0] = b'1';
 
     (1, true)
 }
 
 /// Round the number of digits based on the maximum digits, for decimal digits.
+///
 /// `digits` is a mutable buffer of the current digits, `digit_count` is the
 /// length of the written digits in `digits`, and `exp` is the decimal exponent
 /// relative to the digits. Returns the digit count, resulting exp, and if
 /// the input carried to the next digit.
-///
-/// # Safety
-///
-/// Safe as long as `digit_count <= digits.len()`.
 #[allow(clippy::comparison_chain)]
 #[cfg_attr(not(feature = "compact"), inline(always))]
-pub unsafe fn truncate_and_round_decimal(
+pub fn truncate_and_round_decimal(
     digits: &mut [u8],
     digit_count: usize,
     options: &Options,
@@ -93,28 +83,22 @@ pub unsafe fn truncate_and_round_decimal(
     // Get the last non-truncated digit, and the remaining ones.
     // SAFETY: safe if `digit_count < digits.len()`, since `max_digits <
     // digit_count`.
-    let truncated = unsafe { index_unchecked!(digits[max_digits]) };
+    let truncated = digits[max_digits];
     let (digits, carried) = if truncated < b'5' {
         // Just truncate, going to round-down anyway.
         (max_digits, false)
     } else if truncated > b'5' {
         // Round-up always.
-        // SAFETY: safe if `digit_count <= digits.len()`, because `max_digits <
-        // digit_count`.
-        unsafe { round_up(digits, max_digits, 10) }
+        round_up(digits, max_digits, 10)
     } else {
         // Have a near-halfway case, resolve it.
-        // SAFETY: safe if `digit_count < digits.len()`.
-        let (is_odd, is_above) = unsafe {
-            let to_round = &index_unchecked!(digits[max_digits - 1..digit_count]);
-            let is_odd = index_unchecked!(to_round[0]) % 2 == 1;
-            let is_above = index_unchecked!(to_round[2..]).iter().any(|&x| x != b'0');
-            (is_odd, is_above)
-        };
+        let to_round = &digits[max_digits - 1..digit_count];
+        let is_odd = to_round[0] % 2 == 1;
+        let is_above = to_round[2..].iter().any(|&x| x != b'0');
         if is_odd || is_above {
             // SAFETY: safe if `digit_count <= digits.len()`, because `max_digits <
             // digit_count`.
-            unsafe { round_up(digits, max_digits, 10) }
+            round_up(digits, max_digits, 10)
         } else {
             (max_digits, false)
         }
@@ -124,26 +108,19 @@ pub unsafe fn truncate_and_round_decimal(
 }
 
 /// Write the sign for the exponent.
-///
-/// # Safety
-///
-/// Safe if `bytes` is large enough to hold the largest possible exponent,
-/// with an extra byte for the sign.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-pub unsafe fn write_exponent_sign<const FORMAT: u128>(
+pub fn write_exponent_sign<const FORMAT: u128>(
     bytes: &mut [u8],
     cursor: &mut usize,
     exp: i32,
 ) -> u32 {
     let format = NumberFormat::<{ FORMAT }> {};
     if exp < 0 {
-        // SAFETY: safe if bytes is large enough to hold the output
-        unsafe { index_unchecked_mut!(bytes[*cursor]) = b'-' };
+        bytes[*cursor] = b'-';
         *cursor += 1;
         exp.wrapping_neg() as u32
     } else if cfg!(feature = "format") && format.required_exponent_sign() {
-        // SAFETY: safe if bytes is large enough to hold the output
-        unsafe { index_unchecked_mut!(bytes[*cursor]) = b'+' };
+        bytes[*cursor] = b'+';
         *cursor += 1;
         exp as u32
     } else {
@@ -152,28 +129,24 @@ pub unsafe fn write_exponent_sign<const FORMAT: u128>(
 }
 
 /// Write the symbol, sign, and digits for the exponent.
-///
-/// # Safety
-///
-/// Safe if the buffer can hold all the significant digits and the sign
-/// starting from cursor.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-pub unsafe fn write_exponent<const FORMAT: u128>(
+pub fn write_exponent<const FORMAT: u128>(
     bytes: &mut [u8],
     cursor: &mut usize,
     exp: i32,
     exponent_character: u8,
 ) {
-    *cursor += unsafe {
-        index_unchecked_mut!(bytes[*cursor]) = exponent_character;
-        *cursor += 1;
-        let positive_exp = write_exponent_sign::<FORMAT>(bytes, cursor, exp);
-        positive_exp.write_exponent::<u32, FORMAT>(&mut index_unchecked_mut!(bytes[*cursor..]))
-    };
+    bytes[*cursor] = exponent_character;
+    *cursor += 1;
+    let positive_exp: u32 = write_exponent_sign::<FORMAT>(bytes, cursor, exp);
+    *cursor += positive_exp.write_exponent::<u32, FORMAT>(&mut bytes[*cursor..]);
 }
 
 /// Detect the notation to use for the float formatter and call the appropriate
 /// function.
+///
+/// The float must be positive. This doesn't affect the safety guarantees but
+/// all algorithms assume a float >0 or that is not negative 0.
 ///
 /// - `float` - The float to write to string.
 /// - `format` - The formatting specification for the float.
@@ -199,6 +172,8 @@ macro_rules! write_float {
     ) => {{
         use lexical_util::format::NumberFormat;
 
+        debug_assert!($float.is_sign_positive());
+
         let format = NumberFormat::<{ $format }> {};
         let min_exp = $options.negative_exponent_break().map_or(-5, |x| x.get());
         let max_exp = $options.positive_exponent_break().map_or(9, |x| x.get());
@@ -207,23 +182,13 @@ macro_rules! write_float {
         let require_exponent = format.required_exponent_notation() || outside_break;
         if !format.no_exponent_notation() && require_exponent {
             // Write digits in scientific notation.
-            // SAFETY: safe as long as bytes is large enough to hold all the digits.
-            unsafe { $write_scientific::<$($generic,)? FORMAT>($bytes, $($args,)*) }
+            $write_scientific::<$($generic,)? FORMAT>($bytes, $($args,)*)
         } else if $sci_exp < 0 {
             // Write negative exponent without scientific notation.
-            // SAFETY: safe as long as bytes is large enough to hold all the digits.
-            unsafe { $write_negative::<$($generic,)? FORMAT>($bytes, $($args,)*) }
-        } else if $float.is_sign_negative() {
-            // handle this as a positive, just write a leading '-' and then add 1 to our count
-            // # Safety: This is always safe since our buffer is much larger than 1 byte.
-            unsafe { index_unchecked_mut!($bytes[0]) = b'-'; }
-            // # Safety: This is always safe since our buffer is much larger than 1 byte.
-            let bytes = unsafe { &mut index_unchecked_mut!($bytes[1..]) };
-            unsafe { $write_positive::<$($generic,)? FORMAT>(bytes, $($args,)*) + 1 }
+            $write_negative::<$($generic,)? FORMAT>($bytes, $($args,)*)
         } else {
             // Write positive exponent without scientific notation.
-            // SAFETY: safe as long as bytes is large enough to hold all the digits.
-            unsafe { $write_positive::<$($generic,)? FORMAT>($bytes, $($args,)*) }
+            $write_positive::<$($generic,)? FORMAT>($bytes, $($args,)*)
         }
     }};
 }

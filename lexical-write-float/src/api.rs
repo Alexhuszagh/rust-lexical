@@ -4,25 +4,13 @@
 
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
-use lexical_util::constants::FormattedSize;
 #[cfg(feature = "f16")]
 use lexical_util::f16::f16;
 use lexical_util::format::STANDARD;
-use lexical_util::options::WriteOptions;
 use lexical_util::{to_lexical, to_lexical_with_options};
 
 use crate::options::Options;
 use crate::write::WriteFloat;
-
-/// Check if a buffer is sufficiently large.
-#[inline(always)]
-fn check_buffer<T, const FORMAT: u128>(len: usize, options: &Options) -> bool
-where
-    T: FormattedSize,
-{
-    let size = Options::buffer_size::<T, FORMAT>(options);
-    len >= size
-}
 
 // API
 
@@ -36,13 +24,8 @@ macro_rules! float_to_lexical {
             fn to_lexical(self, bytes: &mut [u8])
                 -> &mut [u8]
             {
-                // TODO: Remove, move inside
-                assert!(check_buffer::<Self, { STANDARD }>(bytes.len(), &DEFAULT_OPTIONS));
-                // SAFETY: safe since `check_buffer::<STANDARD>(bytes.len(), &options)` passes.
-                unsafe {
-                    let len = self.write_float::<{ STANDARD }>(bytes, &DEFAULT_OPTIONS);
-                    &mut index_unchecked_mut!(bytes[..len])
-                }
+                let count = self.write_float::<{ STANDARD }>(bytes, &DEFAULT_OPTIONS);
+                &mut bytes[..count]
             }
         }
 
@@ -55,13 +38,8 @@ macro_rules! float_to_lexical {
                 options: &Self::Options,
             ) -> &'a mut [u8]
             {
-                // TODO: Remove, move inside
-                assert!(check_buffer::<Self, { FORMAT }>(bytes.len(), &options));
-                // SAFETY: safe since `check_buffer::<FORMAT>(bytes.len(), &options)` passes.
-                unsafe {
-                    let len = self.write_float::<{ FORMAT }>(bytes, &options);
-                    &mut index_unchecked_mut!(bytes[..len])
-                }
+                let count = self.write_float::<{ FORMAT }>(bytes, &options);
+                &mut bytes[..count]
             }
         }
     )*)
