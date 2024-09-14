@@ -146,7 +146,7 @@ Lexical is highly customizable, and contains numerous other optional features:
 
 To ensure the safety when bounds checking is disabled, we extensively fuzz the all numeric conversion routines. See the [Safety](#safety) section below for more information.
 
-Lexical also places a heavy focus on code bloat: with algorithms both optimized for performance and size. By default, this focuses on performance, however, using the `compact` feature, you can also opt-in to reduced code size at the cost of performance. The compact algorithms minimize the use of pre-computed tables and other optimizations at the cost of performance.
+Lexical also places a heavy focus on code bloat: with algorithms both optimized for performance and size. By default, this focuses on performance, however, using the `compact` feature, you can also opt-in to reduced code size at the cost of performance. The compact algorithms minimize the use of pre-computed tables and other optimizations at a major cost to performance.
 
 ## Customization
 

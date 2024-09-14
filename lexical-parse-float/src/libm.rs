@@ -34,7 +34,7 @@ macro_rules! i {
             if cfg!(feature = "safe") {
                 $array[$index]
             } else {
-                $array.get_unchecked($index)
+                *$array.get_unchecked($index)
             }
         }
     };
