@@ -139,8 +139,6 @@ Lexical is highly customizable, and contains numerous other optional features:
     <blockquote>With format enabled, the number format is dictated through bitflags and masks packed into a <code>u128</code>. These dictate the valid syntax of parsed and written numbers, including enabling digit separators, requiring integer or fraction digits, and toggling case-sensitive exponent characters.</blockquote>
 - **compact**: &ensp; Optimize for binary size at the expense of performance.
     <blockquote>This minimizes the use of pre-computed tables, producing significantly smaller binaries.</blockquote>
-- **safe**: &ensp; Requires all array indexing to be bounds-checked.
-    <blockquote>This has limited impact for number parsers, since they use safe indexing except where indexing without bounds checking and can general be shown to be sound. The number writers frequently use unsafe indexing, since we can easily over-estimate the number of digits in the output due to the fixed-length input. We use comprehensive fuzzing, UB detection via miri, and proving local safe invariants to ensure correctness without impacting performance.</blockquote>
 - **f16**: &ensp; Add support for numeric conversions to-and-from 16-bit floats.
     <blockquote>Adds <code>f16</code>, a half-precision IEEE-754 floating-point type, and <code>bf16</code>, the Brain Float 16 type, and numeric conversions to-and-from these floats. Note that since these are storage formats, and therefore do not have native arithmetic operations, all conversions are done using an intermediate <code>f32</code>.</blockquote>
 

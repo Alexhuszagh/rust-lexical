@@ -8,17 +8,8 @@
 #![doc(hidden)]
 
 /// Index a buffer, without bounds checking.
-#[cfg(not(feature = "safe"))]
 macro_rules! index_unchecked {
     ($x:ident[$i:expr]) => {
         *$x.get_unchecked($i)
-    };
-}
-
-/// Index a buffer, with bounds checking.
-#[cfg(feature = "safe")]
-macro_rules! index_unchecked {
-    ($x:ident[$i:expr]) => {
-        $x[$i]
     };
 }

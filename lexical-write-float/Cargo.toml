@@ -67,12 +67,6 @@ compact = [
     "lexical-util/compact",
     "lexical-write-integer/compact"
 ]
-# Ensure only safe indexing is used.
-# This is not enabled by default for writers, due to the performance
-# costs, and since input can be easily validated to avoid buffer overwrites.
-safe = ["lexical-write-integer/safe"]
-# Add support for nightly-only features.
-nightly = ["lexical-write-integer/nightly"]
 # Enable support for 16-bit floats.
 f16 = ["lexical-util/f16"]
 

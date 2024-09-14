@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Support for mips (MIPS), mipsel (MIPS LE), mips64 (MIPS64 BE), and mips64el (MIPS64 LE) on Linux.
 - All `_unchecked` API methods, since the performance benefits are dubious and it makes safety invariant checking much harder.
+- The `safe` and `nightly` features, since ASM is now supported by the MSRV on stable and opt-in for memory-safe indexing is no longer relevant.
 
 ## [0.8.5] 2022-06-06
 

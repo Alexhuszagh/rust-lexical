@@ -28,19 +28,6 @@
 /// # Safety
 ///
 /// Safe if `index < array.len()`.
-#[cfg(feature = "safe")]
-macro_rules! i {
-    ($x:ident, $i:expr) => {
-        $x[$i]
-    };
-}
-
-/// Index an array without bounds checking.
-///
-/// # Safety
-///
-/// Safe if `index < array.len()`.
-#[cfg(not(feature = "safe"))]
 macro_rules! i {
     ($x:ident, $i:expr) => {
         unsafe { *$x.get_unchecked($i) }

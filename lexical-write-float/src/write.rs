@@ -186,7 +186,7 @@ macro_rules! write_float_as_f32 {
     ($($t:ty)*) => ($(
         impl WriteFloat for $t {
             #[inline(always)]
-            fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> &mut [u8]
+            fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> usize
             {
                 // SAFETY: safe if `bytes` is large enough to hold the written bytes.
                 self.as_f32().write_float::<FORMAT>(bytes, options)
