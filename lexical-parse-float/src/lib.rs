@@ -98,10 +98,7 @@
 #![allow(unused_unsafe)]
 #![cfg_attr(feature = "lint", warn(unsafe_op_in_unsafe_fn))]
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(feature = "nightly", feature(asm))]
 
-#[macro_use]
-mod index;
 #[macro_use]
 pub mod shared;
 

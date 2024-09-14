@@ -585,7 +585,14 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 
     // Store the integer digits for slow-path algorithms.
     // SAFETY: safe, since `n_digits <= start.as_slice().len()`.
-    // TODO: Do we need unsafe here?
+    // This is since `byte.len() >= start.len()` but has to have
+    // the same end bounds (that is, `start = byte.clone()`), so
+    // `0 <= byte.current_count() <= start.current_count() <= start.lent()`
+    // so, this will always return only the integer digits.
+    //
+    // NOTE: Removing this code leads to ~10% reduction in parsing
+    // that triggers the Eisell-Lemire algorithm or the digit comp
+    // algorithms, so don't remove the unsafe indexing.
     debug_assert!(n_digits <= start.as_slice().len());
     let integer_digits = unsafe { start.as_slice().get_unchecked(..n_digits) };
 

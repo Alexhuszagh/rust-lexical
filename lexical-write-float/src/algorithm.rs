@@ -45,6 +45,7 @@ use lexical_write_integer::write::WriteInteger;
 ///
 /// Safe as long as the float isn't special (NaN or Infinity), and `bytes`
 /// is large enough to hold the significant digits.
+// TODO: Migrate to safe
 #[inline(always)]
 pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
     float: F,
@@ -83,6 +84,7 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
 ///
 /// Safe as long as `bytes` is large enough to hold the number of digits
 /// and the scientific notation's exponent digits.
+// TODO: Migrate to safe
 pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     fp: ExtendedFloat80,
@@ -149,6 +151,7 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
 ///
 /// Safe as long as `bytes` is large enough to hold the number of
 /// significant digits and the leading zeros.
+// TODO: Migrate to safe
 pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     fp: ExtendedFloat80,

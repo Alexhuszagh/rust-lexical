@@ -49,7 +49,7 @@ pub trait Compact: UnsignedInteger + FormattedSize {
             let r = value % radix;
             index -= 1;
             index_unchecked_mut!(digits[index]) = digit_to_char(u32::as_cast(r));
-            digits.get_unchecked_mut(index..)
+            &index_unchecked_mut!(digits[index..])
         };
         copy_to_dst(buffer, slc)
     }

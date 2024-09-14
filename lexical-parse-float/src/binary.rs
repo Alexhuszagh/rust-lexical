@@ -89,6 +89,11 @@ pub fn binary<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> Ext
 }
 
 /// Iteratively parse and consume digits without overflowing.
+///
+/// We're guaranteed to have a large number of digits here
+/// (in general, 20+ or much higher), due to how close we
+/// are to a halfway representation, so an uncheced loop
+/// optimization isn't worth it.
 #[cfg_attr(not(feature = "compact"), inline(always))]
 #[allow(unused_mut)]
 pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
