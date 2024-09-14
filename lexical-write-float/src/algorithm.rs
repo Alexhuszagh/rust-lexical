@@ -41,12 +41,6 @@ use crate::shared;
 use crate::table::*;
 
 /// Optimized float-to-string algorithm for decimal strings.
-///
-/// # Safety
-///
-/// Safe as long as the float isn't special (NaN or Infinity), and `bytes`
-/// is large enough to hold the significant digits.
-// TODO: Migrate to safe
 #[inline(always)]
 pub fn write_float<F: RawFloat, const FORMAT: u128>(
     float: F,

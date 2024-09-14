@@ -25,9 +25,7 @@ macro_rules! float_to_lexical {
                 -> &mut [u8]
             {
                 let len = self.write_float::<{ STANDARD }>(bytes, &DEFAULT_OPTIONS);
-                // SAFETY: safe since `check_buffer::<STANDARD>(bytes.len(), &options)` passes.
-                // TODO: Make safe
-                unsafe { &mut index_unchecked_mut!(bytes[..len]) }
+                &mut bytes[..len]
             }
         }
 
@@ -41,9 +39,7 @@ macro_rules! float_to_lexical {
             ) -> &'a mut [u8]
             {
                 let len = self.write_float::<{ FORMAT }>(bytes, &options);
-                // SAFETY: safe since `check_buffer::<FORMAT>(bytes.len(), &options)` passes.
-                // TODO: Make safe
-                unsafe { &mut index_unchecked_mut!(bytes[..len]) }
+                &mut bytes[..len]
             }
         }
     )*)
