@@ -21,7 +21,8 @@ pub trait Compact: UnsignedInteger + FormattedSize {
     /// at least 128 digits as well, after subslicing the data. This guarantee
     /// is likely already made.
     fn compact(self, radix: u32, buffer: &mut [u8]) -> usize {
-        // NOTE: We do not have to validate the buffer length because `copy_to_dst` is safe.
+        // NOTE: We do not have to validate the buffer length because `copy_to_dst` is
+        // safe.
         assert!(Self::BITS <= 128);
         let mut digits: [u8; 128] = [0u8; 128];
         let mut index = digits.len();

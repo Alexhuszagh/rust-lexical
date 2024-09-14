@@ -5,17 +5,18 @@
 
 #![doc(hidden)]
 
-#[cfg(all(not(feature = "std"), feature = "compact"))]
-use crate::libm::{powd, powf};
-use crate::limits::{ExactFloat, MaxDigits};
-#[cfg(not(feature = "compact"))]
-use crate::table::{get_small_f32_power, get_small_f64_power, get_small_int_power};
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
 use lexical_util::extended_float::ExtendedFloat;
 #[cfg(feature = "f16")]
 use lexical_util::f16::f16;
 use lexical_util::num::{AsCast, Float};
+
+#[cfg(all(not(feature = "std"), feature = "compact"))]
+use crate::libm::{powd, powf};
+use crate::limits::{ExactFloat, MaxDigits};
+#[cfg(not(feature = "compact"))]
+use crate::table::{get_small_f32_power, get_small_f64_power, get_small_int_power};
 
 /// Alias with ~80 bits of precision, 64 for the mantissa and 16 for exponent.
 /// This exponent is biased, and if the exponent is negative, it represents
@@ -30,15 +31,17 @@ pub trait RawFloat: Float + ExactFloat + MaxDigits {
     // Largest exponent value `(1 << EXP_BITS) - 1`.
     const INFINITE_POWER: i32 = Self::MAX_EXPONENT + Self::EXPONENT_BIAS;
 
-    /// Minimum exponent that for a fast path case, or `-⌊(MANTISSA_SIZE+1)/log2(r)⌋`
-    /// where `r` is the radix with powers-of-two removed.
+    /// Minimum exponent that for a fast path case, or
+    /// `-⌊(MANTISSA_SIZE+1)/log2(r)⌋` where `r` is the radix with
+    /// powers-of-two removed.
     #[inline(always)]
     fn min_exponent_fast_path(radix: u32) -> i64 {
         Self::exponent_limit(radix).0
     }
 
-    /// Maximum exponent that for a fast path case, or `⌊(MANTISSA_SIZE+1)/log2(r)⌋`
-    /// where `r` is the radix with powers-of-two removed.
+    /// Maximum exponent that for a fast path case, or
+    /// `⌊(MANTISSA_SIZE+1)/log2(r)⌋` where `r` is the radix with
+    /// powers-of-two removed.
     #[inline(always)]
     fn max_exponent_fast_path(radix: u32) -> i64 {
         Self::exponent_limit(radix).1
@@ -106,7 +109,8 @@ impl RawFloat for bf16 {
     }
 }
 
-/// Helper trait to add more float characteristics for the Eisel-Lemire algorithm.
+/// Helper trait to add more float characteristics for the Eisel-Lemire
+/// algorithm.
 pub trait LemireFloat: RawFloat {
     // Round-to-even only happens for negative values of q
     // when q ≥ −4 in the 64-bit case and when q ≥ −17 in

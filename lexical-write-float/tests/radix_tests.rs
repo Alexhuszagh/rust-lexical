@@ -3,9 +3,9 @@
 mod parse_radix;
 mod util;
 
-use crate::util::default_proptest_config;
-use approx::{assert_relative_eq, relative_eq};
 use core::num;
+
+use approx::{assert_relative_eq, relative_eq};
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 use lexical_util::format::NumberFormatBuilder;
 use lexical_util::num::Float;
@@ -14,6 +14,8 @@ use lexical_write_float::{radix, Options};
 use lexical_write_integer::write::WriteInteger;
 use parse_radix::{parse_f32, parse_f64};
 use proptest::prelude::*;
+
+use crate::util::default_proptest_config;
 
 const BASE3: u128 = NumberFormatBuilder::from_radix(3);
 const BASE5: u128 = NumberFormatBuilder::from_radix(5);

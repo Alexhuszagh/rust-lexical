@@ -1,4 +1,5 @@
-//! Bare bones implementation of the format packed struct without feature `format`.
+//! Bare bones implementation of the format packed struct without feature
+//! `format`.
 //!
 //! See `feature_format` for detailed documentation.
 

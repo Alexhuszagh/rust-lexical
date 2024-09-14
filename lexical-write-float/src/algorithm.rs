@@ -26,10 +26,6 @@
 #![cfg(not(feature = "compact"))]
 #![doc(hidden)]
 
-use crate::float::{ExtendedFloat80, RawFloat};
-use crate::options::{Options, RoundMode};
-use crate::shared;
-use crate::table::*;
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
 #[cfg(feature = "f16")]
@@ -38,6 +34,11 @@ use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::num::{AsPrimitive, Float};
 use lexical_write_integer::decimal::DigitCount;
 use lexical_write_integer::write::WriteInteger;
+
+use crate::float::{ExtendedFloat80, RawFloat};
+use crate::options::{Options, RoundMode};
+use crate::shared;
+use crate::table::*;
 
 /// Optimized float-to-string algorithm for decimal strings.
 ///
@@ -304,7 +305,8 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
         }
 
         // Now, write the decimal point.
-        // SAFETY: safe if the above step was safe, since `leading_digits < digit_count`.
+        // SAFETY: safe if the above step was safe, since `leading_digits <
+        // digit_count`.
         unsafe { index_unchecked_mut!(bytes[leading_digits]) = decimal_point };
         cursor = digit_count + 1;
     }
@@ -426,7 +428,8 @@ pub fn compute_round<F: RawFloat>(float: F) -> ExtendedFloat80 {
 }
 
 /// Compute the interval I = [m−w,m+w] if even, otherwise, (m−w,m+w).
-/// This is the simple case for a finite number where only the hidden bit is set.
+/// This is the simple case for a finite number where only the hidden bit is
+/// set.
 pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // Compute k and beta.
     let exponent = float.exponent();
@@ -487,7 +490,8 @@ pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
 }
 
 /// Compute the interval I = [m−w,m+w] if even, otherwise, (m−w,m+w).
-/// This is the normal case for a finite number with non-zero significant digits.
+/// This is the normal case for a finite number with non-zero significant
+/// digits.
 #[allow(clippy::comparison_chain)]
 pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let mantissa = float.mantissa().as_u64();
@@ -513,7 +517,8 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // and they are the unique counterexamples. However, since 29711844 is even,
     // this does not cause any problem for the endpoints calculations; it can only
     // cause a problem when we need to perform integer check for the center.
-    // Fortunately, with these inputs, that branch is never executed, so we are fine.
+    // Fortunately, with these inputs, that branch is never executed, so we are
+    // fine.
     let (zi, is_z_integer) = F::compute_mul((two_fc | 1) << beta, &pow5);
 
     // Step 2: Try larger divisor; remove trailing zeros if necessary
@@ -726,8 +731,8 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
     // Step 2: Try larger divisor; remove trailing zeros if necessary
     let big_divisor = pow32(10, F::KAPPA + 1);
 
-    // Using an upper bound on zi, we might be able to optimize the division better than
-    // the compiler; we are computing zi / big_divisor here.
+    // Using an upper bound on zi, we might be able to optimize the division better
+    // than the compiler; we are computing zi / big_divisor here.
     let exp = F::KAPPA + 1;
     let n_max = (1 << (F::MANTISSA_SIZE + 1)) * big_divisor as u64 - 1;
     let mut significand = F::divide_by_pow10(zi, exp, n_max);
@@ -778,12 +783,12 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
 //      Dragonbox has a heavily-branched, dubiously optimized algorithm using
 //      fast division, that leads to no practical performance benefits in my
 //      benchmarks, and the division algorithm is at best ~3% faster. It also
-//      tries to avoid writing digits extensively, but requires division operations
-//      for each step regardless, which means the **actual** overhead of said
-//      branching likely exceeds any benefits. The code is also impossible to
-//      maintain, and in my benchmarks is slower (by a small amount) for
-//      a 32-bit mantissa, and a **lot** slower for a 64-bit mantissa,
-//      where we need to trim trailing zeros.
+//      tries to avoid writing digits extensively, but requires division
+// operations      for each step regardless, which means the **actual** overhead
+// of said      branching likely exceeds any benefits. The code is also
+// impossible to      maintain, and in my benchmarks is slower (by a small
+// amount) for      a 32-bit mantissa, and a **lot** slower for a 64-bit
+// mantissa,      where we need to trim trailing zeros.
 
 /// Write the significant digits, when the significant digits can fit in a
 /// 32-bit integer. Returns the number of digits written. This assumes any
@@ -798,7 +803,8 @@ pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
     unsafe { mantissa.write_mantissa::<u32, { STANDARD }>(bytes) }
 }
 
-/// Write the significant digits, when the significant digits cannot fit in a 32-bit integer.
+/// Write the significant digits, when the significant digits cannot fit in a
+/// 32-bit integer.
 ///
 /// Returns the number of digits written. Note that this might not be the
 /// same as the number of digits in the mantissa, since trailing zeros will

@@ -2,6 +2,7 @@
 mod input;
 
 use core::time::Duration;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lexical_parse_integer::FromLexical;
 use serde::Deserialize;

@@ -6,16 +6,17 @@
 #![cfg(feature = "power-of-two")]
 #![doc(hidden)]
 
-use crate::float::{ExtendedFloat80, RawFloat};
-use crate::mask::lower_n_halfway;
-use crate::number::Number;
-use crate::shared;
 #[cfg(not(feature = "compact"))]
 use lexical_parse_integer::algorithm;
 use lexical_util::digit::char_to_valid_digit_const;
 use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{AsBytes, BytesIter};
 use lexical_util::step::u64_step;
+
+use crate::float::{ExtendedFloat80, RawFloat};
+use crate::mask::lower_n_halfway;
+use crate::number::Number;
+use crate::shared;
 
 // ALGORITHM
 // ---------

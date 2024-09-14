@@ -6,6 +6,7 @@
 
 use core::fmt::Debug;
 use core::str::FromStr;
+
 use fastrand::Rng;
 #[cfg(feature = "floats")]
 use lexical_util::num::Float;
@@ -466,8 +467,9 @@ macro_rules! itoa_generator {
 
 macro_rules! fmt_generator {
     ($group:ident, $name:expr, $iter:expr) => {{
-        use lexical_util::constants::BUFFER_SIZE;
         use std::io::Write;
+
+        use lexical_util::constants::BUFFER_SIZE;
         let mut buffer = vec![b'0'; BUFFER_SIZE];
         $group.bench_function($name, |bench| {
             bench.iter(|| {

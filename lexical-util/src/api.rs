@@ -150,7 +150,8 @@ macro_rules! to_lexical {
 #[cfg(feature = "write")]
 macro_rules! to_lexical_with_options {
     () => {
-        /// Trait for numerical types that can be serialized to bytes with custom options.
+        /// Trait for numerical types that can be serialized to bytes with custom
+        /// options.
         ///
         /// To determine the number of bytes required to serialize a value to
         /// string, check the associated constants from a required trait:

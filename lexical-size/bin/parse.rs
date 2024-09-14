@@ -4,11 +4,12 @@ macro_rules! integer_module {
         #[cfg(not(feature = "lexical"))]
         mod core_parse;
 
+        use std::io::BufRead;
+
         #[cfg(not(feature = "lexical"))]
         use core_parse::parse_int;
         #[cfg(feature = "lexical")]
         use lexical_parse_integer::FromLexical;
-        use std::io::BufRead;
 
         pub fn main() {
             #[cfg(feature = "lexical")]
@@ -33,9 +34,10 @@ macro_rules! integer_module {
 #[allow(unused_macros)]
 macro_rules! float_module {
     ($t:ty) => {
+        use std::io::BufRead;
+
         #[cfg(feature = "lexical")]
         use lexical_parse_float::FromLexical;
-        use std::io::BufRead;
 
         pub fn main() {
             #[cfg(feature = "lexical")]

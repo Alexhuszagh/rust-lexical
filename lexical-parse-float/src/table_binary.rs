@@ -4,9 +4,10 @@
 #![cfg(not(feature = "compact"))]
 #![doc(hidden)]
 
+use lexical_util::num::Float;
+
 #[cfg(not(feature = "radix"))]
 use crate::table_decimal::*;
-use lexical_util::num::Float;
 
 // HELPERS
 // -------

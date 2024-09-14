@@ -1,6 +1,7 @@
 //! Configuration options for writing floats.
 
 use core::{mem, num};
+
 use lexical_util::ascii::{is_valid_ascii, is_valid_letter_slice};
 use lexical_util::constants::FormattedSize;
 use lexical_util::error::Error;
@@ -22,7 +23,8 @@ const_assert!(mem::size_of::<OptionI32>() == mem::size_of::<i32>());
 /// Enumeration for how to round floats with precision control.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RoundMode {
-    /// Round to the nearest float string with the given number of significant digits.
+    /// Round to the nearest float string with the given number of significant
+    /// digits.
     Round,
     /// Truncate the float string with the given number of significant digits.
     Truncate,
@@ -46,12 +48,12 @@ pub struct OptionsBuilder {
     /// `0.100000000000000000000000`, which is still the nearest float.
     min_significant_digits: OptionUsize,
     /// Maximum exponent prior to using scientific notation.
-    /// This is ignored if the exponent base is not the same as the mantissa radix.
-    /// If not provided, use the algorithm's default.
+    /// This is ignored if the exponent base is not the same as the mantissa
+    /// radix. If not provided, use the algorithm's default.
     positive_exponent_break: OptionI32,
     /// Minimum exponent prior to using scientific notation.
-    /// This is ignored if the exponent base is not the same as the mantissa radix.
-    /// If not provided, use the algorithm's default.
+    /// This is ignored if the exponent base is not the same as the mantissa
+    /// radix. If not provided, use the algorithm's default.
     negative_exponent_break: OptionI32,
     /// Rounding mode for writing digits with precision control.
     round_mode: RoundMode,
@@ -382,12 +384,12 @@ pub struct Options {
     /// If not set, it defaults to the algorithm's default.
     min_significant_digits: OptionUsize,
     /// Maximum exponent prior to using scientific notation.
-    /// This is ignored if the exponent base is not the same as the mantissa radix.
-    /// If not provided, use the algorithm's default.
+    /// This is ignored if the exponent base is not the same as the mantissa
+    /// radix. If not provided, use the algorithm's default.
     positive_exponent_break: OptionI32,
     /// Minimum exponent prior to using scientific notation.
-    /// This is ignored if the exponent base is not the same as the mantissa radix.
-    /// If not provided, use the algorithm's default.
+    /// This is ignored if the exponent base is not the same as the mantissa
+    /// radix. If not provided, use the algorithm's default.
     negative_exponent_break: OptionI32,
     /// Rounding mode for writing digits with precision control.
     round_mode: RoundMode,

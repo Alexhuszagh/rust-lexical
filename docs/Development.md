@@ -109,3 +109,7 @@ cargo +nightly clippy --all-features -- --deny warnings
 ## Algorithm Changes
 
 Each workspace has a "docs" directory containing detailed descriptions of algorithms and benchmarks. If you make any substantial changes to an algorithm, you should both update the algorithm description and the provided benchmarks.
+
+## Pitfalls
+
+**ALWAYS** benchmark, even for trivial changes. I've been burned many times by `#[cfg(...)]` being way faster than `if cfg!()`, which youl would think both would be eliminated during optimization, just one during the first stage of compilation. It's better to confirm than assume. This is a nightmare development-wise because of how many features we support but there's not many alternatives: it seems it doesn't entirely remove code as if by tree-shaking which can majorly impact performance.

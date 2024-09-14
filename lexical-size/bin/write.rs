@@ -3,11 +3,12 @@ macro_rules! integer_module {
     ($t:ty) => {
         #[cfg(feature = "lexical")]
         use core::mem;
-        #[cfg(feature = "lexical")]
-        use lexical_write_integer::ToLexical;
         use std::io::BufRead;
         #[cfg(not(feature = "lexical"))]
         use std::io::Write;
+
+        #[cfg(feature = "lexical")]
+        use lexical_write_integer::ToLexical;
 
         pub fn main() {
             let value: $t = unsafe {
@@ -48,11 +49,12 @@ macro_rules! float_module {
     ($t:ty) => {
         #[cfg(feature = "lexical")]
         use core::mem;
-        #[cfg(feature = "lexical")]
-        use lexical_write_float::ToLexical;
         use std::io::BufRead;
         #[cfg(not(feature = "lexical"))]
         use std::io::Write;
+
+        #[cfg(feature = "lexical")]
+        use lexical_write_float::ToLexical;
 
         pub fn main() {
             let value: $t = unsafe {

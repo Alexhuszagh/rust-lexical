@@ -17,12 +17,13 @@
 #![cfg(any(feature = "compact", feature = "radix"))]
 #![doc(hidden)]
 
+use lexical_util::format::NumberFormat;
+
 use crate::float::{ExtendedFloat80, RawFloat};
 use crate::mask::{lower_n_halfway, lower_n_mask};
 use crate::number::Number;
 use crate::shared;
 use crate::table::bellerophon_powers;
-use lexical_util::format::NumberFormat;
 
 // ALGORITHM
 // ---------
@@ -315,7 +316,8 @@ pub fn normalize(fp: &mut ExtendedFloat80) -> i32 {
 /// set. The result is not normalized.
 ///
 /// Algorithm:
-///     1. Non-signed multiplication of mantissas (requires 2x as many bits as input).
+///     1. Non-signed multiplication of mantissas (requires 2x as many bits as
+///        input).
 ///     2. Normalization of the result (not done here).
 ///     3. Addition of exponents.
 #[cfg_attr(not(feature = "compact"), inline(always))]

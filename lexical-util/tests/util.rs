@@ -24,8 +24,8 @@ pub fn default_proptest_config() -> ProptestConfig {
     }
 }
 
-// This is almost identical to quickcheck's itself, just to add default arguments
-//  https://docs.rs/quickcheck/1.0.3/src/quickcheck/lib.rs.html#43-67
+// This is almost identical to quickcheck's itself, just to add default
+// arguments  https://docs.rs/quickcheck/1.0.3/src/quickcheck/lib.rs.html#43-67
 // The code is unlicensed.
 #[macro_export]
 macro_rules! default_quickcheck {

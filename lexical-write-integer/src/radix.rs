@@ -12,11 +12,12 @@
 #![cfg(feature = "power-of-two")]
 #![doc(hidden)]
 
-use crate::algorithm::{algorithm, algorithm_u128};
-use crate::table::get_table;
 use lexical_util::algorithm::copy_to_dst;
 use lexical_util::format;
 use lexical_util::num::{Integer, UnsignedInteger};
+
+use crate::algorithm::{algorithm, algorithm_u128};
+use crate::table::get_table;
 
 /// Write integer to radix string.
 pub trait Radix: UnsignedInteger {
@@ -76,7 +77,8 @@ impl Radix for u128 {
     ) -> usize {
         let table = get_table::<FORMAT, MASK, SHIFT>();
         let mut digits: [u8; 128] = [0u8; 128];
-        // SAFETY: Safe since 128 bytes is always enough to hold the digits of a 128 bit integer.
+        // SAFETY: Safe since 128 bytes is always enough to hold the digits of a 128 bit
+        // integer.
         let index = unsafe { algorithm_u128::<FORMAT, MASK, SHIFT>(self, table, &mut digits) };
         copy_to_dst(buffer, &mut digits[index..])
     }

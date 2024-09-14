@@ -3,11 +3,13 @@
 
 mod util;
 
-use crate::util::{default_proptest_config, from_radix};
 use core::str::from_utf8_unchecked;
+
 use lexical_util::constants::BUFFER_SIZE;
 use lexical_write_integer::write::WriteInteger;
 use proptest::prelude::*;
+
+use crate::util::{default_proptest_config, from_radix};
 
 #[test]
 #[cfg(feature = "radix")]

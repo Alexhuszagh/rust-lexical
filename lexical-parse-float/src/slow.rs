@@ -6,14 +6,8 @@
 
 #![doc(hidden)]
 
-#[cfg(feature = "radix")]
-use crate::bigint::Bigfloat;
-use crate::bigint::{Bigint, Limb, LIMB_BITS};
-use crate::float::{extended_to_float, ExtendedFloat80, RawFloat};
-use crate::limits::{u32_power_limit, u64_power_limit};
-use crate::number::Number;
-use crate::shared;
 use core::cmp;
+
 #[cfg(not(feature = "compact"))]
 use lexical_parse_integer::algorithm;
 use lexical_util::buffer::Buffer;
@@ -23,6 +17,14 @@ use lexical_util::digit::digit_to_char_const;
 use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{AsBytes, BytesIter};
 use lexical_util::num::{AsPrimitive, Integer};
+
+#[cfg(feature = "radix")]
+use crate::bigint::Bigfloat;
+use crate::bigint::{Bigint, Limb, LIMB_BITS};
+use crate::float::{extended_to_float, ExtendedFloat80, RawFloat};
+use crate::limits::{u32_power_limit, u64_power_limit};
+use crate::number::Number;
+use crate::shared;
 
 // ALGORITHM
 // ---------
@@ -111,7 +113,8 @@ pub fn digit_comp<F: RawFloat, const FORMAT: u128>(
     }
 }
 
-/// Generate the significant digits with a positive exponent relative to mantissa.
+/// Generate the significant digits with a positive exponent relative to
+/// mantissa.
 pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
     mut bigmant: Bigint,
     exponent: i32,
@@ -143,7 +146,8 @@ pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
     fp
 }
 
-/// Generate the significant digits with a negative exponent relative to mantissa.
+/// Generate the significant digits with a negative exponent relative to
+/// mantissa.
 ///
 /// This algorithm is quite simple: we have the significant digits `m1 * b^N1`,
 /// where `m1` is the bigint mantissa, `b` is the radix, and `N1` is the radix
@@ -249,7 +253,8 @@ pub fn negative_digit_comp<F: RawFloat, const FORMAT: u128>(
 /// - `count` - The total number of parsed digits
 /// - `counter` - The number of parsed digits since creating the current u32
 /// - `step` - The maximum number of digits for the radix that can fit in a u32.
-/// - `max_digits` - The maximum number of digits that can affect floating-point rounding.
+/// - `max_digits` - The maximum number of digits that can affect floating-point
+///   rounding.
 #[cfg(not(feature = "compact"))]
 macro_rules! try_parse_8digits {
     (
@@ -485,7 +490,8 @@ pub fn parse_mantissa<const FORMAT: u128>(num: Number, max_digits: usize) -> (Bi
 ///
 /// - `iter` - An iterator over all bytes in the buffer
 /// - `num` - The actual digits of the real floating point number.
-/// - `den` - The theoretical digits created by `b+h` to determine if `b` or `b+1`
+/// - `den` - The theoretical digits created by `b+h` to determine if `b` or
+///   `b+1`
 #[cfg(feature = "radix")]
 macro_rules! integer_compare {
     ($iter:ident, $num:ident, $den:ident, $radix:ident) => {{
@@ -522,7 +528,8 @@ macro_rules! integer_compare {
 ///
 /// - `iter` - An iterator over all bytes in the buffer
 /// - `num` - The actual digits of the real floating point number.
-/// - `den` - The theoretical digits created by `b+h` to determine if `b` or `b+1`
+/// - `den` - The theoretical digits created by `b+h` to determine if `b` or
+///   `b+1`
 #[cfg(feature = "radix")]
 macro_rules! fraction_compare {
     ($iter:ident, $num:ident, $den:ident, $radix:ident) => {{
@@ -660,9 +667,11 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
 
 /// Compare digits between the generated values the ratio and the actual view.
 ///
-/// - `number` - The representation of the float as a big number, with the parsed digits.
+/// - `number` - The representation of the float as a big number, with the
+///   parsed digits.
 /// - `num` - The actual digits of the real floating point number.
-/// - `den` - The theoretical digits created by `b+h` to determine if `b` or `b+1`
+/// - `den` - The theoretical digits created by `b+h` to determine if `b` or
+///   `b+1`
 #[cfg(feature = "radix")]
 pub fn compare_bytes<const FORMAT: u128>(
     number: Number,
@@ -754,40 +763,54 @@ pub fn bh<F: RawFloat>(float: F) -> ExtendedFloat80 {
     }
 }
 
+// NOTE: There will never be binary factors here.
+
 /// Calculate the integral ceiling of the binary factor from a basen number.
 #[inline(always)]
+#[cfg(feature = "radix")]
 pub const fn integral_binary_factor(radix: u32) -> u32 {
     match radix {
-        3 if cfg!(feature = "radix") => 2,
-        5 if cfg!(feature = "radix") => 3,
-        6 if cfg!(feature = "radix") => 3,
-        7 if cfg!(feature = "radix") => 3,
-        9 if cfg!(feature = "radix") => 4,
+        3 => 2,
+        5 => 3,
+        6 => 3,
+        7 => 3,
+        9 => 4,
         10 => 4,
-        11 if cfg!(feature = "radix") => 4,
-        12 if cfg!(feature = "radix") => 4,
-        13 if cfg!(feature = "radix") => 4,
-        14 if cfg!(feature = "radix") => 4,
-        15 if cfg!(feature = "radix") => 4,
-        17 if cfg!(feature = "radix") => 5,
-        18 if cfg!(feature = "radix") => 5,
-        19 if cfg!(feature = "radix") => 5,
-        20 if cfg!(feature = "radix") => 5,
-        21 if cfg!(feature = "radix") => 5,
-        22 if cfg!(feature = "radix") => 5,
-        23 if cfg!(feature = "radix") => 5,
-        24 if cfg!(feature = "radix") => 5,
-        25 if cfg!(feature = "radix") => 5,
-        26 if cfg!(feature = "radix") => 5,
-        27 if cfg!(feature = "radix") => 5,
-        28 if cfg!(feature = "radix") => 5,
-        29 if cfg!(feature = "radix") => 5,
-        30 if cfg!(feature = "radix") => 5,
-        31 if cfg!(feature = "radix") => 5,
-        33 if cfg!(feature = "radix") => 6,
-        34 if cfg!(feature = "radix") => 6,
-        35 if cfg!(feature = "radix") => 6,
-        36 if cfg!(feature = "radix") => 6,
+        11 => 4,
+        12 => 4,
+        13 => 4,
+        14 => 4,
+        15 => 4,
+        17 => 5,
+        18 => 5,
+        19 => 5,
+        20 => 5,
+        21 => 5,
+        22 => 5,
+        23 => 5,
+        24 => 5,
+        25 => 5,
+        26 => 5,
+        27 => 5,
+        28 => 5,
+        29 => 5,
+        30 => 5,
+        31 => 5,
+        33 => 6,
+        34 => 6,
+        35 => 6,
+        36 => 6,
+        // Invalid radix
+        _ => 0,
+    }
+}
+
+/// Calculate the integral ceiling of the binary factor from a basen number.
+#[inline(always)]
+#[cfg(not(feature = "radix"))]
+pub const fn integral_binary_factor(radix: u32) -> u32 {
+    match radix {
+        10 => 4,
         // Invalid radix
         _ => 0,
     }

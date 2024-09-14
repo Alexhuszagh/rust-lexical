@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
+'''
+    limits
+    ======
 
-"""
-Generate the numeric limits for a given radix.
+    Generate the numeric limits for a given radix.
 
-This is used for the fast-path algorithms, to calculate the
-maximum number of digits or exponent bits that can be exactly
-represented as a native value.
-"""
+    This is used for the fast-path algorithms, to calculate the
+    maximum number of digits or exponent bits that can be exactly
+    represented as a native value.
+
+    Note that we need to use `#[cfg]` rather than `if cfg!(...)`
+    due to performance reasons. The code is broken down in
+    the actual implementation to move the powers to const fns
+    and then implement the trait in terms of the const fns.
+'''
 
 import math
 

@@ -2,6 +2,8 @@
 
 #![doc(hidden)]
 
+use lexical_util::format;
+
 /// Select the back-end.
 #[cfg(feature = "compact")]
 use crate::compact::Compact;
@@ -9,7 +11,6 @@ use crate::compact::Compact;
 use crate::decimal::Decimal;
 #[cfg(all(not(feature = "compact"), feature = "power-of-two"))]
 use crate::radix::Radix;
-use lexical_util::format;
 
 /// Define the implementation to write significant digits.
 macro_rules! write_mantissa {
@@ -68,7 +69,8 @@ pub trait WriteInteger: Compact {
     write_exponent!(Compact);
 }
 
-/// Write integer trait, implemented in terms of the optimized, decimal back-end.
+/// Write integer trait, implemented in terms of the optimized, decimal
+/// back-end.
 #[cfg(all(not(feature = "compact"), not(feature = "power-of-two")))]
 pub trait WriteInteger: Decimal {
     /// Forward write integer parameters to an optimized backend.
@@ -94,7 +96,8 @@ pub trait WriteInteger: Decimal {
     write_exponent!(Decimal);
 }
 
-/// Write integer trait, implemented in terms of the optimized, decimal or radix back-end.
+/// Write integer trait, implemented in terms of the optimized, decimal or radix
+/// back-end.
 #[cfg(all(not(feature = "compact"), feature = "power-of-two"))]
 pub trait WriteInteger: Decimal + Radix {
     /// Forward write integer parameters to an optimized backend.

@@ -36,7 +36,6 @@
 //! ```
 //!
 //! # Conversion API
-//!
 #![cfg_attr(feature = "write", doc = " **To String**")]
 #![cfg_attr(feature = "write", doc = "")]
 #![cfg_attr(feature = "write", doc = " - [`to_string`]")]
@@ -52,8 +51,8 @@
 //! # Features
 //!
 //! In accordance with the Rust ethos, all features are additive: the crate
-//! may be build with `--all-features` without issue.  The following features are enabled
-//! by default:
+//! may be build with `--all-features` without issue.  The following features
+//! are enabled by default:
 //!
 //! * `std`
 //! * `write-integers`
@@ -156,7 +155,7 @@
 //!
 //! Lexical provides two main levels of configuration:
 //! - The [`NumberFormatBuilder`], creating a packed struct with custom
-//!     formatting options.
+//!   formatting options.
 //! - The Options API.
 //!
 //! ## Number Format
@@ -171,8 +170,10 @@
 //! When the `format` feature is enabled, numerous other syntax and
 //! digit separator flags are enabled, including:
 //! - A digit separator character, to group digits for increased legibility.
-//! - Whether leading, trailing, internal, and consecutive digit separators are allowed.
-//! - Toggling required float components, such as digits before the decimal point.
+//! - Whether leading, trailing, internal, and consecutive digit separators are
+//!   allowed.
+//! - Toggling required float components, such as digits before the decimal
+//!   point.
 //! - Toggling whether special floats are allowed or are case-sensitive.
 //!
 //! Many pre-defined constants therefore exist to simplify common use-cases,
@@ -194,7 +195,6 @@
 //! - The rounding mode when truncating significant digits while writing.
 //!
 //! The available options are:
-//!
 #![cfg_attr(feature = "parse-floats", doc = " - [`ParseFloatOptions`]")]
 #![cfg_attr(feature = "parse-integers", doc = " - [`ParseIntegerOptions`]")]
 #![cfg_attr(feature = "write-floats", doc = " - [`WriteFloatOptions`]")]
@@ -310,14 +310,14 @@ pub use lexical_core::{FromLexical, FromLexicalWithOptions};
 #[cfg(feature = "write")]
 pub use lexical_core::{ToLexical, ToLexicalWithOptions};
 
-// NOTE: We cannot just use an uninitialized vector with excess capacity and then use
-// read-assign rather than `ptr::write` or `MaybeUninit.write` to modify the values.
-// When LLVM was the primary codegen, this was **UNSPECIFIED** but not undefined
-// behavior: reading undef primitives is safe:
+// NOTE: We cannot just use an uninitialized vector with excess capacity and
+// then use read-assign rather than `ptr::write` or `MaybeUninit.write` to
+// modify the values. When LLVM was the primary codegen, this was
+// **UNSPECIFIED** but not undefined behavior: reading undef primitives is safe:
 //  https://llvm.org/docs/LangRef.html#undefined-values
 //
-// However, a different backend such as cranelift might make this undefined behavior.
-// That is, from the perspective of Rust, this is UB:
+// However, a different backend such as cranelift might make this undefined
+// behavior. That is, from the perspective of Rust, this is UB:
 //
 //  ```rust
 //  let x = Vec::<u8>::with_capacity(500);
@@ -330,9 +330,9 @@ pub use lexical_core::{ToLexical, ToLexicalWithOptions};
 //  ptr.write(1);
 //  ```
 //
-// Currently, since LLVM treats it as unspecified behavior and will not drop values,
-// there is no risk of a memory leak and this is **currently** safe. However, this
-// can explode at any time, just like any UB.
+// Currently, since LLVM treats it as unspecified behavior and will not drop
+// values, there is no risk of a memory leak and this is **currently** safe.
+// However, this can explode at any time, just like any UB.
 
 /// High-level conversion of a number to a decimal-encoded string.
 ///
@@ -355,7 +355,8 @@ pub fn to_string<N: ToLexical>(n: N) -> String {
     let mut buf = vec![0u8; N::FORMATTED_SIZE_DECIMAL];
     let len = lexical_core::write(n, buf.as_mut_slice()).len();
 
-    // SAFETY: safe since the buffer is of sufficient size, len() must be <= the vec size.
+    // SAFETY: safe since the buffer is of sufficient size, len() must be <= the vec
+    // size.
     unsafe {
         buf.set_len(len);
         String::from_utf8_unchecked(buf)
@@ -387,13 +388,15 @@ pub fn to_string_with_options<N: ToLexicalWithOptions, const FORMAT: u128>(
     n: N,
     options: &N::Options,
 ) -> String {
-    // Need to use the buffer_size hint to properly deal with float formatting options.
+    // Need to use the buffer_size hint to properly deal with float formatting
+    // options.
     let size = N::Options::buffer_size::<N, FORMAT>(options);
     let mut buf = vec![0u8; size];
     let slc = buf.as_mut_slice();
     let len = lexical_core::write_with_options::<_, FORMAT>(n, slc, options).len();
 
-    // SAFETY: safe since the buffer is of sufficient size, len() must be <= the vec size.
+    // SAFETY: safe since the buffer is of sufficient size, len() must be <= the vec
+    // size.
     unsafe {
         buf.set_len(len);
         String::from_utf8_unchecked(buf)
@@ -519,7 +522,8 @@ pub fn parse_with_options<N: FromLexicalWithOptions, Bytes: AsRef<[u8]>, const F
     N::from_lexical_with_options::<FORMAT>(bytes.as_ref(), options)
 }
 
-/// High-level, partial conversion of bytes to a number with custom parsing options.
+/// High-level, partial conversion of bytes to a number with custom parsing
+/// options.
 ///
 /// This functions parses as many digits as possible, returning the parsed
 /// value and the number of digits processed if at least one character

@@ -3,10 +3,11 @@
 
 mod util;
 
-use crate::util::default_proptest_config;
 use lexical_util::div128::u128_divrem;
 use lexical_util::step::u64_step;
 use proptest::{prop_assert_eq, proptest};
+
+use crate::util::default_proptest_config;
 
 proptest! {
     #![proptest_config(default_proptest_config())]

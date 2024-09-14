@@ -1,4 +1,5 @@
 use core::time::Duration;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use fastrand::Rng;
 use lexical_parse_float::bigint;

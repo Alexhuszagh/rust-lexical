@@ -661,6 +661,9 @@ pub const fn radix_from_flags(format: u128, mask: u128, shift: i32) -> u32 {
 // VALIDATORS
 // ----------
 
+// NOTE: All of these are only used when building formats so it doesn't matter if
+// they have performance issues, since these will be built at compile time.
+
 /// Determine if the provided exponent flags are valid.
 #[inline(always)]
 pub const fn is_valid_exponent_flags(format: u128) -> bool {

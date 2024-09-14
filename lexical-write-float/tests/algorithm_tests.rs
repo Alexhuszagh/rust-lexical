@@ -2,8 +2,8 @@
 
 mod util;
 
-use crate::util::default_proptest_config;
 use core::num;
+
 use lexical_util::constants::BUFFER_SIZE;
 use lexical_util::format::NumberFormatBuilder;
 use lexical_util::num::Float;
@@ -11,6 +11,8 @@ use lexical_write_float::algorithm::DragonboxFloat;
 use lexical_write_float::float::{ExtendedFloat80, RawFloat};
 use lexical_write_float::{algorithm, Options, RoundMode};
 use proptest::prelude::*;
+
+use crate::util::default_proptest_config;
 
 const DECIMAL: u128 = NumberFormatBuilder::decimal();
 

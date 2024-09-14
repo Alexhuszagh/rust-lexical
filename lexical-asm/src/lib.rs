@@ -1,10 +1,11 @@
 use core::num::ParseFloatError;
+use std::io::Write;
+
 use lexical_parse_float::FromLexical as FloatFromLexical;
 use lexical_parse_integer::FromLexical as IntFromLexical;
 use lexical_util::error::Error;
 use lexical_write_float::ToLexical as FloatToLexical;
 use lexical_write_integer::ToLexical as IntToLexical;
-use std::io::Write;
 
 // PARSE INTEGER
 // -------------

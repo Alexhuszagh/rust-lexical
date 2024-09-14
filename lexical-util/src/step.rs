@@ -1,4 +1,5 @@
-//! The maximum digits that can be held in a u64 for a given radix without overflow.
+//! The maximum digits that can be held in a u64 for a given radix without
+//! overflow.
 //!
 //! This is useful for 128-bit division and operations, since it can
 //! reduces the number of inefficient, non-native operations.
@@ -22,9 +23,13 @@
 /// without overflowing for a given type. For example, 19 digits can
 /// always be processed for a decimal string for `u64` without overflowing.
 #[inline(always)]
+#[allow(clippy::needless_return)]
 pub const fn min_step(radix: u32, bits: usize, is_signed: bool) -> usize {
-    if cfg!(feature = "radix") {
-        match radix {
+    // NOTE: to avoid branching when w don't need it, we use the compile logic
+
+    #[cfg(feature = "radix")]
+    {
+        return match radix {
             2 => min_step_2(bits, is_signed),
             3 => min_step_3(bits, is_signed),
             4 => min_step_4(bits, is_signed),
@@ -61,9 +66,12 @@ pub const fn min_step(radix: u32, bits: usize, is_signed: bool) -> usize {
             35 => min_step_35(bits, is_signed),
             36 => min_step_36(bits, is_signed),
             _ => 1,
-        }
-    } else if cfg!(feature = "power-of-two") {
-        match radix {
+        };
+    }
+
+    #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
+    {
+        return match radix {
             2 => min_step_2(bits, is_signed),
             4 => min_step_4(bits, is_signed),
             8 => min_step_8(bits, is_signed),
@@ -71,9 +79,13 @@ pub const fn min_step(radix: u32, bits: usize, is_signed: bool) -> usize {
             16 => min_step_16(bits, is_signed),
             32 => min_step_32(bits, is_signed),
             _ => 1,
-        }
-    } else {
-        min_step_10(bits, is_signed)
+        };
+    }
+
+    #[cfg(not(feature = "power-of-two"))]
+    {
+        _ = radix;
+        return min_step_10(bits, is_signed);
     }
 }
 
@@ -84,9 +96,11 @@ pub const fn min_step(radix: u32, bits: usize, is_signed: bool) -> usize {
 /// be processed for a decimal string for `u64` without overflowing, but
 /// it may overflow.
 #[inline(always)]
+#[allow(clippy::needless_return)]
 pub const fn max_step(radix: u32, bits: usize, is_signed: bool) -> usize {
-    if cfg!(feature = "radix") {
-        match radix {
+    #[cfg(feature = "radix")]
+    {
+        return match radix {
             2 => max_step_2(bits, is_signed),
             3 => max_step_3(bits, is_signed),
             4 => max_step_4(bits, is_signed),
@@ -123,9 +137,12 @@ pub const fn max_step(radix: u32, bits: usize, is_signed: bool) -> usize {
             35 => max_step_35(bits, is_signed),
             36 => max_step_36(bits, is_signed),
             _ => 1,
-        }
-    } else if cfg!(feature = "power-of-two") {
-        match radix {
+        };
+    }
+
+    #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
+    {
+        return match radix {
             2 => max_step_2(bits, is_signed),
             4 => max_step_4(bits, is_signed),
             8 => max_step_8(bits, is_signed),
@@ -133,14 +150,18 @@ pub const fn max_step(radix: u32, bits: usize, is_signed: bool) -> usize {
             16 => max_step_16(bits, is_signed),
             32 => max_step_32(bits, is_signed),
             _ => 1,
-        }
-    } else {
-        max_step_10(bits, is_signed)
+        };
+    }
+
+    #[cfg(not(feature = "power-of-two"))]
+    {
+        _ = radix;
+        return max_step_10(bits, is_signed);
     }
 }
 
-/// Calculate the number of digits that can be processed without overflowing a u64.
-/// Helper function since this is used for 128-bit division.
+/// Calculate the number of digits that can be processed without overflowing a
+/// u64. Helper function since this is used for 128-bit division.
 #[inline(always)]
 pub const fn u64_step(radix: u32) -> usize {
     min_step(radix, 64, false)
@@ -156,6 +177,7 @@ pub const fn u64_step(radix: u32) -> usize {
 // recurse. Under normal circumstances, this will never be called.
 
 #[inline(always)]
+#[cfg_attr(not(feature = "power-of-two"), allow(dead_code))]
 const fn max_step_2(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 7,
@@ -173,6 +195,7 @@ const fn max_step_2(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "power-of-two"), allow(dead_code))]
 const fn min_step_2(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 7,
@@ -190,6 +213,7 @@ const fn min_step_2(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_3(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 5,
@@ -207,6 +231,7 @@ const fn max_step_3(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_3(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 4,
@@ -224,6 +249,7 @@ const fn min_step_3(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "power-of-two"), allow(dead_code))]
 const fn max_step_4(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 4,
@@ -241,6 +267,7 @@ const fn max_step_4(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "power-of-two"), allow(dead_code))]
 const fn min_step_4(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -258,6 +285,7 @@ const fn min_step_4(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_5(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 4,
@@ -275,6 +303,7 @@ const fn max_step_5(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_5(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -292,6 +321,7 @@ const fn min_step_5(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_6(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -309,6 +339,7 @@ const fn max_step_6(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_6(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -326,6 +357,7 @@ const fn min_step_6(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_7(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -343,6 +375,7 @@ const fn max_step_7(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_7(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -360,6 +393,7 @@ const fn min_step_7(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "power-of-two"), allow(dead_code))]
 const fn max_step_8(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -377,6 +411,7 @@ const fn max_step_8(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "power-of-two"), allow(dead_code))]
 const fn min_step_8(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -394,6 +429,7 @@ const fn min_step_8(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_9(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -411,6 +447,7 @@ const fn max_step_9(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_9(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -462,6 +499,7 @@ const fn min_step_10(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_11(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -479,6 +517,7 @@ const fn max_step_11(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_11(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -496,6 +535,7 @@ const fn min_step_11(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_12(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -513,6 +553,7 @@ const fn max_step_12(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_12(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -530,6 +571,7 @@ const fn min_step_12(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_13(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -547,6 +589,7 @@ const fn max_step_13(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_13(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -564,6 +607,7 @@ const fn min_step_13(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_14(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -581,6 +625,7 @@ const fn max_step_14(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_14(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -598,6 +643,7 @@ const fn min_step_14(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_15(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -615,6 +661,7 @@ const fn max_step_15(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_15(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -632,6 +679,7 @@ const fn min_step_15(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "power-of-two"), allow(dead_code))]
 const fn max_step_16(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -649,6 +697,7 @@ const fn max_step_16(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "power-of-two"), allow(dead_code))]
 const fn min_step_16(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -666,6 +715,7 @@ const fn min_step_16(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_17(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -683,6 +733,7 @@ const fn max_step_17(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_17(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -700,6 +751,7 @@ const fn min_step_17(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_18(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -717,6 +769,7 @@ const fn max_step_18(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_18(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -734,6 +787,7 @@ const fn min_step_18(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_19(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -751,6 +805,7 @@ const fn max_step_19(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_19(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -768,6 +823,7 @@ const fn min_step_19(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_20(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -785,6 +841,7 @@ const fn max_step_20(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_20(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -802,6 +859,7 @@ const fn min_step_20(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_21(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -819,6 +877,7 @@ const fn max_step_21(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_21(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -836,6 +895,7 @@ const fn min_step_21(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_22(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -853,6 +913,7 @@ const fn max_step_22(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_22(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -870,6 +931,7 @@ const fn min_step_22(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_23(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -887,6 +949,7 @@ const fn max_step_23(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_23(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -904,6 +967,7 @@ const fn min_step_23(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_24(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -921,6 +985,7 @@ const fn max_step_24(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_24(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -938,6 +1003,7 @@ const fn min_step_24(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_25(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -955,6 +1021,7 @@ const fn max_step_25(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_25(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -972,6 +1039,7 @@ const fn min_step_25(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_26(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -989,6 +1057,7 @@ const fn max_step_26(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_26(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1006,6 +1075,7 @@ const fn min_step_26(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_27(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1023,6 +1093,7 @@ const fn max_step_27(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_27(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1040,6 +1111,7 @@ const fn min_step_27(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_28(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1057,6 +1129,7 @@ const fn max_step_28(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_28(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1074,6 +1147,7 @@ const fn min_step_28(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_29(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1091,6 +1165,7 @@ const fn max_step_29(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_29(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1108,6 +1183,7 @@ const fn min_step_29(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_30(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1125,6 +1201,7 @@ const fn max_step_30(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_30(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1142,6 +1219,7 @@ const fn min_step_30(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_31(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1159,6 +1237,7 @@ const fn max_step_31(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_31(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1176,6 +1255,7 @@ const fn min_step_31(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "power-of-two"), allow(dead_code))]
 const fn max_step_32(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1193,6 +1273,7 @@ const fn max_step_32(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "power-of-two"), allow(dead_code))]
 const fn min_step_32(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1210,6 +1291,7 @@ const fn min_step_32(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_33(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1227,6 +1309,7 @@ const fn max_step_33(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_33(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1244,6 +1327,7 @@ const fn min_step_33(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_34(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1261,6 +1345,7 @@ const fn max_step_34(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_34(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1278,6 +1363,7 @@ const fn min_step_34(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_35(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1295,6 +1381,7 @@ const fn max_step_35(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_35(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1312,6 +1399,7 @@ const fn min_step_35(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn max_step_36(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1329,6 +1417,7 @@ const fn max_step_36(bits: usize, is_signed: bool) -> usize {
 }
 
 #[inline(always)]
+#[cfg_attr(not(feature = "radix"), allow(dead_code))]
 const fn min_step_36(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,

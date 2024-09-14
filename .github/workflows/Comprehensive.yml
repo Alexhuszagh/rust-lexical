@@ -17,4 +17,3 @@ jobs:
             toolchain: nightly
             components: rustfmt, clippy
       - run: ci/comprehensive.sh
-      - run: ALL_FEATURES=1 ci/comprehensive.sh

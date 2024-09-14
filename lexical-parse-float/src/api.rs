@@ -2,8 +2,6 @@
 
 #![doc(hidden)]
 
-use crate::options::Options;
-use crate::parse::ParseFloat;
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
 use lexical_util::error::Error;
@@ -11,6 +9,9 @@ use lexical_util::error::Error;
 use lexical_util::f16::f16;
 use lexical_util::format::{is_valid_options_punctuation, NumberFormat, STANDARD};
 use lexical_util::{from_lexical, from_lexical_with_options};
+
+use crate::options::Options;
+use crate::parse::ParseFloat;
 
 // API
 

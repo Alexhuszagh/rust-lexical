@@ -11,11 +11,12 @@
 
 pub use fpu_precision::set_precision;
 
-// On x86, the x87 FPU is used for float operations if the SSE/SSE2 extensions are not available.
-// The x87 FPU operates with 80 bits of precision by default, which means that operations will
-// round to 80 bits causing double rounding to happen when values are eventually represented as
-// 32/64 bit float values. To overcome this, the FPU control word can be set so that the
-// computations are performed in the desired precision.
+// On x86, the x87 FPU is used for float operations if the SSE/SSE2 extensions
+// are not available. The x87 FPU operates with 80 bits of precision by default,
+// which means that operations will round to 80 bits causing double rounding to
+// happen when values are eventually represented as 32/64 bit float values. To
+// overcome this, the FPU control word can be set so that the computations are
+// performed in the desired precision.
 #[cfg(all(target_arch = "x86", not(target_feature = "sse2")))]
 mod fpu_precision {
     // We only support the latest nightly, which is 1.59+.
@@ -23,8 +24,8 @@ mod fpu_precision {
     use core::arch::asm;
     use core::mem::size_of;
 
-    /// A structure used to preserve the original value of the FPU control word, so that it can be
-    /// restored when the structure is dropped.
+    /// A structure used to preserve the original value of the FPU control word,
+    /// so that it can be restored when the structure is dropped.
     ///
     /// The x87 FPU is a 16-bits register whose fields are as follows:
     ///
@@ -32,11 +33,12 @@ mod fpu_precision {
     /// |------:|------:|----:|----:|---:|---:|---:|---:|---:|---:|
     /// |       | RC    | PC  |     | PM | UM | OM | ZM | DM | IM |
     ///
-    /// The documentation for all of the fields is available in the IA-32 Architectures Software
-    /// Developer's Manual (Volume 1).
+    /// The documentation for all of the fields is available in the IA-32
+    /// Architectures Software Developer's Manual (Volume 1).
     ///
-    /// The only field which is relevant for the following code is PC, Precision Control. This
-    /// field determines the precision of the operations performed by the  FPU. It can be set to:
+    /// The only field which is relevant for the following code is PC, Precision
+    /// Control. This field determines the precision of the operations
+    /// performed by the  FPU. It can be set to:
     ///  - 0b00, single precision i.e., 32-bits
     ///  - 0b10, double precision i.e., 64-bits
     ///  - 0b11, double extended precision i.e., 80-bits (default state)
@@ -44,8 +46,8 @@ mod fpu_precision {
     pub struct FPUControlWord(u16);
 
     fn set_cw(cw: u16) {
-        // SAFETY: the `fldcw` instruction has been audited to be able to work correctly with
-        // any `u16`
+        // SAFETY: the `fldcw` instruction has been audited to be able to work correctly
+        // with any `u16`
         unsafe {
             asm!(
                 "fldcw word ptr [{}]",
@@ -55,11 +57,13 @@ mod fpu_precision {
         }
     }
 
-    /// Sets the precision field of the FPU to `T` and returns a `FPUControlWord`.
+    /// Sets the precision field of the FPU to `T` and returns a
+    /// `FPUControlWord`.
     pub fn set_precision<T>() -> FPUControlWord {
         let mut cw = 0_u16;
 
-        // Compute the value for the Precision Control field that is appropriate for `T`.
+        // Compute the value for the Precision Control field that is appropriate for
+        // `T`.
         let cw_precision = match size_of::<T>() {
             4 => 0x0000, // 32 bits
             8 => 0x0200, // 64 bits
@@ -68,8 +72,8 @@ mod fpu_precision {
 
         // Get the original value of the control word to restore it later, when the
         // `FPUControlWord` structure is dropped
-        // SAFETY: the `fnstcw` instruction has been audited to be able to work correctly with
-        // any `u16`
+        // SAFETY: the `fnstcw` instruction has been audited to be able to work
+        // correctly with any `u16`
         unsafe {
             asm!(
                 "fnstcw word ptr [{}]",
@@ -78,8 +82,9 @@ mod fpu_precision {
             )
         }
 
-        // Set the control word to the desired precision. This is achieved by masking away the old
-        // precision (bits 8 and 9, 0x300) and replacing it with the precision flag computed above.
+        // Set the control word to the desired precision. This is achieved by masking
+        // away the old precision (bits 8 and 9, 0x300) and replacing it with
+        // the precision flag computed above.
         set_cw((cw & 0xFCFF) | cw_precision);
 
         FPUControlWord(cw)
@@ -92,8 +97,9 @@ mod fpu_precision {
     }
 }
 
-// In most architectures, floating point operations have an explicit bit size, therefore the
-// precision of the computation is determined on a per-operation basis.
+// In most architectures, floating point operations have an explicit bit size,
+// therefore the precision of the computation is determined on a per-operation
+// basis.
 #[cfg(any(not(target_arch = "x86"), target_feature = "sse2"))]
 mod fpu_precision {
     pub fn set_precision<T>() {

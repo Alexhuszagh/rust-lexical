@@ -10,12 +10,16 @@
 //! the number of permutations during parsing.
 //!
 //! We can consume any combinations of of \[0,3\] items from the following set:
-//!     - \[l\]eading digit separators, where digit separators occur before digits.
-//!     - \[i\]nternal digit separators, where digit separators occur between digits.
-//!     - \[t\]railing digit separators, where digit separators occur after digits.
+//!     - \[l\]eading digit separators, where digit separators occur before
+//!       digits.
+//!     - \[i\]nternal digit separators, where digit separators occur between
+//!       digits.
+//!     - \[t\]railing digit separators, where digit separators occur after
+//!       digits.
 //!
 //! In addition to those combinations, we can also have:
-//!     - \[c\]onsecutive digit separators, which allows two digit separators to be adjacent.
+//!     - \[c\]onsecutive digit separators, which allows two digit separators to
+//!       be adjacent.
 //!
 //! # Shorthand
 //!
@@ -37,12 +41,13 @@
 
 #![cfg(all(feature = "format", feature = "parse"))]
 
+use core::{mem, ptr};
+
 use crate::buffer::Buffer;
 use crate::digit::char_is_digit_const;
 use crate::format::NumberFormat;
 use crate::format_flags as flags;
 use crate::iterator::BytesIter;
-use core::{mem, ptr};
 
 // PEEK
 // ----
@@ -217,21 +222,24 @@ macro_rules! peek_t {
     };
 }
 
-/// Consumes at most 1 internal/leading digit separator and peeks the next value.
+/// Consumes at most 1 internal/leading digit separator and peeks the next
+/// value.
 macro_rules! peek_il {
     ($self:ident) => {
         peek_1!($self, is_il)
     };
 }
 
-/// Consumes at most 1 internal/trailing digit separator and peeks the next value.
+/// Consumes at most 1 internal/trailing digit separator and peeks the next
+/// value.
 macro_rules! peek_it {
     ($self:ident) => {
         peek_1!($self, is_it)
     };
 }
 
-/// Consumes at most 1 leading/trailing digit separator and peeks the next value.
+/// Consumes at most 1 leading/trailing digit separator and peeks the next
+/// value.
 macro_rules! peek_lt {
     ($self:ident) => {
         peek_1!($self, is_lt)
@@ -266,21 +274,24 @@ macro_rules! peek_tc {
     };
 }
 
-/// Consumes 1 or more internal/leading digit separators and peeks the next value.
+/// Consumes 1 or more internal/leading digit separators and peeks the next
+/// value.
 macro_rules! peek_ilc {
     ($self:ident) => {
         peek_n!($self, is_il)
     };
 }
 
-/// Consumes 1 or more internal/trailing digit separators and peeks the next value.
+/// Consumes 1 or more internal/trailing digit separators and peeks the next
+/// value.
 macro_rules! peek_itc {
     ($self:ident) => {
         peek_n!($self, is_it)
     };
 }
 
-/// Consumes 1 or more leading/trailing digit separators and peeks the next value.
+/// Consumes 1 or more leading/trailing digit separators and peeks the next
+/// value.
 macro_rules! peek_ltc {
     ($self:ident) => {
         peek_n!($self, is_lt)

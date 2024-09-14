@@ -13,22 +13,24 @@ script_home=$(realpath "${script_dir}")
 home=$(dirname "${script_home}")
 cd "${home}"
 
-FEATURES=
-if [ ! -z $ALL_FEATURES ]; then
-    FEATURES=--all-features
-fi
+run_tests() {
+    # Test the parse-float correctness tests
+    cd "${home}"
+    cd lexical-parse-float/etc/correctness
+    cargo run "${@}" --release --bin test-parse-golang
+    cargo run "${@}" --release --bin test-parse-unittests
 
-# Test the parse-float correctness tests
-cd lexical-parse-float/etc/correctness
-cargo run $FEATURES --release --bin test-parse-golang
-cargo run $FEATURES --release --bin test-parse-unittests
+    # Test the write-float correctness tests.
+    cd "${home}"
+    cd lexical-write-float/etc/correctness
+    cargo run "${@}" --release --bin shorter_interval
+    cargo run "${@}" --release --bin random
+    cargo run "${@}" --release --bin simple_random  -- --iterations 1000000
+}
 
-# Test the write-float correctness tests.
-cd "${home}"
-cd lexical-write-float/etc/correctness
-cargo run $FEATURES --release --bin shorter_interval
-cargo run $FEATURES --release --bin random
-cargo run $FEATURES --release --bin simple_random  -- --iterations 1000000
+run_tests
+run_tests --features=format
+run_tests --all-features
 
 cd "${home}"
 if [ ! -z "${EXHAUSTIVE}" ]; then

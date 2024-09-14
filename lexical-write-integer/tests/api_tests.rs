@@ -1,8 +1,8 @@
 mod util;
 
-use crate::util::default_proptest_config;
 use core::fmt::Debug;
 use core::str::{from_utf8_unchecked, FromStr};
+
 #[cfg(feature = "radix")]
 use lexical_util::constants::BUFFER_SIZE;
 #[cfg(feature = "format")]
@@ -12,6 +12,8 @@ use lexical_write_integer::{Options, ToLexical, ToLexicalWithOptions};
 use proptest::prelude::*;
 #[cfg(feature = "radix")]
 use util::from_radix;
+
+use crate::util::default_proptest_config;
 
 trait Roundtrip: ToLexical + ToLexicalWithOptions + FromStr {
     #[allow(dead_code)]

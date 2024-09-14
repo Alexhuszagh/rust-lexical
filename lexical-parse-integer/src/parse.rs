@@ -3,11 +3,11 @@
 #![doc(hidden)]
 
 // Select the correct back-end.
-use crate::algorithm::{algorithm_complete, algorithm_partial};
-use crate::Options;
-
 use lexical_util::num::Integer;
 use lexical_util::result::Result;
+
+use crate::algorithm::{algorithm_complete, algorithm_partial};
+use crate::Options;
 
 /// Parse integer trait, implemented in terms of the optimized back-end.
 pub trait ParseInteger: Integer {

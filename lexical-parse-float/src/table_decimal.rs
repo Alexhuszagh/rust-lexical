@@ -3,10 +3,11 @@
 #![doc(hidden)]
 #![cfg(not(feature = "compact"))]
 
+use static_assertions::const_assert;
+
 #[cfg(not(feature = "radix"))]
 use crate::bigint::Limb;
 use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit, u64_power_limit};
-use static_assertions::const_assert;
 
 // HELPERS
 // -------

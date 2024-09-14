@@ -1,9 +1,10 @@
 //! Shared utilities for writing floats.
 
-use crate::options::{Options, RoundMode};
 use lexical_util::digit::{char_to_valid_digit_const, digit_to_char_const};
 use lexical_util::format::NumberFormat;
 use lexical_write_integer::write::WriteInteger;
+
+use crate::options::{Options, RoundMode};
 
 /// Get the exact number of digits from a minimum bound.
 #[inline(always)]
@@ -90,14 +91,16 @@ pub unsafe fn truncate_and_round_decimal(
     // halfway at all, we need to round up, even if 1 digit.
 
     // Get the last non-truncated digit, and the remaining ones.
-    // SAFETY: safe if `digit_count < digits.len()`, since `max_digits < digit_count`.
+    // SAFETY: safe if `digit_count < digits.len()`, since `max_digits <
+    // digit_count`.
     let truncated = unsafe { index_unchecked!(digits[max_digits]) };
     let (digits, carried) = if truncated < b'5' {
         // Just truncate, going to round-down anyway.
         (max_digits, false)
     } else if truncated > b'5' {
         // Round-up always.
-        // SAFETY: safe if `digit_count <= digits.len()`, because `max_digits < digit_count`.
+        // SAFETY: safe if `digit_count <= digits.len()`, because `max_digits <
+        // digit_count`.
         unsafe { round_up(digits, max_digits, 10) }
     } else {
         // Have a near-halfway case, resolve it.
@@ -109,7 +112,8 @@ pub unsafe fn truncate_and_round_decimal(
             (is_odd, is_above)
         };
         if is_odd || is_above {
-            // SAFETY: safe if `digit_count <= digits.len()`, because `max_digits < digit_count`.
+            // SAFETY: safe if `digit_count <= digits.len()`, because `max_digits <
+            // digit_count`.
             unsafe { round_up(digits, max_digits, 10) }
         } else {
             (max_digits, false)
@@ -168,7 +172,8 @@ pub unsafe fn write_exponent<const FORMAT: u128>(
     };
 }
 
-/// Detect the notation to use for the float formatter and call the appropriate function.
+/// Detect the notation to use for the float formatter and call the appropriate
+/// function.
 ///
 /// - `float` - The float to write to string.
 /// - `format` - The formatting specification for the float.

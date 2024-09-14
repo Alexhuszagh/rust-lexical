@@ -1,6 +1,7 @@
 #![cfg(feature = "power-of-two")]
 
 use core::num;
+
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 use lexical_util::format::NumberFormatBuilder;
 use lexical_util::num::{Float, Integer};

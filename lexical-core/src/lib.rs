@@ -77,7 +77,6 @@
 //! ```
 //!
 //! # Conversion API
-//!
 #![cfg_attr(feature = "write", doc = " **Write**")]
 #![cfg_attr(feature = "write", doc = "")]
 #![cfg_attr(feature = "write", doc = " - [`write`]")]
@@ -93,8 +92,8 @@
 //! # Features
 //!
 //! In accordance with the Rust ethos, all features are additive: the crate
-//! may be build with `--all-features` without issue.  The following features are enabled
-//! by default:
+//! may be build with `--all-features` without issue.  The following features
+//! are enabled by default:
 //!
 //! * `std`
 //! * `write-integers`
@@ -197,7 +196,7 @@
 //!
 //! Lexical provides two main levels of configuration:
 //! - The [`NumberFormatBuilder`], creating a packed struct with custom
-//!     formatting options.
+//!   formatting options.
 //! - The Options API.
 //!
 //! ## Number Format
@@ -212,8 +211,10 @@
 //! When the `format` feature is enabled, numerous other syntax and
 //! digit separator flags are enabled, including:
 //! - A digit separator character, to group digits for increased legibility.
-//! - Whether leading, trailing, internal, and consecutive digit separators are allowed.
-//! - Toggling required float components, such as digits before the decimal point.
+//! - Whether leading, trailing, internal, and consecutive digit separators are
+//!   allowed.
+//! - Toggling required float components, such as digits before the decimal
+//!   point.
 //! - Toggling whether special floats are allowed or are case-sensitive.
 //!
 //! Many pre-defined constants therefore exist to simplify common use-cases,
@@ -235,7 +236,6 @@
 //! - The rounding mode when truncating significant digits while writing.
 //!
 //! The available options are:
-//!
 #![cfg_attr(feature = "parse-floats", doc = " - [`ParseFloatOptions`]")]
 #![cfg_attr(feature = "parse-integers", doc = " - [`ParseIntegerOptions`]")]
 #![cfg_attr(feature = "write-floats", doc = " - [`WriteFloatOptions`]")]
@@ -298,7 +298,8 @@
 //! - [Writing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-integer/docs/Benchmarks.md)
 //! - [Comprehensive Benchmarks](https://github.com/Alexhuszagh/lexical-benchmarks)
 //!
-//! A comprehensive analysis of lexical commits and their performance can be found in [benchmarks].
+//! A comprehensive analysis of lexical commits and their performance can be
+//! found in [benchmarks].
 //!
 //! # Design
 //!
@@ -339,25 +340,6 @@
 #![cfg_attr(feature = "lint", warn(unsafe_op_in_unsafe_fn))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(feature = "parse-floats")]
-use lexical_parse_float::{
-    FromLexical as FromFloat,
-    FromLexicalWithOptions as FromFloatWithOptions,
-};
-#[cfg(feature = "parse-integers")]
-use lexical_parse_integer::{
-    FromLexical as FromInteger,
-    FromLexicalWithOptions as FromIntegerWithOptions,
-};
-#[cfg(feature = "parse")]
-use lexical_util::{from_lexical, from_lexical_with_options};
-#[cfg(feature = "write")]
-use lexical_util::{to_lexical, to_lexical_with_options};
-#[cfg(feature = "write-floats")]
-use lexical_write_float::{ToLexical as ToFloat, ToLexicalWithOptions as ToFloatWithOptions};
-#[cfg(feature = "write-integers")]
-use lexical_write_integer::{ToLexical as ToInteger, ToLexicalWithOptions as ToIntegerWithOptions};
-
 // Re-exports
 #[cfg(feature = "parse-floats")]
 pub use lexical_parse_float::{
@@ -365,11 +347,21 @@ pub use lexical_parse_float::{
     Options as ParseFloatOptions,
     OptionsBuilder as ParseFloatOptionsBuilder,
 };
+#[cfg(feature = "parse-floats")]
+use lexical_parse_float::{
+    FromLexical as FromFloat,
+    FromLexicalWithOptions as FromFloatWithOptions,
+};
 #[cfg(feature = "parse-integers")]
 pub use lexical_parse_integer::{
     options as parse_integer_options,
     Options as ParseIntegerOptions,
     OptionsBuilder as ParseIntegerOptionsBuilder,
+};
+#[cfg(feature = "parse-integers")]
+use lexical_parse_integer::{
+    FromLexical as FromInteger,
+    FromLexicalWithOptions as FromIntegerWithOptions,
 };
 #[cfg(feature = "f16")]
 pub use lexical_util::bf16::bf16;
@@ -386,18 +378,26 @@ pub use lexical_util::options::ParseOptions;
 pub use lexical_util::options::WriteOptions;
 #[cfg(feature = "parse")]
 pub use lexical_util::result::Result;
+#[cfg(feature = "parse")]
+use lexical_util::{from_lexical, from_lexical_with_options};
+#[cfg(feature = "write")]
+use lexical_util::{to_lexical, to_lexical_with_options};
 #[cfg(feature = "write-floats")]
 pub use lexical_write_float::{
     options as write_float_options,
     Options as WriteFloatOptions,
     OptionsBuilder as WriteFloatOptionsBuilder,
 };
+#[cfg(feature = "write-floats")]
+use lexical_write_float::{ToLexical as ToFloat, ToLexicalWithOptions as ToFloatWithOptions};
 #[cfg(feature = "write-integers")]
 pub use lexical_write_integer::{
     options as write_integer_options,
     Options as WriteIntegerOptions,
     OptionsBuilder as WriteIntegerOptionsBuilder,
 };
+#[cfg(feature = "write-integers")]
+use lexical_write_integer::{ToLexical as ToInteger, ToLexicalWithOptions as ToIntegerWithOptions};
 
 // API
 // ---
@@ -414,8 +414,10 @@ to_lexical_with_options!();
 /// Implement `FromLexical` and `FromLexicalWithOptions` for numeric types.
 ///
 /// * `t`                           - The numerical type.
-/// * `from`                        - The internal trait that implements `from_lexical`.
-/// * `from_lexical_with_options`   - The internal trait that implements `from_lexical`.
+/// * `from`                        - The internal trait that implements
+///   `from_lexical`.
+/// * `from_lexical_with_options`   - The internal trait that implements
+///   `from_lexical`.
 /// * `options`                     - The options type to configure settings.
 #[cfg(feature = "parse")]
 macro_rules! from_lexical_impl {
@@ -479,8 +481,10 @@ float_from_lexical! { f32 f64 }
 /// Implement `ToLexical` and `ToLexicalWithOptions` for numeric types.
 ///
 /// * `t`                           - The numerical type.
-/// * `to`                          - The internal trait that implements `to_lexical`.
-/// * `to_lexical_with_options`     - The internal trait that implements `to_lexical`.
+/// * `to`                          - The internal trait that implements
+///   `to_lexical`.
+/// * `to_lexical_with_options`     - The internal trait that implements
+///   `to_lexical`.
 /// * `options`                     - The options type to configure settings.
 #[cfg(feature = "write")]
 macro_rules! to_lexical_impl {

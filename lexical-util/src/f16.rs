@@ -14,9 +14,10 @@
 #![cfg(feature = "f16")]
 #![doc(hidden)]
 
-use crate::num::Float;
 use core::cmp::Ordering;
 use core::{fmt, ops};
+
+use crate::num::Float;
 
 /// Half-precision IEEE-754 floating point type.
 #[allow(non_camel_case_types)]
@@ -179,8 +180,8 @@ impl ops::RemAssign for f16 {
 //     (mantissa & round_bit) != 0 && (mantissa & (2 * round_bit)) != 0
 // (If removed part == tie and retained part is even, do not round up.)
 // These two conditions can be combined into one:
-//     (mantissa & round_bit) != 0 && (mantissa & ((round_bit - 1) | (2 * round_bit))) != 0
-// which can be simplified into
+//     (mantissa & round_bit) != 0 && (mantissa & ((round_bit - 1) | (2 *
+// round_bit))) != 0 which can be simplified into
 //     (mantissa & round_bit) != 0 && (mantissa & (3 * round_bit - 1)) != 0
 
 fn f16_to_f32(half: f16) -> f32 {

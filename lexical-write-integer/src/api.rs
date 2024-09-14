@@ -2,11 +2,12 @@
 
 #![doc(hidden)]
 
-use crate::options::Options;
-use crate::write::WriteInteger;
 use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::num::SignedInteger;
 use lexical_util::{to_lexical, to_lexical_with_options};
+
+use crate::options::Options;
+use crate::write::WriteInteger;
 
 // UNSIGNED
 

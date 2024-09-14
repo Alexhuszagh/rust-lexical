@@ -1,6 +1,5 @@
 mod util;
 
-use crate::util::default_proptest_config;
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
 use lexical_util::constants::BUFFER_SIZE;
@@ -9,6 +8,8 @@ use lexical_util::f16::f16;
 use lexical_util::format::STANDARD;
 use lexical_write_float::{Options, ToLexical, ToLexicalWithOptions};
 use proptest::prelude::*;
+
+use crate::util::default_proptest_config;
 
 #[test]
 fn error_tests() {
@@ -71,6 +72,7 @@ fn invalid_inf_test() {
 #[cfg(feature = "power-of-two")]
 fn hex_test() {
     use core::num;
+
     use lexical_util::format::NumberFormatBuilder;
 
     const BASE16_2_10: u128 = NumberFormatBuilder::new()

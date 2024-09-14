@@ -2,7 +2,6 @@
 
 mod util;
 
-use crate::util::default_proptest_config;
 use lexical_parse_integer::algorithm;
 use lexical_parse_integer::options::SMALL_NUMBERS;
 use lexical_util::format::STANDARD;
@@ -10,6 +9,8 @@ use lexical_util::iterator::AsBytes;
 use proptest::prelude::*;
 #[cfg(feature = "power-of-two")]
 use util::from_radix;
+
+use crate::util::default_proptest_config;
 
 #[test]
 fn test_is_4digits() {
@@ -143,8 +144,8 @@ fn algorithm_test() {
     assert_eq!(parse_i32(b"+12345"), Ok((12345, 6)));
     assert_eq!(parse_i32(b"+123.45"), Ok((123, 4)));
 
-    // Need to try with other radixes here, especially to ensure no regressions with #71.
-    // Issue: https://github.com/Alexhuszagh/rust-lexical/issues/71
+    // Need to try with other radixes here, especially to ensure no regressions with
+    // #71. Issue: https://github.com/Alexhuszagh/rust-lexical/issues/71
     #[cfg(feature = "power-of-two")]
     {
         // This should try to invoke `parse_4digits` since it's more than

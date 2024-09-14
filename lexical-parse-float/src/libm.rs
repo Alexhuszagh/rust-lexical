@@ -6,6 +6,7 @@
 
 #![cfg(all(not(feature = "std"), feature = "compact"))]
 #![doc(hidden)]
+#![cfg_attr(any(), rustfmt::skip)]
 
 /* origin: FreeBSD /usr/src/lib/msun/src/e_powf.c */
 /*
@@ -27,16 +28,22 @@
 /// # Safety
 ///
 /// Safe if `index < array.len()`.
+#[cfg(feature = "safe")]
 macro_rules! i {
-    ($array:ident, $index:expr) => {
-        // SAFETY: safe if `index < array.len()`.
-        unsafe {
-            if cfg!(feature = "safe") {
-                $array[$index]
-            } else {
-                *$array.get_unchecked($index)
-            }
-        }
+    ($x:ident, $i:expr) => {
+        $x[$i]
+    };
+}
+
+/// Index an array without bounds checking.
+///
+/// # Safety
+///
+/// Safe if `index < array.len()`.
+#[cfg(not(feature = "safe"))]
+macro_rules! i {
+    ($x:ident, $i:expr) => {
+        unsafe { *$x.get_unchecked($i) }
     };
 }
 
@@ -264,7 +271,7 @@ pub fn powf(x: f32, y: f32) -> f32 {
             /* |x|<sqrt(3/2) */
             k = 0;
         } else if j < 0x5db3d7 {
-            /* |x|<sqrt(3)   */
+            /* |x|<sqrt(3) */
             k = 1;
         } else {
             k = 0;
@@ -430,7 +437,8 @@ pub fn sqrtf(x: f32) -> f32 {
 
         /* take care of Inf and NaN */
         if (ix as u32 & 0x7f800000) == 0x7f800000 {
-            return x * x + x; /* sqrt(NaN)=NaN, sqrt(+inf)=+inf, sqrt(-inf)=sNaN */
+            return x * x + x; /* sqrt(NaN)=NaN, sqrt(+inf)=+inf,
+                               * sqrt(-inf)=sNaN */
         }
 
         /* take care of zero */
@@ -549,33 +557,35 @@ pub fn scalbnf(mut x: f32, mut n: i32) -> f32 {
 //
 //                    n
 // Method:  Let x =  2   * (1+f)
-//      1. Compute and return log2(x) in two pieces:
-//              log2(x) = w1 + w2,
-//         where w1 has 53-24 = 29 bit trailing zeros.
-//      2. Perform y*log2(x) = n+y' by simulating muti-precision
-//         arithmetic, where |y'|<=0.5.
+//      1. Compute and return log2(x) in two pieces: log2(x) = w1 + w2, where w1
+//         has 53-24 = 29 bit trailing zeros.
+//      2. Perform y*log2(x) = n+y' by simulating muti-precision arithmetic,
+//         where |y'|<=0.5.
 //      3. Return x**y = 2**n*exp(y'*log2)
 //
 // Special cases:
-//      1.  (anything) ** 0  is 1
-//      2.  1 ** (anything)  is 1
-//      3.  (anything except 1) ** NAN is NAN
-//      4.  NAN ** (anything except 0) is NAN
-//      5.  +-(|x| > 1) **  +INF is +INF
-//      6.  +-(|x| > 1) **  -INF is +0
-//      7.  +-(|x| < 1) **  +INF is +0
-//      8.  +-(|x| < 1) **  -INF is +INF
-//      9.  -1          ** +-INF is 1
+//      1. (anything) ** 0  is 1
+//      2. 1 ** (anything)  is 1
+//      3. (anything except 1) ** NAN is NAN
+//      4. NAN ** (anything except 0) is NAN
+//      5. +-(|x| > 1) **  +INF is +INF
+//      6. +-(|x| > 1) **  -INF is +0
+//      7. +-(|x| < 1) **  +INF is +0
+//      8. +-(|x| < 1) **  -INF is +INF
+//      9. -1          ** +-INF is 1
 //      10. +0 ** (+anything except 0, NAN)               is +0
 //      11. -0 ** (+anything except 0, NAN, odd integer)  is +0
-//      12. +0 ** (-anything except 0, NAN)               is +INF, raise divbyzero
-//      13. -0 ** (-anything except 0, NAN, odd integer)  is +INF, raise divbyzero
+//      12. +0 ** (-anything except 0, NAN)               is +INF, raise
+//          divbyzero
+//      13. -0 ** (-anything except 0, NAN, odd integer)  is +INF, raise
+//          divbyzero
 //      14. -0 ** (+odd integer) is -0
 //      15. -0 ** (-odd integer) is -INF, raise divbyzero
 //      16. +INF ** (+anything except 0,NAN) is +INF
 //      17. +INF ** (-anything except 0,NAN) is +0
 //      18. -INF ** (+odd integer) is -INF
-//      19. -INF ** (anything) = -0 ** (-anything), (anything except odd integer)
+//      19. -INF ** (anything) = -0 ** (-anything), (anything except odd
+//          integer)
 //      20. (anything) ** 1 is (anything)
 //      21. (anything) ** -1 is 1/(anything)
 //      22. (-anything) ** (integer) is (-1)**(integer)*(+anything**integer)
@@ -619,10 +629,10 @@ pub fn powd(x: f64, y: f64) -> f64 {
     const OVT: f64 = 8.0085662595372944372e-017; /* -(1024-log2(ovfl+.5ulp)) */
     const CP: f64 = 9.61796693925975554329e-01; /* 0x3feec709_dc3a03fd =2/(3ln2) */
     const CP_H: f64 = 9.61796700954437255859e-01; /* 0x3feec709_e0000000 =(float)cp */
-    const CP_L: f64 = -7.02846165095275826516e-09; /* 0xbe3e2fe0_145b01f5 =tail of cp_h*/
+    const CP_L: f64 = -7.02846165095275826516e-09; /* 0xbe3e2fe0_145b01f5 =tail of cp_h */
     const IVLN2: f64 = 1.44269504088896338700e+00; /* 0x3ff71547_652b82fe =1/ln2 */
-    const IVLN2_H: f64 = 1.44269502162933349609e+00; /* 0x3ff71547_60000000 =24b 1/ln2*/
-    const IVLN2_L: f64 = 1.92596299112661746887e-08; /* 0x3e54ae0b_f85ddf44 =1/ln2 tail*/
+    const IVLN2_H: f64 = 1.44269502162933349609e+00; /* 0x3ff71547_60000000 =24b 1/ln2 */
+    const IVLN2_L: f64 = 1.92596299112661746887e-08; /* 0x3e54ae0b_f85ddf44 =1/ln2 tail */
 
     let t1: f64;
     let t2: f64;
@@ -834,7 +844,7 @@ pub fn powd(x: f64, y: f64) -> f64 {
             /* |x|<sqrt(3/2) */
             k = 0;
         } else if j < 0xBB67A {
-            /* |x|<sqrt(3)   */
+            /* |x|<sqrt(3) */
             k = 1;
         } else {
             k = 0;
@@ -1011,16 +1021,13 @@ pub fn scalbnd(x: f64, mut n: i32) -> f64 {
  *           ------------------------------------------
  * Method:
  *   Bit by bit method using integer arithmetic. (Slow, but portable)
- *   1. Normalization
- *      Scale x to y in [1,4) with even powers of 2:
- *      find an integer k such that  1 <= (y=x*2^(2k)) < 4, then
- *              sqrt(x) = 2^k * sqrt(y)
- *   2. Bit by bit computation
- *      Let q  = sqrt(y) truncated to i bit after binary point (q = 1),
- *           i                                                   0
- *                                     i+1         2
- *          s  = 2*q , and      y  =  2   * ( y - q  ).         (1)
- *           i      i            i                 i
+ *   1. Normalization Scale x to y in [1,4) with even powers of 2: find an
+ *      integer k such that  1 <= (y=x*2^(2k)) < 4, then sqrt(x) = 2^k *
+ *      sqrt(y)
+ *   2. Bit by bit computation Let q  = sqrt(y) truncated to i bit after
+ *      binary point (q = 1), i
+ *      0 i+1         2 s  = 2*q , and      y  =  2   * ( y - q  ).
+ *      (1) i      i            i                 i
  *
  *      To compute q    from q , one checks whether
  *                  i+1       i
@@ -1055,13 +1062,11 @@ pub fn scalbnd(x: f64, mut n: i32) -> f64 {
  *      Note. Since the left hand side of (3) contain only i+2 bits,
  *            it does not necessary to do a full (53-bit) comparison
  *            in (3).
- *   3. Final rounding
- *      After generating the 53 bits result, we compute one more bit.
- *      Together with the remainder, we can decide whether the
- *      result is exact, bigger than 1/2ulp, or less than 1/2ulp
- *      (it will never equal to 1/2ulp).
- *      The rounding mode can be detected by checking whether
- *      huge + tiny is equal to huge, and whether huge - tiny is
+ *   3. Final rounding After generating the 53 bits result, we compute one
+ *      more bit. Together with the remainder, we can decide whether the
+ *      result is exact, bigger than 1/2ulp, or less than 1/2ulp (it will
+ *      never equal to 1/2ulp). The rounding mode can be detected by checking
+ *      whether huge + tiny is equal to huge, and whether huge - tiny is
  *      equal to huge for some floating point number "huge" and "tiny".
  *
  * Special cases:
@@ -1116,7 +1121,8 @@ pub fn sqrtd(x: f64) -> f64 {
 
         /* take care of Inf and NaN */
         if (ix0 & 0x7ff00000) == 0x7ff00000 {
-            return x * x + x; /* sqrt(NaN)=NaN, sqrt(+inf)=+inf, sqrt(-inf)=sNaN */
+            return x * x + x; /* sqrt(NaN)=NaN, sqrt(+inf)=+inf,
+                               * sqrt(-inf)=sNaN */
         }
         /* take care of zero */
         if ix0 <= 0 {

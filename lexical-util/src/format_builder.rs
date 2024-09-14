@@ -1,8 +1,10 @@
 //! Builder for the number format.
 
-use crate::format_flags as flags;
 use core::{mem, num};
+
 use static_assertions::const_assert;
+
+use crate::format_flags as flags;
 
 /// Type with the exact same size as a `u8`.
 pub type OptionU8 = Option<num::NonZeroU8>;
@@ -53,38 +55,70 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 /// * `mantissa_radix`                          - Radix for mantissa digits.
 /// * `exponent_base`                           - Base for the exponent.
 /// * `exponent_radix`                          - Radix for the exponent digits.
-/// * `base_prefix`                             - Optional character for the base prefix.
-/// * `base_suffix`                             - Optional character for the base suffix.
-/// * `required_integer_digits`                 - If digits are required before the decimal point.
-/// * `required_fraction_digits`                - If digits are required after the decimal point.
-/// * `required_exponent_digits`                - If digits are required after the exponent character.
-/// * `required_mantissa_digits`                - If at least 1 significant digit is required.
-/// * `no_positive_mantissa_sign`               - If positive sign before the mantissa is not allowed.
-/// * `required_mantissa_sign`                  - If positive sign before the mantissa is required.
-/// * `no_exponent_notation`                    - If exponent notation is not allowed.
-/// * `no_positive_exponent_sign`               - If positive sign before the exponent is not allowed.
-/// * `required_exponent_sign`                  - If sign before the exponent is required.
-/// * `no_exponent_without_fraction`            - If exponent without fraction is not allowed.
-/// * `no_special`                              - If special (non-finite) values are not allowed.
-/// * `case_sensitive_special`                  - If special (non-finite) values are case-sensitive.
-/// * `no_integer_leading_zeros`                - If leading zeros before an integer are not allowed.
-/// * `no_float_leading_zeros`                  - If leading zeros before a float are not allowed.
-/// * `required_exponent_notation`              - If exponent notation is required.
-/// * `case_sensitive_exponent`                 - If exponent characters are case-sensitive.
-/// * `case_sensitive_base_prefix`              - If base prefixes are case-sensitive.
-/// * `case_sensitive_base_suffix`              - If base suffixes are case-sensitive.
-/// * `integer_internal_digit_separator`        - If digit separators are allowed between integer digits.
-/// * `fraction_internal_digit_separator`       - If digit separators are allowed between fraction digits.
-/// * `exponent_internal_digit_separator`       - If digit separators are allowed between exponent digits.
-/// * `integer_leading_digit_separator`         - If a digit separator is allowed before any integer digits.
-/// * `fraction_leading_digit_separator`        - If a digit separator is allowed before any fraction digits.
-/// * `exponent_leading_digit_separator`        - If a digit separator is allowed before any exponent digits.
-/// * `integer_trailing_digit_separator`        - If a digit separator is allowed after any integer digits.
-/// * `fraction_trailing_digit_separator`       - If a digit separator is allowed after any fraction digits.
-/// * `exponent_trailing_digit_separator`       - If a digit separator is allowed after any exponent digits.
-/// * `integer_consecutive_digit_separator`     - If multiple consecutive integer digit separators are allowed.
-/// * `fraction_consecutive_digit_separator`    - If multiple consecutive fraction digit separators are allowed.
-/// * `special_digit_separator`                 - If any digit separators are allowed in special (non-finite) values.
+/// * `base_prefix`                             - Optional character for the
+///   base prefix.
+/// * `base_suffix`                             - Optional character for the
+///   base suffix.
+/// * `required_integer_digits`                 - If digits are required before
+///   the decimal point.
+/// * `required_fraction_digits`                - If digits are required after
+///   the decimal point.
+/// * `required_exponent_digits`                - If digits are required after
+///   the exponent character.
+/// * `required_mantissa_digits`                - If at least 1 significant
+///   digit is required.
+/// * `no_positive_mantissa_sign`               - If positive sign before the
+///   mantissa is not allowed.
+/// * `required_mantissa_sign`                  - If positive sign before the
+///   mantissa is required.
+/// * `no_exponent_notation`                    - If exponent notation is not
+///   allowed.
+/// * `no_positive_exponent_sign`               - If positive sign before the
+///   exponent is not allowed.
+/// * `required_exponent_sign`                  - If sign before the exponent is
+///   required.
+/// * `no_exponent_without_fraction`            - If exponent without fraction
+///   is not allowed.
+/// * `no_special`                              - If special (non-finite) values
+///   are not allowed.
+/// * `case_sensitive_special`                  - If special (non-finite) values
+///   are case-sensitive.
+/// * `no_integer_leading_zeros`                - If leading zeros before an
+///   integer are not allowed.
+/// * `no_float_leading_zeros`                  - If leading zeros before a
+///   float are not allowed.
+/// * `required_exponent_notation`              - If exponent notation is
+///   required.
+/// * `case_sensitive_exponent`                 - If exponent characters are
+///   case-sensitive.
+/// * `case_sensitive_base_prefix`              - If base prefixes are
+///   case-sensitive.
+/// * `case_sensitive_base_suffix`              - If base suffixes are
+///   case-sensitive.
+/// * `integer_internal_digit_separator`        - If digit separators are
+///   allowed between integer digits.
+/// * `fraction_internal_digit_separator`       - If digit separators are
+///   allowed between fraction digits.
+/// * `exponent_internal_digit_separator`       - If digit separators are
+///   allowed between exponent digits.
+/// * `integer_leading_digit_separator`         - If a digit separator is
+///   allowed before any integer digits.
+/// * `fraction_leading_digit_separator`        - If a digit separator is
+///   allowed before any fraction digits.
+/// * `exponent_leading_digit_separator`        - If a digit separator is
+///   allowed before any exponent digits.
+/// * `integer_trailing_digit_separator`        - If a digit separator is
+///   allowed after any integer digits.
+/// * `fraction_trailing_digit_separator`       - If a digit separator is
+///   allowed after any fraction digits.
+/// * `exponent_trailing_digit_separator`       - If a digit separator is
+///   allowed after any exponent digits.
+/// * `integer_consecutive_digit_separator`     - If multiple consecutive
+///   integer digit separators are allowed.
+/// * `fraction_consecutive_digit_separator`    - If multiple consecutive
+///   fraction digit separators are allowed.
+/// * `special_digit_separator`                 - If any digit separators are
+///   allowed in special (non-finite) values.
 ///
 /// # Write Integer Fields
 ///
