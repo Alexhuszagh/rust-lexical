@@ -3,9 +3,10 @@
 #[macro_use]
 mod input;
 
+use std::time::Duration;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lexical_parse_float::FromLexical;
-use std::time::Duration;
 
 // FLOATS
 

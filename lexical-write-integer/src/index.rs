@@ -8,15 +8,18 @@
 #![cfg_attr(feature = "compact", allow(unused_macros, unused_macro_rules))]
 #![doc(hidden)]
 
-/// Index a buffer, without bounds checking.
 #[cfg(not(feature = "safe"))]
 macro_rules! index_unchecked {
     ($x:ident[$i:expr]) => {
-        if cfg!(feature = "safe") {
-            $x[$i]
-        } else {
-            *$x.get_unchecked($i)
-        }
+        *$x.get_unchecked($i)
+    };
+}
+
+/// Index a buffer, with bounds checking.
+#[cfg(feature = "safe")]
+macro_rules! index_unchecked {
+    ($x:ident[$i:expr]) => {
+        $x[$i]
     };
 }
 
@@ -37,13 +40,21 @@ macro_rules! index_unchecked_mut {
 }
 
 /// Fill a slice with a value, without bounds checking.
+#[cfg(not(feature = "safe"))]
 macro_rules! slice_fill_unchecked {
     ($slc:expr, $value:expr) => {
-        if cfg!(feature = "safe") {
-            $slc.fill($value)
-        } else {
-            core::ptr::write_bytes($slc.as_mut_ptr(), $value, $slc.len())
-        }
+        // Get the length first to avoid stacked borrows, since we might
+        // have a complex expression for the slice calculation.
+        let len = $slc.len();
+        core::ptr::write_bytes($slc.as_mut_ptr(), $value, len)
+    };
+}
+
+/// Fill a slice with a value, with bounds checking.
+#[cfg(feature = "safe")]
+macro_rules! slice_fill_unchecked {
+    ($slc:expr, $value:expr) => {
+        $slc.fill($value)
     };
 }
 

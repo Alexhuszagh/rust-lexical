@@ -1,18 +1,20 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+'''
+    bellerophon_table
+    =================
 
-"""
-Generate powers of a given radix for the Bellerophon algorithm.
+    Generate powers of a given radix for the Bellerophon algorithm.
 
-Specifically, computes and outputs (as Rust code) a table of 10^e for some
-range of exponents e. The output is one array of 128 bit significands.
-The base two exponents can be inferred using a logarithmic slope
-of the decimal exponent. The approximations are normalized and rounded perfectly,
-i.e., within 0.5 ULP of the true value.
+    Specifically, computes and outputs (as Rust code) a table of 10^e for some
+    range of exponents e. The output is one array of 128 bit significands.
+    The base two exponents can be inferred using a logarithmic slope
+    of the decimal exponent. The approximations are normalized and rounded perfectly,
+    i.e., within 0.5 ULP of the true value.
 
-Ported from Rust's core library implementation, which itself is
-adapted from Daniel Lemire's fast_float ``table_generation.py``,
-available here: <https://github.com/fastfloat/fast_float/blob/main/script/table_generation.py>.
-"""
+    Ported from Rust's core library implementation, which itself is
+    adapted from Daniel Lemire's fast_float ``table_generation.py``,
+    available here: <https://github.com/fastfloat/fast_float/blob/main/script/table_generation.py>.
+'''
 
 import math
 from collections import deque
@@ -33,7 +35,10 @@ POWER_STR = """pub static BASE{0}_POWERS: BellerophonPowers = BellerophonPowers 
     bias: BASE{0}_BIAS,
 }};\n"""
 
-def calculate_bitshift(base, exponent):
+Fp = tuple[int, int]
+
+
+def calculate_bitshift(base: int, exponent: int) -> float:
     '''
     Calculate the bitshift required for a given base. The exponent
     is the absolute value of the max exponent (log distance from 1.)
@@ -42,19 +47,19 @@ def calculate_bitshift(base, exponent):
     return 63 + math.ceil(math.log2(base**exponent))
 
 
-def next_fp(fp, base, step = 1):
+def next_fp(fp: Fp, base: int, step: int = 1) -> Fp:
     '''Generate the next extended-floating point value.'''
 
     return (fp[0] * (base**step), fp[1])
 
 
-def prev_fp(fp, base, step = 1):
+def prev_fp(fp: Fp, base: int, step: int = 1) -> Fp:
     '''Generate the previous extended-floating point value.'''
 
     return (fp[0] // (base**step), fp[1])
 
 
-def normalize_fp(fp):
+def normalize_fp(fp: Fp) -> Fp:
     '''Normalize a extended-float so the MSB is the 64th bit'''
 
     while fp[0] >> 64 != 0:
@@ -62,7 +67,7 @@ def normalize_fp(fp):
     return fp
 
 
-def generate_small(base, count):
+def generate_small(base: int, count: int) -> tuple[list[Fp], list[int]]:
     '''Generate the small powers for a given base'''
 
     bitshift = calculate_bitshift(base, count)
@@ -78,7 +83,7 @@ def generate_small(base, count):
     return fps, ints
 
 
-def generate_large(base, step):
+def generate_large(base: int, step: int) -> tuple[list[Fp], int]:
     '''Generate the large powers for a given base.'''
 
     # Get our starting parameters
@@ -106,7 +111,7 @@ def generate_large(base, step):
     return fps, -fps[0][1]
 
 
-def print_array(base, string, fps, index):
+def print_array(base: int, string: str, fps: list[Fp], index: int) -> None:
     '''Print an entire array'''
 
     print(string.format(base, len(fps)))
@@ -117,7 +122,7 @@ def print_array(base, string, fps, index):
     print("];")
 
 
-def generate_base(base):
+def generate_base(base: int) -> None:
     '''Generate all powers and variables.'''
 
     step = math.floor(math.log(1e10, base))
@@ -133,7 +138,7 @@ def generate_base(base):
     print(BIAS_STR.format(base, bias))
 
 
-def generate():
+def generate() -> None:
     '''Generate all bases.'''
 
     bases = [

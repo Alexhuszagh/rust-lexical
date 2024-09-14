@@ -763,40 +763,54 @@ pub fn bh<F: RawFloat>(float: F) -> ExtendedFloat80 {
     }
 }
 
+// NOTE: There will never be binary factors here.
+
 /// Calculate the integral ceiling of the binary factor from a basen number.
 #[inline(always)]
+#[cfg(feature = "radix")]
 pub const fn integral_binary_factor(radix: u32) -> u32 {
     match radix {
-        3 if cfg!(feature = "radix") => 2,
-        5 if cfg!(feature = "radix") => 3,
-        6 if cfg!(feature = "radix") => 3,
-        7 if cfg!(feature = "radix") => 3,
-        9 if cfg!(feature = "radix") => 4,
+        3 => 2,
+        5 => 3,
+        6 => 3,
+        7 => 3,
+        9 => 4,
         10 => 4,
-        11 if cfg!(feature = "radix") => 4,
-        12 if cfg!(feature = "radix") => 4,
-        13 if cfg!(feature = "radix") => 4,
-        14 if cfg!(feature = "radix") => 4,
-        15 if cfg!(feature = "radix") => 4,
-        17 if cfg!(feature = "radix") => 5,
-        18 if cfg!(feature = "radix") => 5,
-        19 if cfg!(feature = "radix") => 5,
-        20 if cfg!(feature = "radix") => 5,
-        21 if cfg!(feature = "radix") => 5,
-        22 if cfg!(feature = "radix") => 5,
-        23 if cfg!(feature = "radix") => 5,
-        24 if cfg!(feature = "radix") => 5,
-        25 if cfg!(feature = "radix") => 5,
-        26 if cfg!(feature = "radix") => 5,
-        27 if cfg!(feature = "radix") => 5,
-        28 if cfg!(feature = "radix") => 5,
-        29 if cfg!(feature = "radix") => 5,
-        30 if cfg!(feature = "radix") => 5,
-        31 if cfg!(feature = "radix") => 5,
-        33 if cfg!(feature = "radix") => 6,
-        34 if cfg!(feature = "radix") => 6,
-        35 if cfg!(feature = "radix") => 6,
-        36 if cfg!(feature = "radix") => 6,
+        11 => 4,
+        12 => 4,
+        13 => 4,
+        14 => 4,
+        15 => 4,
+        17 => 5,
+        18 => 5,
+        19 => 5,
+        20 => 5,
+        21 => 5,
+        22 => 5,
+        23 => 5,
+        24 => 5,
+        25 => 5,
+        26 => 5,
+        27 => 5,
+        28 => 5,
+        29 => 5,
+        30 => 5,
+        31 => 5,
+        33 => 6,
+        34 => 6,
+        35 => 6,
+        36 => 6,
+        // Invalid radix
+        _ => 0,
+    }
+}
+
+/// Calculate the integral ceiling of the binary factor from a basen number.
+#[inline(always)]
+#[cfg(not(feature = "radix"))]
+pub const fn integral_binary_factor(radix: u32) -> u32 {
+    match radix {
+        10 => 4,
         // Invalid radix
         _ => 0,
     }

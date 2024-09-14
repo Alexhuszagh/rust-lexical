@@ -6,6 +6,7 @@
 
 #![cfg(all(not(feature = "std"), feature = "compact"))]
 #![doc(hidden)]
+#![cfg_attr(any(), rustfmt::skip)]
 
 /* origin: FreeBSD /usr/src/lib/msun/src/e_powf.c */
 /*
@@ -29,16 +30,20 @@
 /// Safe if `index < array.len()`.
 #[cfg(feature = "safe")]
 macro_rules! i {
-    ($x:ident[$i:expr]) => {
+    ($x:ident, $i:expr) => {
         $x[$i]
     };
 }
 
+/// Index an array without bounds checking.
+///
+/// # Safety
+///
+/// Safe if `index < array.len()`.
 #[cfg(not(feature = "safe"))]
 macro_rules! i {
-    ($x:ident[$i:expr]) => {
-        // SAFETY: safe if `index < array.len()`.
-        $x.get_unchecked($i)
+    ($x:ident, $i:expr) => {
+        unsafe { *$x.get_unchecked($i) }
     };
 }
 

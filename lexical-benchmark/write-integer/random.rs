@@ -2,6 +2,7 @@
 mod input;
 
 use core::time::Duration;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lexical_write_integer::ToLexical;
 

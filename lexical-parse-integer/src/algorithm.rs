@@ -93,6 +93,7 @@ macro_rules! into_error {
 /// This is because we can have special, non-digit characters near
 /// the start or internally. If `$is_end` is set to false, there **MUST**
 /// be elements in the underlying slice after the current iterator.
+#[cfg(feature = "format")]
 macro_rules! fmt_invalid_digit {
     (
         $value:ident, $iter:ident, $c:expr, $start_index:ident, $invalid_digit:ident, $is_end:expr
@@ -131,6 +132,16 @@ macro_rules! fmt_invalid_digit {
             }
         }
         // Might have handled our base-prefix here.
+        return $invalid_digit!($value, $iter.cursor());
+    }};
+}
+
+/// Just return an invalid digit
+#[cfg(not(feature = "format"))]
+macro_rules! fmt_invalid_digit {
+    (
+        $value:ident, $iter:ident, $c:expr, $start_index:ident, $invalid_digit:ident, $is_end:expr
+    ) => {{
         return $invalid_digit!($value, $iter.cursor());
     }};
 }
@@ -351,10 +362,7 @@ macro_rules! parse_1digit_unchecked {
         while let Some(&c) = $iter.next() {
             let digit = match char_to_digit_const(c, radix) {
                 Some(v) => v,
-                None if cfg!(feature = "format") => {
-                    fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, $is_end)
-                },
-                None => return $invalid_digit!($value, $iter.cursor()),
+                None => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, $is_end),
             };
             // multiply first since compilers are good at optimizing things out and will do
             // a fused mul/add We must do this after getting the digit for
@@ -392,10 +400,7 @@ macro_rules! parse_1digit_checked {
         while let Some(&c) = $iter.next() {
             let digit = match char_to_digit_const(c, radix) {
                 Some(v) => v,
-                None if cfg!(feature = "format") => {
-                    fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, true)
-                },
-                None => return $invalid_digit!($value, $iter.cursor()),
+                None => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, true),
             };
             // multiply first since compilers are good at optimizing things out and will do
             // a fused mul/add
@@ -556,8 +561,10 @@ macro_rules! algorithm {
     }
 
     // Feature-gate a lot of format-only code here to simplify analysis with our branching
+    #[allow(unused_variables, unused_mut)]
     let mut start_index = iter.cursor();
-    if cfg!(feature = "format") {
+    #[cfg(feature = "format")]
+    {
         // Skip any leading zeros. We want to do our check if it can't possibly overflow after.
         // For skipping digit-based formats, this approximation is a way over estimate.
         // NOTE: Skipping zeros is **EXPENSIVE* so we skip that without our format feature

@@ -101,89 +101,14 @@ impl ExactFloat for bf16 {
 //    #[inline(always)]
 //    fn exponent_limit(radix: u32) -> (i64, i64) {
 //        debug_assert_radix(radix);
-//        match radix {
-//            2 if cfg!(feature = "power-of-two") => (-16494, 16383),
-//            3 if cfg!(feature = "radix") => (-71, 71),
-//            4 if cfg!(feature = "power-of-two") => (-8247, 8191),
-//            5 if cfg!(feature = "radix") => (-48, 48),
-//            6 if cfg!(feature = "radix") => (-71, 71),
-//            7 if cfg!(feature = "radix") => (-40, 40),
-//            8 if cfg!(feature = "power-of-two") => (-5498, 5461),
-//            9 if cfg!(feature = "radix") => (-35, 35),
-//            10 => (-48, 48),
-//            11 if cfg!(feature = "radix") => (-32, 32),
-//            12 if cfg!(feature = "radix") => (-71, 71),
-//            13 if cfg!(feature = "radix") => (-30, 30),
-//            14 if cfg!(feature = "radix") => (-40, 40),
-//            15 if cfg!(feature = "radix") => (-28, 28),
-//            16 if cfg!(feature = "power-of-two") => (-4123, 4095),
-//            17 if cfg!(feature = "radix") => (-27, 27),
-//            18 if cfg!(feature = "radix") => (-35, 35),
-//            19 if cfg!(feature = "radix") => (-26, 26),
-//            20 if cfg!(feature = "radix") => (-48, 48),
-//            21 if cfg!(feature = "radix") => (-25, 25),
-//            22 if cfg!(feature = "radix") => (-32, 32),
-//            23 if cfg!(feature = "radix") => (-24, 24),
-//            24 if cfg!(feature = "radix") => (-71, 71),
-//            25 if cfg!(feature = "radix") => (-24, 24),
-//            26 if cfg!(feature = "radix") => (-30, 30),
-//            27 if cfg!(feature = "radix") => (-23, 23),
-//            28 if cfg!(feature = "radix") => (-40, 40),
-//            29 if cfg!(feature = "radix") => (-23, 23),
-//            30 if cfg!(feature = "radix") => (-28, 28),
-//            31 if cfg!(feature = "radix") => (-22, 22),
-//            32 if cfg!(feature = "power-of-two") => (-3298, 3276),
-//            33 if cfg!(feature = "radix") => (-22, 22),
-//            34 if cfg!(feature = "radix") => (-27, 27),
-//            35 if cfg!(feature = "radix") => (-22, 22),
-//            36 if cfg!(feature = "radix") => (-35, 35),
-//            // Invalid radix
-//            _ => unreachable!(),
+//        f128_exponent_limit(radix)
 //        }
 //    }
 //
 //    #[inline(always)]
 //    fn mantissa_limit(radix: u32) -> i64 {
 //        debug_assert_radix(radix);
-//        match radix {
-//            2 if cfg!(feature = "power-of-two") => 113,
-//            3 if cfg!(feature = "radix") => 71,
-//            4 if cfg!(feature = "power-of-two") => 56,
-//            5 if cfg!(feature = "radix") => 48,
-//            6 if cfg!(feature = "radix") => 43,
-//            7 if cfg!(feature = "radix") => 40,
-//            8 if cfg!(feature = "power-of-two") => 37,
-//            9 if cfg!(feature = "radix") => 35,
-//            10 => 34,
-//            11 if cfg!(feature = "radix") => 32,
-//            12 if cfg!(feature = "radix") => 31,
-//            13 if cfg!(feature = "radix") => 30,
-//            14 if cfg!(feature = "radix") => 29,
-//            15 if cfg!(feature = "radix") => 28,
-//            16 if cfg!(feature = "power-of-two") => 28,
-//            17 if cfg!(feature = "radix") => 27,
-//            18 if cfg!(feature = "radix") => 27,
-//            19 if cfg!(feature = "radix") => 26,
-//            20 if cfg!(feature = "radix") => 26,
-//            21 if cfg!(feature = "radix") => 25,
-//            22 if cfg!(feature = "radix") => 25,
-//            23 if cfg!(feature = "radix") => 24,
-//            24 if cfg!(feature = "radix") => 24,
-//            25 if cfg!(feature = "radix") => 24,
-//            26 if cfg!(feature = "radix") => 24,
-//            27 if cfg!(feature = "radix") => 23,
-//            28 if cfg!(feature = "radix") => 23,
-//            29 if cfg!(feature = "radix") => 23,
-//            30 if cfg!(feature = "radix") => 23,
-//            31 if cfg!(feature = "radix") => 22,
-//            32 if cfg!(feature = "power-of-two") => 22,
-//            33 if cfg!(feature = "radix") => 22,
-//            34 if cfg!(feature = "radix") => 22,
-//            35 if cfg!(feature = "radix") => 22,
-//            36 if cfg!(feature = "radix") => 21,
-//            // Invalid radix
-//            _ => unreachable!(),
-//        }
+//        f128_mantissa_limit(radix)
 //    }
 //}
 
@@ -192,172 +117,426 @@ impl ExactFloat for bf16 {
 
 /// Get the exponent limit as a const fn.
 #[inline(always)]
+#[cfg(feature = "radix")]
 pub const fn f32_exponent_limit(radix: u32) -> (i64, i64) {
     match radix {
-        2 if cfg!(feature = "power-of-two") => (-127, 127),
-        3 if cfg!(feature = "radix") => (-15, 15),
-        4 if cfg!(feature = "power-of-two") => (-63, 63),
-        5 if cfg!(feature = "radix") => (-10, 10),
-        6 if cfg!(feature = "radix") => (-15, 15),
-        7 if cfg!(feature = "radix") => (-8, 8),
-        8 if cfg!(feature = "power-of-two") => (-42, 42),
-        9 if cfg!(feature = "radix") => (-7, 7),
+        2 => (-127, 127),
+        3 => (-15, 15),
+        4 => (-63, 63),
+        5 => (-10, 10),
+        6 => (-15, 15),
+        7 => (-8, 8),
+        8 => (-42, 42),
+        9 => (-7, 7),
         10 => (-10, 10),
-        11 if cfg!(feature = "radix") => (-6, 6),
-        12 if cfg!(feature = "radix") => (-15, 15),
-        13 if cfg!(feature = "radix") => (-6, 6),
-        14 if cfg!(feature = "radix") => (-8, 8),
-        15 if cfg!(feature = "radix") => (-6, 6),
-        16 if cfg!(feature = "power-of-two") => (-31, 31),
-        17 if cfg!(feature = "radix") => (-5, 5),
-        18 if cfg!(feature = "radix") => (-7, 7),
-        19 if cfg!(feature = "radix") => (-5, 5),
-        20 if cfg!(feature = "radix") => (-10, 10),
-        21 if cfg!(feature = "radix") => (-5, 5),
-        22 if cfg!(feature = "radix") => (-6, 6),
-        23 if cfg!(feature = "radix") => (-5, 5),
-        24 if cfg!(feature = "radix") => (-15, 15),
-        25 if cfg!(feature = "radix") => (-5, 5),
-        26 if cfg!(feature = "radix") => (-6, 6),
-        27 if cfg!(feature = "radix") => (-5, 5),
-        28 if cfg!(feature = "radix") => (-8, 8),
-        29 if cfg!(feature = "radix") => (-4, 4),
-        30 if cfg!(feature = "radix") => (-6, 6),
-        31 if cfg!(feature = "radix") => (-4, 4),
-        32 if cfg!(feature = "power-of-two") => (-25, 25),
-        33 if cfg!(feature = "radix") => (-4, 4),
-        34 if cfg!(feature = "radix") => (-5, 5),
-        35 if cfg!(feature = "radix") => (-4, 4),
-        36 if cfg!(feature = "radix") => (-7, 7),
+        11 => (-6, 6),
+        12 => (-15, 15),
+        13 => (-6, 6),
+        14 => (-8, 8),
+        15 => (-6, 6),
+        16 => (-31, 31),
+        17 => (-5, 5),
+        18 => (-7, 7),
+        19 => (-5, 5),
+        20 => (-10, 10),
+        21 => (-5, 5),
+        22 => (-6, 6),
+        23 => (-5, 5),
+        24 => (-15, 15),
+        25 => (-5, 5),
+        26 => (-6, 6),
+        27 => (-5, 5),
+        28 => (-8, 8),
+        29 => (-4, 4),
+        30 => (-6, 6),
+        31 => (-4, 4),
+        32 => (-25, 25),
+        33 => (-4, 4),
+        34 => (-5, 5),
+        35 => (-4, 4),
+        36 => (-7, 7),
+        _ => (0, 0),
+    }
+}
+
+/// Get the exponent limit as a const fn.
+#[inline(always)]
+#[cfg(all(feature = "power-of-two", not(feature = "radix")))]
+pub const fn f32_exponent_limit(radix: u32) -> (i64, i64) {
+    match radix {
+        2 => (-127, 127),
+        4 => (-63, 63),
+        8 => (-42, 42),
+        10 => (-10, 10),
+        16 => (-31, 31),
+        32 => (-25, 25),
+        _ => (0, 0),
+    }
+}
+
+/// Get the exponent limit as a const fn.
+#[inline(always)]
+#[cfg(not(feature = "power-of-two"))]
+pub const fn f32_exponent_limit(radix: u32) -> (i64, i64) {
+    match radix {
+        10 => (-10, 10),
         _ => (0, 0),
     }
 }
 
 /// Get the mantissa limit as a const fn.
 #[inline(always)]
+#[cfg(feature = "radix")]
 pub const fn f32_mantissa_limit(radix: u32) -> i64 {
     match radix {
-        2 if cfg!(feature = "power-of-two") => 24,
-        3 if cfg!(feature = "radix") => 15,
-        4 if cfg!(feature = "power-of-two") => 12,
-        5 if cfg!(feature = "radix") => 10,
-        6 if cfg!(feature = "radix") => 9,
-        7 if cfg!(feature = "radix") => 8,
-        8 if cfg!(feature = "power-of-two") => 8,
-        9 if cfg!(feature = "radix") => 7,
+        2 => 24,
+        3 => 15,
+        4 => 12,
+        5 => 10,
+        6 => 9,
+        7 => 8,
+        8 => 8,
+        9 => 7,
         10 => 7,
-        11 if cfg!(feature = "radix") => 6,
-        12 if cfg!(feature = "radix") => 6,
-        13 if cfg!(feature = "radix") => 6,
-        14 if cfg!(feature = "radix") => 6,
-        15 if cfg!(feature = "radix") => 6,
-        16 if cfg!(feature = "power-of-two") => 6,
-        17 if cfg!(feature = "radix") => 5,
-        18 if cfg!(feature = "radix") => 5,
-        19 if cfg!(feature = "radix") => 5,
-        20 if cfg!(feature = "radix") => 5,
-        21 if cfg!(feature = "radix") => 5,
-        22 if cfg!(feature = "radix") => 5,
-        23 if cfg!(feature = "radix") => 5,
-        24 if cfg!(feature = "radix") => 5,
-        25 if cfg!(feature = "radix") => 5,
-        26 if cfg!(feature = "radix") => 5,
-        27 if cfg!(feature = "radix") => 5,
-        28 if cfg!(feature = "radix") => 4,
-        29 if cfg!(feature = "radix") => 4,
-        30 if cfg!(feature = "radix") => 4,
-        31 if cfg!(feature = "radix") => 4,
-        32 if cfg!(feature = "power-of-two") => 4,
-        33 if cfg!(feature = "radix") => 4,
-        34 if cfg!(feature = "radix") => 4,
-        35 if cfg!(feature = "radix") => 4,
-        36 if cfg!(feature = "radix") => 4,
+        11 => 6,
+        12 => 6,
+        13 => 6,
+        14 => 6,
+        15 => 6,
+        16 => 6,
+        17 => 5,
+        18 => 5,
+        19 => 5,
+        20 => 5,
+        21 => 5,
+        22 => 5,
+        23 => 5,
+        24 => 5,
+        25 => 5,
+        26 => 5,
+        27 => 5,
+        28 => 4,
+        29 => 4,
+        30 => 4,
+        31 => 4,
+        32 => 4,
+        33 => 4,
+        34 => 4,
+        35 => 4,
+        36 => 4,
+        _ => 0,
+    }
+}
+
+/// Get the mantissa limit as a const fn.
+#[inline(always)]
+#[cfg(all(feature = "power-of-two", not(feature = "radix")))]
+pub const fn f32_mantissa_limit(radix: u32) -> i64 {
+    match radix {
+        2 => 24,
+        4 => 12,
+        8 => 8,
+        10 => 7,
+        16 => 6,
+        32 => 4,
+        _ => 0,
+    }
+}
+
+/// Get the mantissa limit as a const fn.
+#[inline(always)]
+#[cfg(not(feature = "power-of-two"))]
+pub const fn f32_mantissa_limit(radix: u32) -> i64 {
+    match radix {
+        10 => 7,
         _ => 0,
     }
 }
 
 /// Get the exponent limit as a const fn.
 #[inline(always)]
+#[cfg(feature = "radix")]
 pub const fn f64_exponent_limit(radix: u32) -> (i64, i64) {
     match radix {
-        2 if cfg!(feature = "power-of-two") => (-1023, 1023),
-        3 if cfg!(feature = "radix") => (-33, 33),
-        4 if cfg!(feature = "power-of-two") => (-511, 511),
-        5 if cfg!(feature = "radix") => (-22, 22),
-        6 if cfg!(feature = "radix") => (-33, 33),
-        7 if cfg!(feature = "radix") => (-18, 18),
-        8 if cfg!(feature = "power-of-two") => (-341, 341),
-        9 if cfg!(feature = "radix") => (-16, 16),
+        2 => (-1023, 1023),
+        3 => (-33, 33),
+        4 => (-511, 511),
+        5 => (-22, 22),
+        6 => (-33, 33),
+        7 => (-18, 18),
+        8 => (-341, 341),
+        9 => (-16, 16),
         10 => (-22, 22),
-        11 if cfg!(feature = "radix") => (-15, 15),
-        12 if cfg!(feature = "radix") => (-33, 33),
-        13 if cfg!(feature = "radix") => (-14, 14),
-        14 if cfg!(feature = "radix") => (-18, 18),
-        15 if cfg!(feature = "radix") => (-13, 13),
-        16 if cfg!(feature = "power-of-two") => (-255, 255),
-        17 if cfg!(feature = "radix") => (-12, 12),
-        18 if cfg!(feature = "radix") => (-16, 16),
-        19 if cfg!(feature = "radix") => (-12, 12),
-        20 if cfg!(feature = "radix") => (-22, 22),
-        21 if cfg!(feature = "radix") => (-12, 12),
-        22 if cfg!(feature = "radix") => (-15, 15),
-        23 if cfg!(feature = "radix") => (-11, 11),
-        24 if cfg!(feature = "radix") => (-33, 33),
-        25 if cfg!(feature = "radix") => (-11, 11),
-        26 if cfg!(feature = "radix") => (-14, 14),
-        27 if cfg!(feature = "radix") => (-11, 11),
-        28 if cfg!(feature = "radix") => (-18, 18),
-        29 if cfg!(feature = "radix") => (-10, 10),
-        30 if cfg!(feature = "radix") => (-13, 13),
-        31 if cfg!(feature = "radix") => (-10, 10),
-        32 if cfg!(feature = "power-of-two") => (-204, 204),
-        33 if cfg!(feature = "radix") => (-10, 10),
-        34 if cfg!(feature = "radix") => (-12, 12),
-        35 if cfg!(feature = "radix") => (-10, 10),
-        36 if cfg!(feature = "radix") => (-16, 16),
+        11 => (-15, 15),
+        12 => (-33, 33),
+        13 => (-14, 14),
+        14 => (-18, 18),
+        15 => (-13, 13),
+        16 => (-255, 255),
+        17 => (-12, 12),
+        18 => (-16, 16),
+        19 => (-12, 12),
+        20 => (-22, 22),
+        21 => (-12, 12),
+        22 => (-15, 15),
+        23 => (-11, 11),
+        24 => (-33, 33),
+        25 => (-11, 11),
+        26 => (-14, 14),
+        27 => (-11, 11),
+        28 => (-18, 18),
+        29 => (-10, 10),
+        30 => (-13, 13),
+        31 => (-10, 10),
+        32 => (-204, 204),
+        33 => (-10, 10),
+        34 => (-12, 12),
+        35 => (-10, 10),
+        36 => (-16, 16),
+        _ => (0, 0),
+    }
+}
+
+// Get the exponent limit as a const fn.
+#[inline(always)]
+#[cfg(all(feature = "power-of-two", not(feature = "radix")))]
+pub const fn f64_exponent_limit(radix: u32) -> (i64, i64) {
+    match radix {
+        2 => (-1023, 1023),
+        4 => (-511, 511),
+        8 => (-341, 341),
+        10 => (-22, 22),
+        16 => (-255, 255),
+        32 => (-204, 204),
+        _ => (0, 0),
+    }
+}
+
+/// Get the exponent limit as a const fn.
+#[cfg(not(feature = "power-of-two"))]
+#[inline(always)]
+pub const fn f64_exponent_limit(radix: u32) -> (i64, i64) {
+    match radix {
+        10 => (-22, 22),
         _ => (0, 0),
     }
 }
 
 /// Get the mantissa limit as a const fn.
 #[inline(always)]
+#[cfg(feature = "radix")]
 pub const fn f64_mantissa_limit(radix: u32) -> i64 {
     match radix {
-        2 if cfg!(feature = "power-of-two") => 53,
-        3 if cfg!(feature = "radix") => 33,
-        4 if cfg!(feature = "power-of-two") => 26,
-        5 if cfg!(feature = "radix") => 22,
-        6 if cfg!(feature = "radix") => 20,
-        7 if cfg!(feature = "radix") => 18,
-        8 if cfg!(feature = "power-of-two") => 17,
-        9 if cfg!(feature = "radix") => 16,
+        2 => 53,
+        3 => 33,
+        4 => 26,
+        5 => 22,
+        6 => 20,
+        7 => 18,
+        8 => 17,
+        9 => 16,
         10 => 15,
-        11 if cfg!(feature = "radix") => 15,
-        12 if cfg!(feature = "radix") => 14,
-        13 if cfg!(feature = "radix") => 14,
-        14 if cfg!(feature = "radix") => 13,
-        15 if cfg!(feature = "radix") => 13,
-        16 if cfg!(feature = "power-of-two") => 13,
-        17 if cfg!(feature = "radix") => 12,
-        18 if cfg!(feature = "radix") => 12,
-        19 if cfg!(feature = "radix") => 12,
-        20 if cfg!(feature = "radix") => 12,
-        21 if cfg!(feature = "radix") => 12,
-        22 if cfg!(feature = "radix") => 11,
-        23 if cfg!(feature = "radix") => 11,
-        24 if cfg!(feature = "radix") => 11,
-        25 if cfg!(feature = "radix") => 11,
-        26 if cfg!(feature = "radix") => 11,
-        27 if cfg!(feature = "radix") => 11,
-        28 if cfg!(feature = "radix") => 11,
-        29 if cfg!(feature = "radix") => 10,
-        30 if cfg!(feature = "radix") => 10,
-        31 if cfg!(feature = "radix") => 10,
-        32 if cfg!(feature = "power-of-two") => 10,
-        33 if cfg!(feature = "radix") => 10,
-        34 if cfg!(feature = "radix") => 10,
-        35 if cfg!(feature = "radix") => 10,
-        36 if cfg!(feature = "radix") => 10,
+        11 => 15,
+        12 => 14,
+        13 => 14,
+        14 => 13,
+        15 => 13,
+        16 => 13,
+        17 => 12,
+        18 => 12,
+        19 => 12,
+        20 => 12,
+        21 => 12,
+        22 => 11,
+        23 => 11,
+        24 => 11,
+        25 => 11,
+        26 => 11,
+        27 => 11,
+        28 => 11,
+        29 => 10,
+        30 => 10,
+        31 => 10,
+        32 => 10,
+        33 => 10,
+        34 => 10,
+        35 => 10,
+        36 => 10,
+        _ => 0,
+    }
+}
+
+/// Get the mantissa limit as a const fn.
+#[inline(always)]
+#[cfg(all(feature = "power-of-two", not(feature = "radix")))]
+pub const fn f64_mantissa_limit(radix: u32) -> i64 {
+    match radix {
+        2 => 53,
+        4 => 26,
+        8 => 17,
+        10 => 15,
+        16 => 13,
+        32 => 10,
+        _ => 0,
+    }
+}
+
+/// Get the mantissa limit as a const fn.
+#[inline(always)]
+#[cfg(not(feature = "power-of-two"))]
+pub const fn f64_mantissa_limit(radix: u32) -> i64 {
+    match radix {
+        10 => 15,
+        _ => 0,
+    }
+}
+
+/// Get the exponent limit as a const fn.
+#[inline(always)]
+#[cfg(feature = "f128")]
+#[cfg(feature = "radix")]
+pub const fn f128_exponent_limit(radix: u32) -> (i64, i64) {
+    match radix {
+        2 => (-16494, 16383),
+        3 => (-71, 71),
+        4 => (-8247, 8191),
+        5 => (-48, 48),
+        6 => (-71, 71),
+        7 => (-40, 40),
+        8 => (-5498, 5461),
+        9 => (-35, 35),
+        10 => (-48, 48),
+        11 => (-32, 32),
+        12 => (-71, 71),
+        13 => (-30, 30),
+        14 => (-40, 40),
+        15 => (-28, 28),
+        16 => (-4123, 4095),
+        17 => (-27, 27),
+        18 => (-35, 35),
+        19 => (-26, 26),
+        20 => (-48, 48),
+        21 => (-25, 25),
+        22 => (-32, 32),
+        23 => (-24, 24),
+        24 => (-71, 71),
+        25 => (-24, 24),
+        26 => (-30, 30),
+        27 => (-23, 23),
+        28 => (-40, 40),
+        29 => (-23, 23),
+        30 => (-28, 28),
+        31 => (-22, 22),
+        32 => (-3298, 3276),
+        33 => (-22, 22),
+        34 => (-27, 27),
+        35 => (-22, 22),
+        36 => (-35, 35),
+        // Invalid radix
+        _ => (0, 0),
+    }
+}
+
+/// Get the exponent limit as a const fn.
+#[inline(always)]
+#[cfg(feature = "f128")]
+#[cfg(all(feature = "power-of-two", not(feature = "radix")))]
+pub const fn f128_exponent_limit(radix: u32) -> (i64, i64) {
+    match radix {
+        2 => (-16494, 16383),
+        4 => (-8247, 8191),
+        8 => (-5498, 5461),
+        10 => (-48, 48),
+        16 => (-4123, 4095),
+        32 => (-3298, 3276),
+        // Invalid radix
+        _ => (0, 0),
+    }
+}
+
+/// Get the exponent limit as a const fn.
+#[inline(always)]
+#[cfg(feature = "f128")]
+#[cfg(not(feature = "power-of-two"))]
+pub const fn f128_exponent_limit(radix: u32) -> (i64, i64) {
+    match radix {
+        10 => (-48, 48),
+        // Invalid radix
+        _ => (0, 0),
+    }
+}
+
+/// Get the mantissa limit as a const fn.
+#[inline(always)]
+#[cfg(feature = "f128")]
+#[cfg(feature = "radix")]
+pub const fn f128_mantissa_limit(radix: u32) -> i64 {
+    match radix {
+        2 => 113,
+        3 => 71,
+        4 => 56,
+        5 => 48,
+        6 => 43,
+        7 => 40,
+        8 => 37,
+        9 => 35,
+        10 => 34,
+        11 => 32,
+        12 => 31,
+        13 => 30,
+        14 => 29,
+        15 => 28,
+        16 => 28,
+        17 => 27,
+        18 => 27,
+        19 => 26,
+        20 => 26,
+        21 => 25,
+        22 => 25,
+        23 => 24,
+        24 => 24,
+        25 => 24,
+        26 => 24,
+        27 => 23,
+        28 => 23,
+        29 => 23,
+        30 => 23,
+        31 => 22,
+        32 => 22,
+        33 => 22,
+        34 => 22,
+        35 => 22,
+        36 => 21,
+        // Invalid radix
+        _ => 0,
+    }
+}
+
+/// Get the mantissa limit as a const fn.
+#[inline(always)]
+#[cfg(feature = "f128")]
+#[cfg(all(feature = "power-of-two", not(feature = "radix")))]
+pub const fn f128_mantissa_limit(radix: u32) -> i64 {
+    match radix {
+        2 => 113,
+        4 => 56,
+        8 => 37,
+        10 => 34,
+        16 => 28,
+        32 => 22,
+        // Invalid radix
+        _ => 0,
+    }
+}
+
+/// Get the mantissa limit as a const fn.
+#[inline(always)]
+#[cfg(feature = "f128")]
+#[cfg(not(feature = "power-of-two"))]
+pub const fn f128_mantissa_limit(radix: u32) -> i64 {
+    match radix {
+        10 => 34,
+        // Invalid radix
         _ => 0,
     }
 }
@@ -399,43 +578,73 @@ pub const fn f64_mantissa_limit(radix: u32) -> i64 {
 /// Get the maximum value for `radix^N` that can be represented in a u32.
 /// This is calculated as `⌊log(2^32 - 1, b)⌋`.
 #[inline(always)]
+#[cfg(feature = "radix")]
 pub const fn u32_power_limit(radix: u32) -> u32 {
     match radix {
-        2 if cfg!(feature = "power-of-two") => 31,
-        3 if cfg!(feature = "radix") => 20,
-        4 if cfg!(feature = "power-of-two") => 15,
+        2 => 31,
+        3 => 20,
+        4 => 15,
         5 => 13,
-        6 if cfg!(feature = "radix") => 12,
-        7 if cfg!(feature = "radix") => 11,
-        8 if cfg!(feature = "power-of-two") => 10,
-        9 if cfg!(feature = "radix") => 10,
+        6 => 12,
+        7 => 11,
+        8 => 10,
+        9 => 10,
         10 => 9,
-        11 if cfg!(feature = "radix") => 9,
-        12 if cfg!(feature = "radix") => 8,
-        13 if cfg!(feature = "radix") => 8,
-        14 if cfg!(feature = "radix") => 8,
-        15 if cfg!(feature = "radix") => 8,
-        16 if cfg!(feature = "power-of-two") => 7,
-        17 if cfg!(feature = "radix") => 7,
-        18 if cfg!(feature = "radix") => 7,
-        19 if cfg!(feature = "radix") => 7,
-        20 if cfg!(feature = "radix") => 7,
-        21 if cfg!(feature = "radix") => 7,
-        22 if cfg!(feature = "radix") => 7,
-        23 if cfg!(feature = "radix") => 7,
-        24 if cfg!(feature = "radix") => 6,
-        25 if cfg!(feature = "radix") => 6,
-        26 if cfg!(feature = "radix") => 6,
-        27 if cfg!(feature = "radix") => 6,
-        28 if cfg!(feature = "radix") => 6,
-        29 if cfg!(feature = "radix") => 6,
-        30 if cfg!(feature = "radix") => 6,
-        31 if cfg!(feature = "radix") => 6,
-        32 if cfg!(feature = "power-of-two") => 6,
-        33 if cfg!(feature = "radix") => 6,
-        34 if cfg!(feature = "radix") => 6,
-        35 if cfg!(feature = "radix") => 6,
-        36 if cfg!(feature = "radix") => 6,
+        11 => 9,
+        12 => 8,
+        13 => 8,
+        14 => 8,
+        15 => 8,
+        16 => 7,
+        17 => 7,
+        18 => 7,
+        19 => 7,
+        20 => 7,
+        21 => 7,
+        22 => 7,
+        23 => 7,
+        24 => 6,
+        25 => 6,
+        26 => 6,
+        27 => 6,
+        28 => 6,
+        29 => 6,
+        30 => 6,
+        31 => 6,
+        32 => 6,
+        33 => 6,
+        34 => 6,
+        35 => 6,
+        36 => 6,
+        // Any other radix should be unreachable.
+        _ => 1,
+    }
+}
+
+/// This is calculated as `⌊log(2^32 - 1, b)⌋`.
+#[inline(always)]
+#[cfg(all(feature = "power-of-two", not(feature = "radix")))]
+pub const fn u32_power_limit(radix: u32) -> u32 {
+    match radix {
+        2 => 31,
+        4 => 15,
+        5 => 13,
+        8 => 10,
+        10 => 9,
+        16 => 7,
+        32 => 6,
+        // Any other radix should be unreachable.
+        _ => 1,
+    }
+}
+
+/// This is calculated as `⌊log(2^32 - 1, b)⌋`.
+#[inline(always)]
+#[cfg(not(feature = "power-of-two"))]
+pub const fn u32_power_limit(radix: u32) -> u32 {
+    match radix {
+        5 => 13,
+        10 => 9,
         // Any other radix should be unreachable.
         _ => 1,
     }
@@ -444,43 +653,73 @@ pub const fn u32_power_limit(radix: u32) -> u32 {
 /// Get the maximum value for `radix^N` that can be represented in a u64.
 /// This is calculated as `⌊log(2^64 - 1, b)⌋`.
 #[inline(always)]
+#[cfg(feature = "radix")]
 pub const fn u64_power_limit(radix: u32) -> u32 {
     match radix {
-        2 if cfg!(feature = "power-of-two") => 63,
-        3 if cfg!(feature = "radix") => 40,
-        4 if cfg!(feature = "power-of-two") => 31,
+        2 => 63,
+        3 => 40,
+        4 => 31,
         5 => 27,
-        6 if cfg!(feature = "radix") => 24,
-        7 if cfg!(feature = "radix") => 22,
-        8 if cfg!(feature = "power-of-two") => 21,
-        9 if cfg!(feature = "radix") => 20,
+        6 => 24,
+        7 => 22,
+        8 => 21,
+        9 => 20,
         10 => 19,
-        11 if cfg!(feature = "radix") => 18,
-        12 if cfg!(feature = "radix") => 17,
-        13 if cfg!(feature = "radix") => 17,
-        14 if cfg!(feature = "radix") => 16,
-        15 if cfg!(feature = "radix") => 16,
-        16 if cfg!(feature = "power-of-two") => 15,
-        17 if cfg!(feature = "radix") => 15,
-        18 if cfg!(feature = "radix") => 15,
-        19 if cfg!(feature = "radix") => 15,
-        20 if cfg!(feature = "radix") => 14,
-        21 if cfg!(feature = "radix") => 14,
-        22 if cfg!(feature = "radix") => 14,
-        23 if cfg!(feature = "radix") => 14,
-        24 if cfg!(feature = "radix") => 13,
-        25 if cfg!(feature = "radix") => 13,
-        26 if cfg!(feature = "radix") => 13,
-        27 if cfg!(feature = "radix") => 13,
-        28 if cfg!(feature = "radix") => 13,
-        29 if cfg!(feature = "radix") => 13,
-        30 if cfg!(feature = "radix") => 13,
-        31 if cfg!(feature = "radix") => 12,
-        32 if cfg!(feature = "power-of-two") => 12,
-        33 if cfg!(feature = "radix") => 12,
-        34 if cfg!(feature = "radix") => 12,
-        35 if cfg!(feature = "radix") => 12,
-        36 if cfg!(feature = "radix") => 12,
+        11 => 18,
+        12 => 17,
+        13 => 17,
+        14 => 16,
+        15 => 16,
+        16 => 15,
+        17 => 15,
+        18 => 15,
+        19 => 15,
+        20 => 14,
+        21 => 14,
+        22 => 14,
+        23 => 14,
+        24 => 13,
+        25 => 13,
+        26 => 13,
+        27 => 13,
+        28 => 13,
+        29 => 13,
+        30 => 13,
+        31 => 12,
+        32 => 12,
+        33 => 12,
+        34 => 12,
+        35 => 12,
+        36 => 12,
+        // Any other radix should be unreachable.
+        _ => 1,
+    }
+}
+
+/// Get the maximum value for `radix^N` that can be represented in a u64.
+/// This is calculated as `⌊log(2^64 - 1, b)⌋`.
+#[inline(always)]
+#[cfg(all(feature = "power-of-two", not(feature = "radix")))]
+pub const fn u64_power_limit(radix: u32) -> u32 {
+    match radix {
+        2 => 63,
+        4 => 31,
+        5 => 27,
+        8 => 21,
+        10 => 19,
+        16 => 15,
+        32 => 12,
+        // Any other radix should be unreachable.
+        _ => 1,
+    }
+}
+
+#[inline(always)]
+#[cfg(not(feature = "power-of-two"))]
+pub const fn u64_power_limit(radix: u32) -> u32 {
+    match radix {
+        5 => 27,
+        10 => 19,
         // Any other radix should be unreachable.
         _ => 1,
     }

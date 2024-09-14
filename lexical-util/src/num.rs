@@ -4,6 +4,8 @@
 //! types, and trait bounds, and conversions for working with
 //! numbers in generic code.
 
+#![cfg_attr(any(), rustfmt::skip)]
+
 use core::{fmt, mem, ops};
 
 #[cfg(feature = "f16")]
@@ -1243,27 +1245,36 @@ fn floorf(x: f32) -> f32 {
  * Return the logarithm of x
  *
  * Method :
- *   1. Argument Reduction: find k and f such that x = 2^k * (1+f), where
- *      sqrt(2)/2 < 1+f < sqrt(2) .
+ *   1. Argument Reduction: find k and f such that
+ *                      x = 2^k * (1+f),
+ *         where  sqrt(2)/2 < 1+f < sqrt(2) .
  *
- *   2. Approximation of log(1+f). Let s = f/(2+f) ; based on log(1+f) =
- *      log(1+s) - log(1-s) = 2s + 2/3 s**3 + 2/5 s**5 + ....., = 2s + s*R We
- *      use a special Remez algorithm on [0,0.1716] to generate a polynomial
- *      of degree 14 to approximate R The maximum error of this polynomial
- *      approximation is bounded by 2**-58.45. In other words, 2      4
- *      6      8      10      12      14 R(z) ~ Lg1*s +Lg2*s +Lg3*s +Lg4*s
- *      +Lg5*s  +Lg6*s  +Lg7*s (the values of Lg1 to Lg7 are listed in the
- *      program) and |      2          14          |     -58.45 | Lg1*s
- *      +...+Lg7*s    -  R(z) | <= 2 |                             | Note
- *      that 2s = f - s*f = f - hfsq + s*hfsq, where hfsq = f*f/2. In order
- *      to guarantee error in log below 1ulp, we compute log by log(1+f) = f
- *      - s*(f - R)        (if f is not too large) log(1+f) = f - (hfsq -
- *      s*(hfsq+R)).     (better accuracy)
+ *   2. Approximation of log(1+f).
+ *      Let s = f/(2+f) ; based on log(1+f) = log(1+s) - log(1-s)
+ *               = 2s + 2/3 s**3 + 2/5 s**5 + .....,
+ *               = 2s + s*R
+ *      We use a special Remez algorithm on [0,0.1716] to generate
+ *      a polynomial of degree 14 to approximate R The maximum error
+ *      of this polynomial approximation is bounded by 2**-58.45. In
+ *      other words,
+ *                      2      4      6      8      10      12      14
+ *          R(z) ~ Lg1*s +Lg2*s +Lg3*s +Lg4*s +Lg5*s  +Lg6*s  +Lg7*s
+ *      (the values of Lg1 to Lg7 are listed in the program)
+ *      and
+ *          |      2          14          |     -58.45
+ *          | Lg1*s +...+Lg7*s    -  R(z) | <= 2
+ *          |                             |
+ *      Note that 2s = f - s*f = f - hfsq + s*hfsq, where hfsq = f*f/2.
+ *      In order to guarantee error in log below 1ulp, we compute log
+ *      by
+ *              log(1+f) = f - s*(f - R)        (if f is not too large)
+ *              log(1+f) = f - (hfsq - s*(hfsq+R)).     (better accuracy)
  *
- *      3. Finally,  log(x) = k*ln2 + log(1+f). =
- *         k*ln2_hi+(f-(hfsq-(s*(hfsq+R)+k*ln2_lo))) Here ln2 is split into
- *         two floating point number: ln2_hi + ln2_lo, where n*ln2_hi is
- *         always exact for |n| < 2000.
+ *      3. Finally,  log(x) = k*ln2 + log(1+f).
+ *                          = k*ln2_hi+(f-(hfsq-(s*(hfsq+R)+k*ln2_lo)))
+ *         Here ln2 is split into two floating point number:
+ *                      ln2_hi + ln2_lo,
+ *         where n*ln2_hi is always exact for |n| < 2000.
  *
  * Special cases:
  *      log(x) is NaN with signal if x < 0 (including -INF) ;

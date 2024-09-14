@@ -304,8 +304,6 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     }
 
     // Parse our a small representation of our number.
-    // TODO: See if we can do faster number parsing here for small numbers
-    //      Should be able to get fairly fast results
     let num = parse_number!(FORMAT, byte, is_negative, options, parse_number, parse_special);
     // Try the fast-path algorithm.
     if let Some(value) = num.try_fast_path::<_, FORMAT>() {
@@ -504,7 +502,7 @@ pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
 /// This creates a representation of the float as the
 /// significant digits and the decimal exponent.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-#[allow(clippy::collapsible_if)]
+#[allow(clippy::collapsible_if, unused_mut)]
 pub fn parse_partial_number<'a, const FORMAT: u128>(
     mut byte: Bytes<'a, FORMAT>,
     is_negative: bool,
@@ -550,25 +548,29 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 
     // Check to see if we have a valid base prefix.
     // NOTE: `read_if` compiles poorly so use `peek` and then `step_unchecked`.
-    let base_prefix = format.base_prefix();
+    #[allow(unused_variables)]
     let mut is_prefix = false;
-    let mut iter = byte.integer_iter();
-    if cfg!(feature = "format") && base_prefix != 0 && iter.peek() == Some(&b'0') {
-        // SAFETY: safe since `byte.len() >= 1`.
-        unsafe { iter.step_unchecked() };
-        // Check to see if the next character is the base prefix.
-        // We must have a format like `0x`, `0d`, `0o`. Note:
-        if let Some(&c) = iter.peek() {
-            is_prefix = if format.case_sensitive_base_prefix() {
-                c == base_prefix
-            } else {
-                c.to_ascii_lowercase() == base_prefix.to_ascii_lowercase()
-            };
-            if is_prefix {
-                // SAFETY: safe since `byte.len() >= 1`.
-                unsafe { iter.step_unchecked() };
-                if iter.is_done() {
-                    return Err(Error::Empty(iter.cursor()));
+    #[cfg(feature = "format")]
+    {
+        let base_prefix = format.base_prefix();
+        let mut iter = byte.integer_iter();
+        if base_prefix != 0 && iter.peek() == Some(&b'0') {
+            // SAFETY: safe since `byte.len() >= 1`.
+            unsafe { iter.step_unchecked() };
+            // Check to see if the next character is the base prefix.
+            // We must have a format like `0x`, `0d`, `0o`. Note:
+            if let Some(&c) = iter.peek() {
+                is_prefix = if format.case_sensitive_base_prefix() {
+                    c == base_prefix
+                } else {
+                    c.to_ascii_lowercase() == base_prefix.to_ascii_lowercase()
+                };
+                if is_prefix {
+                    // SAFETY: safe since `byte.len() >= 1`.
+                    unsafe { iter.step_unchecked() };
+                    if iter.is_done() {
+                        return Err(Error::Empty(iter.cursor()));
+                    }
                 }
             }
         }
@@ -583,7 +585,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
     });
     let mut n_digits = byte.current_count() - start.current_count();
-    if cfg!(feature = "format") && format.required_integer_digits() && n_digits == 0 {
+    #[cfg(feature = "format")]
+    if format.required_integer_digits() && n_digits == 0 {
         return Err(Error::EmptyInteger(byte.cursor()));
     }
 
@@ -601,7 +604,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let integer_digits = unsafe { start.as_slice().get_unchecked(..n_digits) };
 
     // Check if integer leading zeros are disabled.
-    if cfg!(feature = "format") && !is_prefix && format.no_float_leading_zeros() {
+    #[cfg(feature = "format")]
+    if !is_prefix && format.no_float_leading_zeros() {
         if integer_digits.len() > 1 && integer_digits.first() == Some(&b'0') {
             return Err(Error::InvalidLeadingZeros(start.cursor()));
         }
@@ -639,7 +643,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
             debug_assert!(bits_per_digit % bits_per_base == 0);
             exponent = implicit_exponent * bits_per_digit / bits_per_base;
         };
-        if cfg!(feature = "format") && format.required_fraction_digits() && n_after_dot == 0 {
+        #[cfg(feature = "format")]
+        if format.required_fraction_digits() && n_after_dot == 0 {
             return Err(Error::EmptyFraction(byte.cursor()));
         }
     }
@@ -660,7 +665,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     };
     if is_exponent {
         // Check float format syntax checks.
-        if cfg!(feature = "format") {
+        #[cfg(feature = "format")]
+        {
             if format.no_exponent_notation() {
                 return Err(Error::InvalidExponent(byte.cursor()));
             }
@@ -698,9 +704,11 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     // Check to see if we have a valid base suffix.
     // We've already trimmed any leading digit separators here, so we can be safe
     // that the first character **is not** a digit separator.
+    #[allow(unused_variables)]
     let base_suffix = format.base_suffix();
-    if cfg!(feature = "format") && base_suffix != 0 {
-        let is_suffix: bool = if cfg!(feature = "format") && format.case_sensitive_base_suffix() {
+    #[cfg(feature = "format")]
+    if base_suffix != 0 {
+        let is_suffix: bool = if format.case_sensitive_base_suffix() {
             byte.first_is(base_suffix)
         } else {
             byte.case_insensitive_first_is(base_suffix)
@@ -717,7 +725,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let end = byte.cursor();
     let mut step = u64_step(format.radix());
     let mut many_digits = false;
-    if cfg!(feature = "format") && !format.required_mantissa_digits() && n_digits == 0 {
+    #[cfg(feature = "format")]
+    if !format.required_mantissa_digits() && n_digits == 0 {
         exponent = 0;
     }
     if n_digits <= step {

@@ -1,22 +1,23 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+'''
+    lemire_table
+    ============
 
-"""
-Generate powers of five using Daniel Lemire's ``Eisel-Lemire algorithm`` for use in
-decimal to floating point conversions.
+    Generate powers of five using Daniel Lemire's ``Eisel-Lemire algorithm`` for use in
+    decimal to floating point conversions.
 
-Specifically, computes and outputs (as Rust code) a table of 10^e for some
-range of exponents e. The output is one array of 128 bit significands.
-The base two exponents can be inferred using a logarithmic slope
-of the decimal exponent. The approximations are normalized and rounded perfectly,
-i.e., within 0.5 ULP of the true value.
+    Specifically, computes and outputs (as Rust code) a table of 10^e for some
+    range of exponents e. The output is one array of 128 bit significands.
+    The base two exponents can be inferred using a logarithmic slope
+    of the decimal exponent. The approximations are normalized and rounded perfectly,
+    i.e., within 0.5 ULP of the true value.
 
-Ported from Rust's core library implementation, which itself is
-adapted from Daniel Lemire's fast_float ``table_generation.py``,
-available here: <https://github.com/fastfloat/fast_float/blob/main/script/table_generation.py>.
-"""
-from __future__ import print_function
-from math import ceil, floor, log, log2
-from fractions import Fraction
+    Ported from Rust's core library implementation, which itself is
+    adapted from Daniel Lemire's fast_float ``table_generation.py``,
+    available here: <https://github.com/fastfloat/fast_float/blob/main/script/table_generation.py>.
+'''
+
+from math import ceil, floor, log
 from collections import deque
 
 HEADER = """
@@ -35,6 +36,7 @@ STATIC_WARNING = """
 // emit code multiple times, even if it's stripped out in
 // the final binary.
 """
+
 
 def main():
     min_exp = minimum_exponent(10)
@@ -78,7 +80,7 @@ def print_proper_powers(min_exp, max_exp, bias):
             b = 2 * z + 2 * 64
             c = 2 ** b // power5 + 1
             # truncate
-            while c >= (1<<128):
+            while c >= (1 << 128):
                 c //= 2
             powers.append((c, q))
 
@@ -86,10 +88,10 @@ def print_proper_powers(min_exp, max_exp, bias):
     for q in range(0, max_exp + 1):
         power5 = 5 ** q
         # move the most significant bit in position
-        while power5 < (1<<127):
+        while power5 < (1 << 127):
             power5 *= 2
         # *truncate*
-        while power5 >= (1<<128):
+        while power5 >= (1 << 128):
             power5 //= 2
         powers.append((power5, q))
 
@@ -98,7 +100,6 @@ def print_proper_powers(min_exp, max_exp, bias):
     print('#[rustfmt::skip]')
     typ = '[(u64, u64); N_POWERS_OF_FIVE]'
     print('pub static POWER_OF_FIVE_128: {} = ['.format(typ))
-    lo_mask = (1 << 64) - 1
     for c, exp in powers:
         hi = '0x{:x}'.format(c // (1 << 64))
         lo = '0x{:x}'.format(c % (1 << 64))

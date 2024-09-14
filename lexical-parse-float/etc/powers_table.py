@@ -1,12 +1,15 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+'''
+    powers_table
+    ============
 
-"""
-Generate powers of a given radix.
+    Generate powers of a given radix.
 
-This is used for both the fast-path algorithms, for native
-multiplication, and as pre-computed powers for exponentiation
-for the slow path algorithms.
-"""
+    This is used for both the fast-path algorithms, for native
+    multiplication, and as pre-computed powers for exponentiation
+    for the slow path algorithms.
+'''
+
 
 def print_int(radix, max_exp):
     '''Print pre-computed small powers as u64.'''
@@ -20,6 +23,7 @@ def print_int(radix, max_exp):
     print(f'const_assert!(SMALL_INT_POW{radix}.len() == u64_power_limit({radix}) as usize + 1);')
     print('')
 
+
 def print_f32(radix, max_exp):
     '''Print pre-computed small powers as f32.'''
 
@@ -30,6 +34,7 @@ def print_f32(radix, max_exp):
     print('];')
     print(f'const_assert!(SMALL_F32_POW{radix}.len() > f32_exponent_limit({radix}).1 as usize);')
     print('')
+
 
 def print_f64(radix, max_exp):
     '''Print pre-computed small powers as f64.'''
@@ -42,6 +47,7 @@ def print_f64(radix, max_exp):
     print(f'const_assert!(SMALL_F64_POW{radix}.len() > f64_exponent_limit({radix}).1 as usize);')
     print('')
 
+
 def as_u32(value):
     '''Convert a big integer to an array of 32-bit values.'''
 
@@ -52,6 +58,7 @@ def as_u32(value):
         value >>= 32
     return result
 
+
 def as_u64(value):
     '''Convert a big integer to an array of 64-bit values.'''
 
@@ -61,6 +68,7 @@ def as_u64(value):
         result.append(value & max_u64)
         value >>= 64
     return result
+
 
 def print_large(radix, max_exp):
     '''Print a pre-computed large power as a native limb.'''
@@ -87,12 +95,14 @@ def print_large(radix, max_exp):
     print(f'pub const LARGE_POW{radix}_STEP: u32 = {5 * max_exp};')
     print(f'')
 
+
 def print_tables(radix, f64_pow_limit, f32_exp_limit, f64_exp_limit):
     print_int(radix, f64_pow_limit)
     print_f32(radix, f32_exp_limit)
     print_f64(radix, f64_exp_limit)
     if radix % 2 != 0:
         print_large(radix, f64_pow_limit)
+
 
 def f32_exponent_limit(radix):
     return {
@@ -127,6 +137,7 @@ def f32_exponent_limit(radix):
         36: (-7, 7),
     }[radix]
 
+
 def f64_exponent_limit(radix):
     return {
         3: (-33, 33),
@@ -160,6 +171,7 @@ def f64_exponent_limit(radix):
         36: (-16, 16),
     }[radix]
 
+
 def f64_power_limit(radix):
     return {
         3: 40,
@@ -192,6 +204,7 @@ def f64_power_limit(radix):
         35: 12,
         36: 12
     }[radix]
+
 
 radixes = [3, 5, 6, 7, 9, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36]
 for radix in radixes:
