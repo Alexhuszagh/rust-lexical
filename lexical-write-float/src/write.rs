@@ -4,25 +4,56 @@
 
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
-use lexical_util::constants::FormattedSize;
+use lexical_util::{algorithm::copy_to_dst, constants::FormattedSize};
 #[cfg(feature = "f16")]
 use lexical_util::f16::f16;
 use lexical_util::format::NumberFormat;
 use lexical_write_integer::write::WriteInteger;
 
+/// Select the back-end.
 #[cfg(not(feature = "compact"))]
 use crate::algorithm::write_float as write_float_decimal;
 #[cfg(feature = "power-of-two")]
 use crate::binary;
-/// Select the back-end.
-#[cfg(feature = "compact")]
-use crate::compact::write_float as write_float_decimal;
 use crate::float::RawFloat;
 #[cfg(feature = "power-of-two")]
 use crate::hex;
 use crate::options::Options;
 #[cfg(feature = "radix")]
 use crate::radix;
+
+/// Write an special string to the buffer.
+fn write_special(bytes: &mut [u8], special: Option<&[u8]>, error: &'static str) -> usize {
+    // The NaN string must be <= 50 characters, so this should never panic.
+    if let Some(special_str) = special {
+        debug_assert!(special_str.len() <= 50, "special_str.len() must be <= 50");
+        copy_to_dst(bytes, special_str)
+    } else {
+        // PANIC: the format does not support serializing that special.
+        panic!("{}", error);
+    }
+}
+
+
+/// Write an NaN string to the buffer.
+#[inline(always)]
+fn write_nan(bytes: &mut[u8], options: &Options, count: usize) -> usize {
+    count + write_special(
+        bytes,
+        options.nan_string(),
+        "NaN explicitly disabled but asked to write NaN as string."
+    )
+}
+
+/// Write an Inf string to the buffer.
+#[inline(always)]
+fn write_inf(bytes: &mut[u8], options: &Options, count: usize) -> usize {
+    count + write_special(
+        bytes,
+        options.inf_string(),
+        "Inf explicitly disabled but asked to write Inf as string."
+    )
+}
 
 /// Write float trait.
 pub trait WriteFloat: RawFloat {
@@ -54,6 +85,8 @@ pub trait WriteFloat: RawFloat {
     where
         Self::Unsigned: FormattedSize + WriteInteger,
     {
+        // TODO: Make safe
+
         // Validate our format options.
         let format = NumberFormat::<FORMAT> {};
         assert!(format.is_valid());
@@ -122,38 +155,9 @@ pub trait WriteFloat: RawFloat {
                 count + unsafe { write_float_decimal::<_, FORMAT>(float, bytes, options) }
             }
         } else if self.is_nan() {
-            // SAFETY: safe if the buffer is longer than the NaN string.
-            // The NaN string must be <= 50 characters, so safe as long as
-            // the options were build using safe methods.
-            if let Some(nan_string) = options.nan_string() {
-                let length = nan_string.len();
-                unsafe {
-                    let src = nan_string.as_ptr();
-                    let dst = &mut index_unchecked_mut!(bytes[..length]);
-                    copy_nonoverlapping_unchecked!(dst, src, length);
-                }
-                count + length
-            } else {
-                // PANIC: cannot serialize NaN.
-                panic!("NaN explicitly disabled but asked to write NaN as string.");
-            }
+            write_nan(bytes, options, count)
         } else {
-            // is_inf
-            // SAFETY: safe if the buffer is longer than the Inf string.
-            // The Inf string must be <= 50 characters, so safe as long as
-            // the options were build using safe methods.
-            if let Some(inf_string) = options.inf_string() {
-                let length = inf_string.len();
-                unsafe {
-                    let src = inf_string.as_ptr();
-                    let dst = &mut index_unchecked_mut!(bytes[..length]);
-                    copy_nonoverlapping_unchecked!(dst, src, length);
-                }
-                count + length
-            } else {
-                // PANIC: cannot serialize inf.
-                panic!("Inf explicitly disabled but asked to write Inf as string.");
-            }
+            write_inf(bytes, options, count)
         }
     }
 }
@@ -174,6 +178,7 @@ macro_rules! write_float_as_f32 {
             unsafe fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> usize
             {
                 // SAFETY: safe if `bytes` is large enough to hold the written bytes.
+                // TODO: Make safe
                 unsafe { self.as_f32().write_float::<FORMAT>(bytes, options) }
             }
         }
