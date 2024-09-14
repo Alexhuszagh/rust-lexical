@@ -276,7 +276,8 @@ decimal_impl! { u32 u64 }
 impl Decimal for u128 {
     #[inline(always)]
     fn decimal(self, buffer: &mut [u8]) -> usize {
-        // SAFETY: safe since we've guaranteed the buffer is large enough to hold the max value.
+        // SAFETY: safe since we've guaranteed the buffer is large enough to hold the
+        // max value.
         let count = self.digit_count();
         assert!(count <= buffer.len());
         unsafe {
