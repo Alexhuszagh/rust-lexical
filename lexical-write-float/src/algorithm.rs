@@ -102,13 +102,11 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     // Write the significant digits. Write at index 1, so we can shift 1
     // for the decimal point without intermediate buffers.
     // SAFETY: safe, if we have enough bytes to write the significant digits.
-    let digits = unsafe { &mut index_unchecked_mut!(bytes[1..]) };
+    let digits = &mut bytes[1..];
     let digit_count = F::write_digits(digits, fp.mant);
 
     // Truncate and round the significant digits.
-    // SAFETY: safe since `digit_count < digits.len()`.
-    let (digit_count, carried) =
-        unsafe { shared::truncate_and_round_decimal(digits, digit_count, options) };
+    let (digit_count, carried) = shared::truncate_and_round_decimal(digits, digit_count, options);
     let sci_exp = sci_exp + carried as i32;
 
     // Determine the exact number of digits to write.
@@ -183,11 +181,8 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     let digit_count = F::write_digits(digits, fp.mant);
 
     // Truncate and round the significant digits.
-    // SAFETY: safe since `cursor > 0 && cursor < digits.len()`.
-    debug_assert!(cursor > 0);
-    // TODO: make safe
-    let (digit_count, carried) =
-        unsafe { shared::truncate_and_round_decimal(digits, digit_count, options) };
+    debug_assert!(cursor > 0, "underflowed our digits");
+    let (digit_count, carried) = shared::truncate_and_round_decimal(digits, digit_count, options);
 
     // Handle any trailing digits.
     let mut trimmed = false;
@@ -261,10 +256,8 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
     // is greater than the written digits. If not, we have to move digits after
     // and then adjust the decimal point. However, with truncating and remove
     // trailing zeros, we **don't** know the exact digit count **yet**.
-    // SAFETY: safe, if we have enough bytes to write the significant digits.
-    let digit_count = unsafe { F::write_digits(bytes, fp.mant) };
-    let (mut digit_count, carried) =
-        unsafe { shared::truncate_and_round_decimal(bytes, digit_count, options) };
+    let digit_count = F::write_digits(bytes, fp.mant);
+    let (mut digit_count, carried) = shared::truncate_and_round_decimal(bytes, digit_count, options);
 
     // Now, check if we have shift digits.
     let leading_digits = sci_exp as usize + 1 + carried as usize;

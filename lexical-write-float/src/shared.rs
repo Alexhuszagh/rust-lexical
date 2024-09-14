@@ -86,29 +86,22 @@ pub unsafe fn truncate_and_round_decimal(
     // Get the last non-truncated digit, and the remaining ones.
     // SAFETY: safe if `digit_count < digits.len()`, since `max_digits <
     // digit_count`.
-    // TODO: Make safe
-    let truncated = unsafe { index_unchecked!(digits[max_digits]) };
+    let truncated = digits[max_digits];
     let (digits, carried) = if truncated < b'5' {
         // Just truncate, going to round-down anyway.
         (max_digits, false)
     } else if truncated > b'5' {
         // Round-up always.
-        // SAFETY: safe if `digit_count <= digits.len()`, because `max_digits <
-        // digit_count`.
-        unsafe { round_up(digits, max_digits, 10) }
+        round_up(digits, max_digits, 10)
     } else {
         // Have a near-halfway case, resolve it.
-        // SAFETY: safe if `digit_count < digits.len()`.
-        let (is_odd, is_above) = unsafe {
-            let to_round = &index_unchecked!(digits[max_digits - 1..digit_count]);
-            let is_odd = index_unchecked!(to_round[0]) % 2 == 1;
-            let is_above = index_unchecked!(to_round[2..]).iter().any(|&x| x != b'0');
-            (is_odd, is_above)
-        };
+        let to_round = &digits[max_digits - 1..digit_count];
+        let is_odd = to_round[0] % 2 == 1;
+        let is_above = to_round[2..].iter().any(|&x| x != b'0');
         if is_odd || is_above {
             // SAFETY: safe if `digit_count <= digits.len()`, because `max_digits <
             // digit_count`.
-            unsafe { round_up(digits, max_digits, 10) }
+            round_up(digits, max_digits, 10)
         } else {
             (max_digits, false)
         }
