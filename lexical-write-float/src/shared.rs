@@ -20,25 +20,19 @@ pub fn min_exact_digits(digit_count: usize, options: &Options) -> usize {
 ///
 /// Round up the last digit, incrementally handling all subsequent
 /// digits in case of overflow.
-///
-/// # Safety
-///
-/// Safe as long as `count <= digits.len()`.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, bool) {
-    debug_assert!(count <= digits.len());
+pub fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, bool) {
+    debug_assert!(count <= digits.len(), "rounding up requires digits.len() >= count");
 
     let mut index = count;
     let max_char = digit_to_char_const(radix - 1, radix);
     while index != 0 {
-        // SAFETY: safe if `count <= digits.len()`, since then
-        // `index > 0 && index <= digits.len()`.
-        let c = unsafe { index_unchecked!(digits[index - 1]) };
+        let c = digits[index - 1];
         if c < max_char {
             // SAFETY: safe since `index > 0 && index <= digits.len()`.
             let digit = char_to_valid_digit_const(c, radix);
             let rounded = digit_to_char_const(digit + 1, radix);
-            unsafe { index_unchecked_mut!(digits[index - 1]) = rounded };
+            digits[index - 1] = rounded;
             return (index, false);
         }
         // Don't have to assign b'0' otherwise, since we're just carrying
@@ -47,8 +41,7 @@ pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, b
     }
 
     // Means all digits were max digit: we need to round up.
-    // SAFETY: safe since `digits.len() > 1`.
-    unsafe { index_unchecked_mut!(digits[0]) = b'1' };
+    digits[0] = b'1';
 
     (1, true)
 }
@@ -93,6 +86,7 @@ pub unsafe fn truncate_and_round_decimal(
     // Get the last non-truncated digit, and the remaining ones.
     // SAFETY: safe if `digit_count < digits.len()`, since `max_digits <
     // digit_count`.
+    // TODO: Make safe
     let truncated = unsafe { index_unchecked!(digits[max_digits]) };
     let (digits, carried) = if truncated < b'5' {
         // Just truncate, going to round-down anyway.
@@ -167,7 +161,7 @@ pub unsafe fn write_exponent<const FORMAT: u128>(
     *cursor += unsafe {
         index_unchecked_mut!(bytes[*cursor]) = exponent_character;
         *cursor += 1;
-        let positive_exp = write_exponent_sign::<FORMAT>(bytes, cursor, exp);
+        let positive_exp: u32 = write_exponent_sign::<FORMAT>(bytes, cursor, exp);
         positive_exp.write_exponent::<u32, FORMAT>(&mut index_unchecked_mut!(bytes[*cursor..]))
     };
 }

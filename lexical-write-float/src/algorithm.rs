@@ -65,6 +65,7 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
     // and write the significant digits without using an intermediate buffer
     // in most cases.
 
+    // TODO: This should be safe now
     write_float!(
         float,
         FORMAT,
@@ -102,7 +103,7 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     // for the decimal point without intermediate buffers.
     // SAFETY: safe, if we have enough bytes to write the significant digits.
     let digits = unsafe { &mut index_unchecked_mut!(bytes[1..]) };
-    let digit_count = unsafe { F::write_digits(digits, fp.mant) };
+    let digit_count = F::write_digits(digits, fp.mant);
 
     // Truncate and round the significant digits.
     // SAFETY: safe since `digit_count < digits.len()`.
@@ -127,7 +128,7 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
             cursor = digit_count + 1;
             let zeros = exact_count - digit_count;
             unsafe {
-                slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
+                index_unchecked_mut!(bytes[cursor..cursor + zeros]).fill(b'0');
             }
             cursor += zeros;
         } else if digit_count == 1 {
@@ -179,7 +180,7 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     // Write out our significant digits.
     // SAFETY: safe, if we have enough bytes to write the significant digits.
     let digits = &mut bytes[cursor..];
-    let digit_count = unsafe { F::write_digits(digits, fp.mant) };
+    let digit_count = F::write_digits(digits, fp.mant);
 
     // Truncate and round the significant digits.
     // SAFETY: safe since `cursor > 0 && cursor < digits.len()`.
@@ -437,6 +438,10 @@ pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
 
     // Compute xi and zi.
     // SAFETY: safe, since value must be finite and therefore in the correct range.
+    // `-324 <= exponent <= 308`, so `x * log10(2) - log10(4 / 3)` must be in
+    // `-98 <= x <= 93`, so the final value must be in [-93, 98] (for f64). We have
+    // precomputed powers for [-292, 326] for f64 (same logic applies for f32) so this
+    // is **ALWAYS** safe.
     let pow5 = unsafe { F::dragonbox_power(-minus_k) };
     let mut xi = F::compute_left_endpoint(&pow5, beta);
     let mut zi = F::compute_right_endpoint(&pow5, beta);
@@ -501,6 +506,10 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // Compute k and beta.
     let minus_k = floor_log10_pow2(exponent) - F::KAPPA as i32;
     // SAFETY: safe, since value must be finite and therefore in the correct range.
+    // `-324 <= exponent <= 308`, so `x * log10(2)` must be in
+    // `-98 <= x <= 93`, so the final value must be in [-93, 98] (for f64). We have
+    // precomputed powers for [-292, 326] for f64 (same logic applies for f32) so this
+    // is **ALWAYS** safe.
     let pow5 = unsafe { F::dragonbox_power(-minus_k) };
     let beta = exponent + floor_log2_pow10(-minus_k);
 
@@ -632,6 +641,9 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // Compute k and beta.
     let minus_k = floor_log10_pow2(exponent) - F::KAPPA as i32;
     // SAFETY: safe, since value must be finite and therefore in the correct range.
+    // `-324 <= exponent <= 308`, so `x * log10(2)` must be in [-98, 93] (for f64).
+    // We have precomputed powers for [-292, 326] for f64 (same logic applies for f32)
+    // so this is **ALWAYS** safe.
     let pow5 = unsafe { F::dragonbox_power(-minus_k) };
     let beta = exponent + floor_log2_pow10(-minus_k);
 
@@ -711,14 +723,22 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
 /// Compute the interval I = (w−,w]..
 #[allow(clippy::comparison_chain, clippy::if_same_then_else)]
 pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> ExtendedFloat80 {
+    // ensure our floats have a maximum exp in the range [-324, 308].
+    assert!(F::BITS <= 64, "cannot guarantee safety invariants with 128-bit floats");
+
     let mantissa = float.mantissa().as_u64();
     let exponent = float.exponent();
 
     // Step 1: Schubfach multiplier calculation
+    // Exponent must be in the range [-324, 308]
     // Compute k and beta.
     let minus_k = floor_log10_pow2(exponent - shorter as i32) - F::KAPPA as i32;
+    assert!(F::KAPPA <= 2);
     // SAFETY: safe, since value must be finite and therefore in the correct range.
-    let pow5 = unsafe { F::dragonbox_power(-minus_k) };
+    // `-324 <= exponent <= 308`, so `x * log10(2)` must be in [-100, 92] (for f64).
+    // We have precomputed powers for [-292, 326] for f64 (same logic applies for f32)
+    // so this is **ALWAYS** safe.
+    let pow5: <F as DragonboxFloat>::Power = unsafe { F::dragonbox_power(-minus_k) };
     let beta = exponent + floor_log2_pow10(-minus_k);
 
     // Compute zi and deltai.
@@ -766,10 +786,9 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
         significand *= 10;
         significand -= F::div_pow10(r) as u64;
 
-        // Ensure we haven't re-assigned exponent or minus_k, since this
-        // is a massive potential security vulnerability.
-        debug_assert!(float.exponent() == exponent);
-        debug_assert!(minus_k == floor_log10_pow2(exponent - shorter as i32) - F::KAPPA as i32);
+        // Ensure we haven't re-assigned exponent or minus_k.
+        assert!(float.exponent() == exponent);
+        debug_assert!(minus_k == floor_log10_pow2(float.exponent() - shorter as i32) - F::KAPPA as i32);
 
         extended_float(significand, minus_k + F::KAPPA as i32)
     }
