@@ -1,5 +1,7 @@
 #!/bin/bash
 # Print diagnostics on the amount of unsafe code used.
+# NOTE: This is currently unused since cargo-count is
+# unmaintained and requires an old version of clap.
 
 set -e
 
@@ -10,7 +12,7 @@ count() {
 }
 
 # Change to our project home.
-script_dir=`dirname "${BASH_SOURCE[0]}"`
+script_dir=$(dirname "${BASH_SOURCE[0]}")
 cd "$script_dir"/
 count "lexical-util"
 count "lexical-parse-integer"

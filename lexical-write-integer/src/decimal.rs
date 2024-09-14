@@ -102,7 +102,7 @@ pub fn fast_digit_count(x: u32) -> usize {
     // SAFETY: always safe, since fast_log2 will always return a value
     // <= 32. This is because the range of values from `ctlz(x | 1)` is
     // `[0, 31]`, so `32 - 1 - ctlz(x | 1)` must be in the range `[0, 31]`.
-    let shift = unsafe { index_unchecked!(TABLE[fast_log2(x)]) };
+    let shift = TABLE[fast_log2(x)];
     let count = (x as u64 + shift) >> 32;
     count as usize
 }
@@ -259,7 +259,7 @@ macro_rules! decimal_impl {
         impl Decimal for $t {
             #[inline(always)]
             fn decimal(self, buffer: &mut [u8]) -> usize {
-                // SAFETY: safe as long as buffer is large enough to hold the max value.
+                // SAFETY: safe since we've guaranteed the buffer is large enough to hold the max value.
                 let count = self.digit_count();
                 assert!(count <= buffer.len());
                 unsafe {
@@ -276,7 +276,7 @@ decimal_impl! { u32 u64 }
 impl Decimal for u128 {
     #[inline(always)]
     fn decimal(self, buffer: &mut [u8]) -> usize {
-        // SAFETY: safe as long as buffer is large enough to hold the max value.
+        // SAFETY: safe since we've guaranteed the buffer is large enough to hold the max value.
         let count = self.digit_count();
         assert!(count <= buffer.len());
         unsafe {

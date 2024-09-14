@@ -165,23 +165,19 @@ pub fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u128>(
     if carried && cursor == 2 {
         // Rounded-up, and carried to the first byte, so instead of having
         // 0.9999, we have 1.0.
-        unsafe {
-            bytes[0] = b'1';
-            if options.trim_floats() {
-                cursor = 1;
-                trimmed = true;
-            } else {
-                bytes[1] = decimal_point;
-                bytes[2] = b'0';
-                cursor = 3;
-            }
+        bytes[0] = b'1';
+        if options.trim_floats() {
+            cursor = 1;
+            trimmed = true;
+        } else {
+            bytes[1] = decimal_point;
+            bytes[2] = b'0';
+            cursor = 3;
         }
     } else if carried {
         // Carried, so we need to remove 1 zero before our digits.
-        unsafe {
-            bytes[1] = decimal_point;
-            bytes[cursor - 1] = bytes[cursor];
-        }
+        bytes[1] = decimal_point;
+        bytes[cursor - 1] = bytes[cursor];
     } else {
         bytes[1] = decimal_point;
         cursor += digit_count;

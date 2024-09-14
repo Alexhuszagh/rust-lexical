@@ -182,19 +182,13 @@ macro_rules! write_float {
         let require_exponent = format.required_exponent_notation() || outside_break;
         if !format.no_exponent_notation() && require_exponent {
             // Write digits in scientific notation.
-            // SAFETY: safe as long as bytes is large enough to hold all the digits.
-            // TODO: No longer need to be unsafe
-            unsafe { $write_scientific::<$($generic,)? FORMAT>($bytes, $($args,)*) }
+            $write_scientific::<$($generic,)? FORMAT>($bytes, $($args,)*)
         } else if $sci_exp < 0 {
             // Write negative exponent without scientific notation.
-            // SAFETY: safe as long as bytes is large enough to hold all the digits.
-            // TODO: No longer need to be unsafe
-            unsafe { $write_negative::<$($generic,)? FORMAT>($bytes, $($args,)*) }
+            $write_negative::<$($generic,)? FORMAT>($bytes, $($args,)*)
         } else {
             // Write positive exponent without scientific notation.
-            // SAFETY: safe as long as bytes is large enough to hold all the digits.
-            // TODO: No longer need to be unsafe
-            unsafe { $write_positive::<$($generic,)? FORMAT>($bytes, $($args,)*) }
+            $write_positive::<$($generic,)? FORMAT>($bytes, $($args,)*)
         }
     }};
 }

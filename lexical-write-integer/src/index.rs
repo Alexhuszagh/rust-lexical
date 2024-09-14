@@ -8,12 +8,6 @@
 #![cfg_attr(feature = "compact", allow(unused_macros, unused_macro_rules))]
 #![doc(hidden)]
 
-macro_rules! index_unchecked {
-    ($x:ident[$i:expr]) => {
-        *$x.get_unchecked($i)
-    };
-}
-
 /// Index a buffer and get a mutable reference, without bounds checking.
 // The `($x:ident[$i:expr] = $y:ident[$j:expr])` is not used with `compact`.
 // The newer version of the lint is `unused_macro_rules`, but this isn't
