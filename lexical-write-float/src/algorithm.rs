@@ -169,24 +169,22 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     // Write our 0 digits.
     let mut cursor = sci_exp + 1;
     debug_assert!(cursor >= 2);
-    // SAFETY: safe, if we have enough bytes to write the significant digits.
-    unsafe {
-        // We write 0 digits even over the decimal point, since we might have
-        // to round carry over. This is rare, but it could happen, and would
-        // require a shift after. The good news is: if we have a shift, we
-        // only need to move 1 digit.
-        let digits = &mut index_unchecked_mut!(bytes[..cursor]);
-        slice_fill_unchecked!(digits, b'0');
-    }
+    // We write 0 digits even over the decimal point, since we might have
+    // to round carry over. This is rare, but it could happen, and would
+    // require a shift after. The good news is: if we have a shift, we
+    // only need to move 1 digit.
+    let digits: &mut [u8] = &mut bytes[..cursor];
+    digits.fill(b'0');
 
     // Write out our significant digits.
     // SAFETY: safe, if we have enough bytes to write the significant digits.
-    let digits = unsafe { &mut index_unchecked_mut!(bytes[cursor..]) };
+    let digits = &mut bytes[cursor..];
     let digit_count = unsafe { F::write_digits(digits, fp.mant) };
 
     // Truncate and round the significant digits.
     // SAFETY: safe since `cursor > 0 && cursor < digits.len()`.
     debug_assert!(cursor > 0);
+    // TODO: make safe
     let (digit_count, carried) =
         unsafe { shared::truncate_and_round_decimal(digits, digit_count, options) };
 
@@ -227,9 +225,10 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     // Cursor is 1 if we trimmed floats, in which case skip this.
     if !trimmed && digit_count < exact_count {
         let zeros = exact_count - digit_count;
+        // TOOD: Migrate to safe
         // SAFETY: safe if bytes is large enough to hold the significant digits.
         unsafe {
-            slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
+            index_unchecked_mut!(bytes[cursor..cursor + zeros]).fill(b'0');
         }
         cursor += zeros;
     }
@@ -276,7 +275,7 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
         // SAFETY: safe if the buffer is large enough to hold the significant digits.
         unsafe {
             let digits = &mut index_unchecked_mut!(bytes[digit_count..leading_digits]);
-            slice_fill_unchecked!(digits, b'0');
+            digits.fill(b'0');
         }
         cursor = leading_digits;
         digit_count = leading_digits;
@@ -323,7 +322,7 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
         // SAFETY: safe if the buffer is large enough to hold the significant digits.
         unsafe {
             let digits = &mut index_unchecked_mut!(bytes[cursor..cursor + zeros]);
-            slice_fill_unchecked!(digits, b'0');
+            digits.fill(b'0');
         }
         cursor += zeros;
     }
@@ -779,28 +778,24 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
 // DIGITS
 // ------
 
-//  NOTE:
-//      Dragonbox has a heavily-branched, dubiously optimized algorithm using
-//      fast division, that leads to no practical performance benefits in my
-//      benchmarks, and the division algorithm is at best ~3% faster. It also
-//      tries to avoid writing digits extensively, but requires division
-// operations      for each step regardless, which means the **actual** overhead
-// of said      branching likely exceeds any benefits. The code is also
-// impossible to      maintain, and in my benchmarks is slower (by a small
-// amount) for      a 32-bit mantissa, and a **lot** slower for a 64-bit
-// mantissa,      where we need to trim trailing zeros.
+// NOTE: Dragonbox has a heavily-branched, dubiously optimized algorithm using
+// fast division, that leads to no practical performance benefits in my
+// benchmarks, and the division algorithm is at best ~3% faster. It also tries
+// to avoid writing digits extensively, but requires division operations for
+// each step regardless, which means the **actual** overhead of said branching
+// likely exceeds any benefits. The code is also impossible to maintain, and in
+// my benchmarks is slower (by a small amount) for a 32-bit mantissa, and a
+// **lot** slower for a 64-bit mantissa, where we need to trim trailing zeros.
 
 /// Write the significant digits, when the significant digits can fit in a
-/// 32-bit integer. Returns the number of digits written. This assumes any
-/// trailing zeros have been removed.
+/// 32-bit integer. `log10(2**32-1) < 10`, so 10 digits is always enough.
 ///
-/// # Safety
-///
-/// Safe if `bytes.len() >= 10`, since `u32::MAX` is at most 10 digits.
+/// Returns the number of digits written. This assumes any trailing zeros have
+/// been removed.
 #[inline(always)]
-pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
+pub fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
     debug_assert!(bytes.len() >= 10);
-    unsafe { mantissa.write_mantissa::<u32, { STANDARD }>(bytes) }
+    mantissa.write_mantissa::<u32, { STANDARD }>(bytes)
 }
 
 /// Write the significant digits, when the significant digits cannot fit in a
@@ -808,16 +803,12 @@ pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
 ///
 /// Returns the number of digits written. Note that this might not be the
 /// same as the number of digits in the mantissa, since trailing zeros will
-/// be removed.
-///
-/// # Safety
-///
-/// Safe if `bytes.len() >= 20`, since `u64::MAX` is at most 20 digits.
+/// be removed. `log10(2**64-1) < 20`, so 20 digits is always enough.
 #[inline(always)]
 #[allow(clippy::branches_sharing_code)]
-pub unsafe fn write_digits_u64(bytes: &mut [u8], mantissa: u64) -> usize {
+pub fn write_digits_u64(bytes: &mut [u8], mantissa: u64) -> usize {
     debug_assert!(bytes.len() >= 20);
-    unsafe { mantissa.write_mantissa::<u64, { STANDARD }>(bytes) }
+    mantissa.write_mantissa::<u64, { STANDARD }>(bytes)
 }
 
 // EXTENDED
@@ -1201,12 +1192,9 @@ pub trait DragonboxFloat: Float {
     fn digit_count(mantissa: u64) -> usize;
 
     /// Write the significant digits to a buffer.
+    ///
     /// Does not handle rounding or truncated digits.
-    ///
-    /// # Safety
-    ///
-    /// Safe if `bytes` is large enough to hold a decimal string for mantissa.
-    unsafe fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize;
+    fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize;
 
     /// Get the pre-computed Dragonbox power from the exponent.
     ///
@@ -1268,10 +1256,9 @@ impl DragonboxFloat for f32 {
     }
 
     #[inline(always)]
-    unsafe fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize {
+    fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize {
         debug_assert!(mantissa <= u32::MAX as u64);
-        // SAFETY: safe is `bytes.len() >= 10`.
-        unsafe { write_digits_u32(bytes, mantissa as u32) }
+        write_digits_u32(bytes, mantissa as u32)
     }
 
     #[inline(always)]
@@ -1379,9 +1366,8 @@ impl DragonboxFloat for f64 {
     }
 
     #[inline(always)]
-    unsafe fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize {
-        // SAFETY: safe if `bytes.len() >= 20`.
-        unsafe { write_digits_u64(bytes, mantissa) }
+    fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize {
+        write_digits_u64(bytes, mantissa)
     }
 
     #[inline(always)]
@@ -1528,7 +1514,7 @@ macro_rules! dragonbox_unimpl {
             }
 
             #[inline(always)]
-            unsafe fn write_digits(_: &mut [u8], _: u64) -> usize {
+            fn write_digits(_: &mut [u8], _: u64) -> usize {
                 unimplemented!()
             }
 

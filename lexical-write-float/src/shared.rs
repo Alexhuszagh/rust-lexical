@@ -175,8 +175,8 @@ pub unsafe fn write_exponent<const FORMAT: u128>(
 /// Detect the notation to use for the float formatter and call the appropriate
 /// function.
 ///
-/// The float must be positive. This doesn't affect the safety guarantees but all
-/// algorithms assume a float >0 or that is not negative 0.
+/// The float must be positive. This doesn't affect the safety guarantees but
+/// all algorithms assume a float >0 or that is not negative 0.
 ///
 /// - `float` - The float to write to string.
 /// - `format` - The formatting specification for the float.

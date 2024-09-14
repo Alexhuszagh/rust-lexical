@@ -220,7 +220,7 @@ fn compute_right_closed_directed_test() {
 }
 
 fn write_digits_f32(buffer: &mut [u8], value: u64, expected: &str) {
-    let count = unsafe { f32::write_digits(buffer, value) };
+    let count = f32::write_digits(buffer, value);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }
@@ -237,7 +237,7 @@ fn write_digits_f32_test() {
 }
 
 fn write_digits_f64(buffer: &mut [u8], value: u64, expected: &str) {
-    let count = unsafe { f64::write_digits(buffer, value) };
+    let count = f64::write_digits(buffer, value);
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
 }

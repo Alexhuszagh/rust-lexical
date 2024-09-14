@@ -64,7 +64,8 @@
 //! The `unsafe` usage in the options does not actually have any actual safety
 //! concerns unless the format is not validated: the float formatters assume
 //! NaN and Infinite strings are <= 50 characters. Creating custom format
-//! specification with longer special strings and not validating the : incorrectly using the API however can cause incorrect floating
+//! specification with longer special strings and not validating the :
+//! incorrectly using the API however can cause incorrect floating
 //! point specifications due to conflicting requirements.
 //!
 //! # Design

@@ -4,20 +4,20 @@
 
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
-use lexical_util::{algorithm::copy_to_dst, constants::FormattedSize};
 #[cfg(feature = "f16")]
 use lexical_util::f16::f16;
 use lexical_util::format::NumberFormat;
 use lexical_util::options::WriteOptions;
+use lexical_util::{algorithm::copy_to_dst, constants::FormattedSize};
 use lexical_write_integer::write::WriteInteger;
 
 /// Select the back-end.
 #[cfg(not(feature = "compact"))]
 use crate::algorithm::write_float as write_float_decimal;
-#[cfg(feature = "compact")]
-use crate::compact::write_float as write_float_decimal;
 #[cfg(feature = "power-of-two")]
 use crate::binary;
+#[cfg(feature = "compact")]
+use crate::compact::write_float as write_float_decimal;
 use crate::float::RawFloat;
 #[cfg(feature = "power-of-two")]
 use crate::hex;
@@ -39,22 +39,24 @@ fn write_special(bytes: &mut [u8], special: Option<&[u8]>, error: &'static str) 
 
 /// Write an NaN string to the buffer.
 #[inline(always)]
-fn write_nan(bytes: &mut[u8], options: &Options, count: usize) -> usize {
-    count + write_special(
-        bytes,
-        options.nan_string(),
-        "NaN explicitly disabled but asked to write NaN as string."
-    )
+fn write_nan(bytes: &mut [u8], options: &Options, count: usize) -> usize {
+    count
+        + write_special(
+            bytes,
+            options.nan_string(),
+            "NaN explicitly disabled but asked to write NaN as string.",
+        )
 }
 
 /// Write an Inf string to the buffer.
 #[inline(always)]
-fn write_inf(bytes: &mut[u8], options: &Options, count: usize) -> usize {
-    count + write_special(
-        bytes,
-        options.inf_string(),
-        "Inf explicitly disabled but asked to write Inf as string."
-    )
+fn write_inf(bytes: &mut [u8], options: &Options, count: usize) -> usize {
+    count
+        + write_special(
+            bytes,
+            options.inf_string(),
+            "Inf explicitly disabled but asked to write Inf as string.",
+        )
 }
 
 /// Check if a buffer is sufficiently large.
@@ -106,6 +108,7 @@ pub trait WriteFloat: RawFloat + FormattedSize {
 
         #[cfg(feature = "power-of-two")]
         {
+            // FIXME: I believe this incorrectly handles a few cases.
             if format.radix() != format.exponent_base() {
                 assert!(matches!(
                     (format.radix(), format.exponent_base()),
@@ -114,17 +117,12 @@ pub trait WriteFloat: RawFloat + FormattedSize {
             }
         }
 
-        // TODO: This doesn't handle **negative** zero...
-        // Well, it does it inside which defeats the point...
-        // TODO: Make safe
         let (float, count, bytes) = if self.needs_negative_sign() {
-            // SAFETY: safe if `bytes.len() > 1`.
-            unsafe { index_unchecked_mut!(bytes[0]) = b'-' };
-            (-self, 1, unsafe { &mut index_unchecked_mut!(bytes[1..]) })
+            bytes[0] = b'-';
+            (-self, 1, &mut bytes[1..])
         } else if cfg!(feature = "format") && format.required_mantissa_sign() {
-            // SAFETY: safe if `bytes.len() > 1`.
-            unsafe { index_unchecked_mut!(bytes[0]) = b'+' };
-            (self, 1, unsafe { &mut index_unchecked_mut!(bytes[1..]) })
+            bytes[0] = b'+';
+            (self, 1, &mut bytes[1..])
         } else {
             (self, 0, bytes)
         };
