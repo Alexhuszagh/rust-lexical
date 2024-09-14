@@ -24,8 +24,7 @@ macro_rules! float_to_lexical {
             fn to_lexical(self, bytes: &mut [u8])
                 -> &mut [u8]
             {
-                let len = self.write_float::<{ STANDARD }>(bytes, &DEFAULT_OPTIONS);
-                &mut bytes[..len]
+                self.write_float::<{ STANDARD }>(bytes, &DEFAULT_OPTIONS)
             }
         }
 
@@ -38,8 +37,7 @@ macro_rules! float_to_lexical {
                 options: &Self::Options,
             ) -> &'a mut [u8]
             {
-                let len = self.write_float::<{ FORMAT }>(bytes, &options);
-                &mut bytes[..len]
+                self.write_float::<{ FORMAT }>(bytes, &options)
             }
         }
     )*)

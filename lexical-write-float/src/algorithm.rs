@@ -79,6 +79,7 @@ pub fn write_float<F: RawFloat, const FORMAT: u128>(
 }
 
 /// Write float to string in scientific notation.
+#[inline]
 pub fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     fp: ExtendedFloat80,
@@ -133,6 +134,7 @@ pub fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
 /// Write negative float to string without scientific notation.
 ///
 /// Has a negative exponent (shift right) and no scientific notation.
+#[inline]
 pub fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     fp: ExtendedFloat80,
@@ -209,6 +211,7 @@ pub fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u128>(
 /// Write positive float to string without scientific notation.
 ///
 /// Has a positive exponent (shift left) and no scientific notation.
+#[inline]
 pub fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     fp: ExtendedFloat80,
@@ -380,6 +383,7 @@ pub fn compute_round<F: RawFloat>(float: F) -> ExtendedFloat80 {
 /// Compute the interval I = [m−w,m+w] if even, otherwise, (m−w,m+w).
 /// This is the simple case for a finite number where only the hidden bit is
 /// set.
+#[inline]
 pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // Compute k and beta.
     let exponent = float.exponent();

@@ -26,6 +26,7 @@ use crate::options::Options;
 use crate::radix;
 
 /// Write an special string to the buffer.
+#[inline(always)]
 fn write_special(bytes: &mut [u8], special: Option<&[u8]>, error: &'static str) -> usize {
     // The NaN string must be <= 50 characters, so this should never panic.
     if let Some(special_str) = special {
@@ -38,25 +39,27 @@ fn write_special(bytes: &mut [u8], special: Option<&[u8]>, error: &'static str) 
 }
 
 /// Write an NaN string to the buffer.
-#[inline(always)]
-fn write_nan(bytes: &mut [u8], options: &Options, count: usize) -> usize {
-    count
+#[inline]
+fn write_nan<'a>(bytes: &'a mut [u8], options: &Options, count: usize) -> &'a mut [u8] {
+    let count = count
         + write_special(
             bytes,
             options.nan_string(),
             "NaN explicitly disabled but asked to write NaN as string.",
-        )
+        );
+    &mut bytes[..count]
 }
 
 /// Write an Inf string to the buffer.
-#[inline(always)]
-fn write_inf(bytes: &mut [u8], options: &Options, count: usize) -> usize {
-    count
+#[inline]
+fn write_inf<'a>(bytes: &'a mut [u8], options: &Options, count: usize) -> &'a mut [u8] {
+    let count = count
         + write_special(
             bytes,
             options.inf_string(),
             "Inf explicitly disabled but asked to write Inf as string.",
-        )
+        );
+    &mut bytes[..count]
 }
 
 /// Check if a buffer is sufficiently large.
@@ -75,6 +78,7 @@ pub trait WriteFloat: RawFloat + FormattedSize {
     ///
     /// # Safety
     ///
+    /// # TODO: This is now safe effectively
     /// Safe as long as the buffer can hold [`FORMATTED_SIZE`] elements
     /// (or [`FORMATTED_SIZE_DECIMAL`] for decimal). If using custom digit
     /// precision control (such as specifying a minimum number of significant
@@ -95,7 +99,7 @@ pub trait WriteFloat: RawFloat + FormattedSize {
     /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
     /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
     #[cfg_attr(not(feature = "compact"), inline(always))]
-    fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> usize
+    fn write_float<'a, const FORMAT: u128>(self, bytes: &'a mut [u8], options: &Options) -> &'a mut [u8]
     where
         Self::Unsigned: FormattedSize + WriteInteger,
     {
@@ -117,7 +121,7 @@ pub trait WriteFloat: RawFloat + FormattedSize {
             }
         }
 
-        let (float, count, bytes) = if self.needs_negative_sign() {
+        let (float, mut count, bytes) = if self.needs_negative_sign() {
             bytes[0] = b'-';
             (-self, 1, &mut bytes[1..])
         } else if cfg!(feature = "format") && format.required_mantissa_sign() {
@@ -134,14 +138,14 @@ pub trait WriteFloat: RawFloat + FormattedSize {
                 // SAFETY: safe if the buffer can hold the significant digits
                 let radix = format.radix();
                 let exponent_base = format.exponent_base();
-                count
-                    + if radix == 10 {
+                count += if radix == 10 {
                         unsafe { write_float_decimal::<_, FORMAT>(float, bytes, options) }
                     } else if radix != exponent_base {
                         unsafe { hex::write_float::<_, FORMAT>(float, bytes, options) }
                     } else {
                         unsafe { binary::write_float::<_, FORMAT>(float, bytes, options) }
-                    }
+                    };
+                &mut bytes[..count]
             }
 
             #[cfg(feature = "radix")]
@@ -149,8 +153,7 @@ pub trait WriteFloat: RawFloat + FormattedSize {
                 // SAFETY: safe if the buffer can hold the significant digits
                 let radix = format.radix();
                 let exponent_base = format.exponent_base();
-                count
-                    + if radix == 10 {
+                count += if radix == 10 {
                         unsafe { write_float_decimal::<_, FORMAT>(float, bytes, options) }
                     } else if radix != exponent_base {
                         unsafe { hex::write_float::<_, FORMAT>(float, bytes, options) }
@@ -158,13 +161,14 @@ pub trait WriteFloat: RawFloat + FormattedSize {
                         unsafe { binary::write_float::<_, FORMAT>(float, bytes, options) }
                     } else {
                         unsafe { radix::write_float::<_, FORMAT>(float, bytes, options) }
-                    }
+                    };
+                &mut bytes[..count]
             }
 
             #[cfg(not(feature = "power-of-two"))]
             {
-                // SAFETY: safe if the buffer can hold the significant digits
-                count + unsafe { write_float_decimal::<_, FORMAT>(float, bytes, options) }
+                count += write_float_decimal::<_, FORMAT>(float, bytes, options);
+                &mut bytes[..count]
             }
         } else if self.is_nan() {
             write_nan(bytes, options, count)
@@ -187,7 +191,7 @@ macro_rules! write_float_as_f32 {
     ($($t:ty)*) => ($(
         impl WriteFloat for $t {
             #[inline(always)]
-            fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> usize
+            fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> &mut [u8]
             {
                 // SAFETY: safe if `bytes` is large enough to hold the written bytes.
                 self.as_f32().write_float::<FORMAT>(bytes, options)
