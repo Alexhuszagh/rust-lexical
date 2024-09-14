@@ -175,6 +175,9 @@ pub unsafe fn write_exponent<const FORMAT: u128>(
 /// Detect the notation to use for the float formatter and call the appropriate
 /// function.
 ///
+/// The float must be positive. This doesn't affect the safety guarantees but all
+/// algorithms assume a float >0 or that is not negative 0.
+///
 /// - `float` - The float to write to string.
 /// - `format` - The formatting specification for the float.
 /// - `sci_exp` - The scientific exponents describing the float.
@@ -199,6 +202,8 @@ macro_rules! write_float {
     ) => {{
         use lexical_util::format::NumberFormat;
 
+        debug_assert!($float.is_sign_positive());
+
         let format = NumberFormat::<{ $format }> {};
         let min_exp = $options.negative_exponent_break().map_or(-5, |x| x.get());
         let max_exp = $options.positive_exponent_break().map_or(9, |x| x.get());
@@ -213,13 +218,6 @@ macro_rules! write_float {
             // Write negative exponent without scientific notation.
             // SAFETY: safe as long as bytes is large enough to hold all the digits.
             unsafe { $write_negative::<$($generic,)? FORMAT>($bytes, $($args,)*) }
-        } else if $float.is_sign_negative() {
-            // handle this as a positive, just write a leading '-' and then add 1 to our count
-            // # Safety: This is always safe since our buffer is much larger than 1 byte.
-            unsafe { index_unchecked_mut!($bytes[0]) = b'-'; }
-            // # Safety: This is always safe since our buffer is much larger than 1 byte.
-            let bytes = unsafe { &mut index_unchecked_mut!($bytes[1..]) };
-            unsafe { $write_positive::<$($generic,)? FORMAT>(bytes, $($args,)*) + 1 }
         } else {
             // Write positive exponent without scientific notation.
             // SAFETY: safe as long as bytes is large enough to hold all the digits.

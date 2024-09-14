@@ -8,11 +8,14 @@ use lexical_util::{algorithm::copy_to_dst, constants::FormattedSize};
 #[cfg(feature = "f16")]
 use lexical_util::f16::f16;
 use lexical_util::format::NumberFormat;
+use lexical_util::options::WriteOptions;
 use lexical_write_integer::write::WriteInteger;
 
 /// Select the back-end.
 #[cfg(not(feature = "compact"))]
 use crate::algorithm::write_float as write_float_decimal;
+#[cfg(feature = "compact")]
+use crate::compact::write_float as write_float_decimal;
 #[cfg(feature = "power-of-two")]
 use crate::binary;
 use crate::float::RawFloat;
@@ -34,7 +37,6 @@ fn write_special(bytes: &mut [u8], special: Option<&[u8]>, error: &'static str) 
     }
 }
 
-
 /// Write an NaN string to the buffer.
 #[inline(always)]
 fn write_nan(bytes: &mut[u8], options: &Options, count: usize) -> usize {
@@ -55,8 +57,18 @@ fn write_inf(bytes: &mut[u8], options: &Options, count: usize) -> usize {
     )
 }
 
+/// Check if a buffer is sufficiently large.
+#[inline(always)]
+fn check_buffer<T, const FORMAT: u128>(len: usize, options: &Options) -> bool
+where
+    T: FormattedSize,
+{
+    let size = Options::buffer_size::<T, FORMAT>(options);
+    len >= size
+}
+
 /// Write float trait.
-pub trait WriteFloat: RawFloat {
+pub trait WriteFloat: RawFloat + FormattedSize {
     /// Forward write integer parameters to an unoptimized backend.
     ///
     /// # Safety
@@ -81,13 +93,12 @@ pub trait WriteFloat: RawFloat {
     /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
     /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
     #[cfg_attr(not(feature = "compact"), inline(always))]
-    unsafe fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> usize
+    fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> usize
     where
         Self::Unsigned: FormattedSize + WriteInteger,
     {
-        // TODO: Make safe
-
         // Validate our format options.
+        assert!(check_buffer::<Self, { FORMAT }>(bytes.len(), options));
         let format = NumberFormat::<FORMAT> {};
         assert!(format.is_valid());
         // Avoid any false assumptions for 128-bit floats.
@@ -103,7 +114,10 @@ pub trait WriteFloat: RawFloat {
             }
         }
 
-        let (float, count, bytes) = if self < Self::ZERO {
+        // TODO: This doesn't handle **negative** zero...
+        // Well, it does it inside which defeats the point...
+        // TODO: Make safe
+        let (float, count, bytes) = if self.needs_negative_sign() {
             // SAFETY: safe if `bytes.len() > 1`.
             unsafe { index_unchecked_mut!(bytes[0]) = b'-' };
             (-self, 1, unsafe { &mut index_unchecked_mut!(bytes[1..]) })
@@ -175,11 +189,10 @@ macro_rules! write_float_as_f32 {
     ($($t:ty)*) => ($(
         impl WriteFloat for $t {
             #[inline(always)]
-            unsafe fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> usize
+            fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> usize
             {
                 // SAFETY: safe if `bytes` is large enough to hold the written bytes.
-                // TODO: Make safe
-                unsafe { self.as_f32().write_float::<FORMAT>(bytes, options) }
+                self.as_f32().write_float::<FORMAT>(bytes, options)
             }
         }
     )*)
