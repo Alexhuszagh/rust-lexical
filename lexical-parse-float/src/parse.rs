@@ -605,7 +605,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let int_end = n_digits as i64;
     let mut fraction_digits = None;
     if byte.first_is(decimal_point) {
-        // SAFETY: s cannot be empty due to first_is
+        // SAFETY: byte cannot be empty due to first_is
         unsafe { byte.step_unchecked() };
         let before = byte.clone();
         #[cfg(not(feature = "compact"))]
@@ -659,7 +659,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
             }
         }
 
-        // SAFETY: byte cannot be empty due to first_is
+        // SAFETY: byte cannot be empty due to `first_is` from `is_exponent`.`
         unsafe { byte.step_unchecked() };
         let is_negative = parse_exponent_sign(&mut byte)?;
 

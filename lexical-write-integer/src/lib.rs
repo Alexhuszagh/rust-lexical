@@ -41,6 +41,7 @@
 //!
 //! - [Algorithm Approach](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-integer/docs/Algorithm.md)
 //! - [Benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-integer/docs/Benchmarks.md)
+//! - [Comprehensive Benchmarks](https://github.com/Alexhuszagh/lexical-benchmarks)
 //!
 //! # Safety
 //!
