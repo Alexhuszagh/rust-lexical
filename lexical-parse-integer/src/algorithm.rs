@@ -116,19 +116,17 @@ macro_rules! fmt_invalid_digit {
             // NOTE: If we're using the `take_n` optimization where it can't
             // be the end, then the iterator cannot be done. So, in that case,
             // we need to end.
-            if is_suffix && $is_end && $iter.is_done() {
+            if is_suffix && $is_end && $iter.is_buffer_empty() {
                 // Break out of the loop, we've finished parsing.
                 break;
-            } else if is_suffix {
+            } else if !$iter.is_buffer_empty() {
                 // Haven't finished parsing, so we're going to call
                 // invalid_digit!. Need to ensure we include the
                 // base suffix in that.
 
-                // TODO: This isn't localized and needs to be fixed
-
                 // SAFETY: safe since the iterator is not empty, as checked
-                // in `$iter.is_done()` and `$is_end`. If `$is_end` is false,
-                // then we have more elements in our
+                // in `$iter.is_buffer_empty()`. Adding in the check hopefully
+                // will be elided since it's a known constant.
                 unsafe { $iter.step_unchecked() };
             }
         }
@@ -580,7 +578,7 @@ macro_rules! algorithm {
 
     let is_negative = parse_sign::<T, FORMAT>(&mut byte)?;
     let mut iter = byte.integer_iter();
-    if iter.is_done() {
+    if iter.is_buffer_empty() {
         return into_error!(Empty, iter.cursor());
     }
 
@@ -603,7 +601,7 @@ macro_rules! algorithm {
             // We must have a format like `0x`, `0d`, `0o`. Note:
             if iter.read_if_value(base_prefix, format.case_sensitive_base_prefix()).is_some() {
                 is_prefix = true;
-                if iter.is_done() {
+                if iter.is_buffer_empty() {
                     return into_error!(Empty, iter.cursor());
                 } else {
                     start_index += 1;

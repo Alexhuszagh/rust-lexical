@@ -20,16 +20,8 @@ pub use crate::skip::{AsBytes, Bytes};
 /// methods for reading data and accessing underlying data. The readers
 /// can either be contiguous or non-contiguous, although performance and
 /// some API methods may not be available for both.
-///
-/// # Safety
-///
-/// // TODO: FIX CORRECTNESS DOCUMENTATION
-/// This trait is effectively safe but the implementor must guarantee that
-/// `is_empty` is implemented correctly. For most implementations, this can
-/// be `self.as_slice().is_empty()`, where `as_slice` is implemented as
-/// `&self.bytes[self.index..]`.
 #[cfg(feature = "parse")]
-pub unsafe trait Iter<'a> {
+pub trait Iter<'a> {
     /// Determine if the buffer is contiguous in memory.
     const IS_CONTIGUOUS: bool;
 
@@ -59,6 +51,17 @@ pub unsafe trait Iter<'a> {
         self.get_buffer().len()
     }
 
+    /// Get if no bytes are available in the buffer.
+    ///
+    /// This operators on the underlying buffer: that is,
+    /// it returns if [as_slice] would return an empty slice.
+    ///
+    /// [as_slice]: Iter::as_slice
+    #[inline(always)]
+    fn is_buffer_empty(&self) -> bool {
+        self.cursor() >= self.get_buffer().len()
+    }
+
     /// Get the current index of the iterator in the slice.
     fn cursor(&self) -> usize;
 
@@ -86,20 +89,7 @@ pub unsafe trait Iter<'a> {
     /// non-contiguous iterators this can be smaller.
     fn current_count(&self) -> usize;
 
-    // TODO: DOCUMENT
     // PROPERTIES
-
-    // TODO: Fix this naming convention
-    /// Get if no bytes are available in the buffer.
-    ///
-    /// This operators on the underlying buffer: that is,
-    /// it returns if [as_slice] would return an empty slice.
-    ///
-    /// [as_slice]: Iter::as_slice
-    #[inline(always)]
-    fn is_empty(&self) -> bool {
-        self.as_slice().is_empty()
-    }
 
     /// Determine if the buffer is contiguous.
     #[inline(always)]
@@ -107,21 +97,14 @@ pub unsafe trait Iter<'a> {
         Self::IS_CONTIGUOUS
     }
 
-    // TODO: Ensure we get this **RIGHT**
-
     /// Get the next value available without consuming it.
     ///
     /// This does **NOT** skip digits, and directly fetches the item
     /// from the underlying buffer.
-    ///
-    /// # Safety
-    ///
-    /// An implementor must implement `is_empty` correctly in
-    /// order to guarantee the traitt is safe: `is_empty` **MUST**
-    /// ensure that one value remains, if the iterator is non-
-    /// contiguous this means advancing the iterator to the next
-    /// position.
-    fn first(&self) -> Option<&'a u8>;
+    #[inline(always)]
+    fn first(&self) -> Option<&'a u8> {
+        self.get_buffer().get(self.cursor())
+    }
 
     /// Check if the next element is a given value.
     #[inline(always)]
@@ -249,14 +232,6 @@ pub unsafe trait Iter<'a> {
 /// A default implementation is provided for slice iterators.
 /// This trait **should never** return `null` from `as_ptr`, or be
 /// implemented for non-contiguous data.
-///
-/// # Safety
-///
-/// TODO: Fix the safety documentation here...
-/// The safe methods are sound as long as the caller ensures that
-/// the methods for `read_32`, `read_64`, etc. check the bounds
-/// of the underlying contiguous buffer and is only called on
-/// contiguous buffers.
 pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     // TODO: Fix the documentation
     /// Get if the iterator cannot return any more elements.
@@ -278,27 +253,15 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     /// ensure [peek] is always safe.
     ///
     /// If you would like to see if the cursor is at the end of the buffer,
-    /// see [is_done] or [is_empty] instead.
+    /// see [is_buffer_empty] instead.
     ///
-    /// [is_done]: DigitsIter::is_done
-    /// [is_empty]: Iter::is_empty
+    /// [is_buffer_empty]: Iter::is_buffer_empty
     /// [peek]: DigitsIter::peek
     #[inline(always)]
     #[allow(clippy::wrong_self_convention)]
     fn is_consumed(&mut self) -> bool {
         self.peek().is_none()
     }
-
-    /// Get if the buffer underlying the iterator is empty.
-    ///
-    /// This might not be the same thing as [is_consumed]: [is_consumed]
-    /// checks if any more elements may be returned, which may require
-    /// peeking the next value. Consumed merely checks if the
-    /// iterator has an empty slice. It is effectively a cheaper,
-    /// but weaker variant of [is_consumed].
-    ///
-    /// [is_consumed]: DigitsIter::is_consumed
-    fn is_done(&self) -> bool;
 
     /// Peek the next value of the iterator, without consuming it.
     ///

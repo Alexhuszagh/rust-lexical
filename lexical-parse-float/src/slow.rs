@@ -685,7 +685,7 @@ pub fn compare_bytes<const FORMAT: u128>(
     let mut integer = number.integer.bytes::<{ FORMAT }>();
     let mut integer_iter = integer.integer_iter();
     integer_iter.skip_zeros();
-    if integer_iter.is_done() {
+    if integer_iter.is_buffer_empty() {
         // Cannot be empty, since we must have at least **some** significant digits.
         let mut fraction = number.fraction.unwrap().bytes::<{ FORMAT }>();
         let mut fraction_iter = fraction.fraction_iter();

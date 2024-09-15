@@ -383,33 +383,6 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         }
     }
 
-    // TODO: Move this to our iter trait
-
-    /// Get if the buffer underlying the iterator is empty.
-    ///
-    /// This might not be the same thing as `is_consumed`: `is_consumed`
-    /// checks if any more elements may be returned, which may require
-    /// peeking the next value. Consumed merely checks if the
-    /// iterator has an empty slice. It is effectively a cheaper,
-    /// but weaker variant of `is_consumed()`.
-    #[inline(always)]
-    pub fn is_done(&self) -> bool {
-        self.index >= self.slc.len()
-    }
-
-    /// Check if the next element is a given value.
-    // TODO: Remove the peek methods, these shouldn't be on `bytes`.
-    #[inline(always)]
-    pub fn peek_is_cased(&mut self, value: u8) -> bool {
-        // Don't assert not a digit separator, since this can occur when
-        // a different component does not allow digit separators there.
-        if let Some(&c) = self.first() {
-            c == value
-        } else {
-            false
-        }
-    }
-
     /// Get iterator over integer digits.
     #[inline(always)]
     pub fn integer_iter<'b>(&'b mut self) -> IntegerDigitsIterator<'a, 'b, FORMAT> {
@@ -443,7 +416,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     }
 }
 
-unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
+impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
     /// If each yielded value is adjacent in memory.
     const IS_CONTIGUOUS: bool = NumberFormat::<{ FORMAT }>::DIGIT_SEPARATOR == 0;
 
@@ -479,17 +452,6 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
         } else {
             self.count
         }
-    }
-
-    // TODO: Rename
-    #[inline(always)]
-    fn is_empty(&self) -> bool {
-        self.index >= self.slc.len()
-    }
-
-    #[inline(always)]
-    fn first(&self) -> Option<&'a u8> {
-        self.slc.get(self.index)
     }
 
     #[inline(always)]
@@ -656,16 +618,6 @@ macro_rules! skip_iterator_iter_base {
         }
 
         #[inline(always)]
-        fn is_empty(&self) -> bool {
-            self.byte.is_done()
-        }
-
-        #[inline(always)]
-        fn first(&self) -> Option<&'a u8> {
-            self.byte.first()
-        }
-
-        #[inline(always)]
         unsafe fn step_by_unchecked(&mut self, count: usize) {
             debug_assert!(self.as_slice().len() >= count);
             // SAFETY: safe as long as `slc.len() >= count`.
@@ -688,18 +640,13 @@ macro_rules! skip_iterator_digits_iter_base {
         fn is_consumed(&mut self) -> bool {
             self.peek().is_none()
         }
-
-        #[inline(always)]
-        fn is_done(&self) -> bool {
-            self.byte.is_done()
-        }
     };
 }
 
 /// Create impl ByteIter block for skip iterator.
 macro_rules! skip_iterator_bytesiter_impl {
     ($iterator:ident, $mask:ident, $i:ident, $l:ident, $t:ident, $c:ident) => {
-        unsafe impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for $iterator<'a, 'b, FORMAT> {
+        impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for $iterator<'a, 'b, FORMAT> {
             skip_iterator_iter_base!(FORMAT, $mask);
         }
 
@@ -816,7 +763,7 @@ impl<'a: 'b, 'b, const FORMAT: u128> SpecialDigitsIterator<'a, 'b, FORMAT> {
     is_digit_separator!(FORMAT);
 }
 
-unsafe impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for SpecialDigitsIterator<'a, 'b, FORMAT> {
+impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for SpecialDigitsIterator<'a, 'b, FORMAT> {
     skip_iterator_iter_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
 }
 

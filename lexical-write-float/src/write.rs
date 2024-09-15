@@ -70,19 +70,10 @@ where
 
 /// Write float trait.
 pub trait WriteFloat: RawFloat + FormattedSize {
-    /// Forward write integer parameters to an unoptimized backend.
+    /// Forward float writing parameters and write the float.
     ///
-    /// # Safety
-    ///
-    /// # TODO: This is now safe effectively
-    /// Safe as long as the buffer can hold [`FORMATTED_SIZE`] elements
-    /// (or [`FORMATTED_SIZE_DECIMAL`] for decimal). If using custom digit
-    /// precision control (such as specifying a minimum number of significant
-    /// digits), or disabling scientific notation, then more digits may be
-    /// required (up to `1075` for the leading or trailing zeros, `1` for
-    /// the sign and `1` for the decimal point). So,
-    /// `1077 + min_significant_digits.max(52)`, so ~1200 for a reasonable
-    /// threshold.
+    /// This abstracts away handling different optimizations and radices into
+    /// a single API.
     ///
     /// # Panics
     ///
