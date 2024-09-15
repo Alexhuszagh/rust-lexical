@@ -586,8 +586,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
     pub fn from_u16(x: u16) -> Self {
         let mut vec = Self::new();
         assert!(1 <= vec.capacity());
-        // SAFETY: safe since we can always add 1 item.
-        unsafe { vec.push_unchecked(x as Limb) };
+        _ = vec.try_push(x as Limb);
         vec.normalize();
         vec
     }
@@ -598,8 +597,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
         let mut vec = Self::new();
         debug_assert!(1 <= vec.capacity());
         assert!(1 <= SIZE);
-        // SAFETY: safe since we can always add 1 item (validated in the asset).
-        unsafe { vec.push_unchecked(x as Limb) };
+        _ = vec.try_push(x as Limb);
         vec.normalize();
         vec
     }
@@ -611,14 +609,10 @@ impl<const SIZE: usize> StackVec<SIZE> {
         debug_assert!(2 <= vec.capacity());
         assert!(2 <= SIZE);
         if LIMB_BITS == 32 {
-            // SAFETY: safe since we can always add 2 items (validated in the asset).
-            unsafe {
-                vec.push_unchecked(x as Limb);
-                vec.push_unchecked((x >> 32) as Limb);
-            }
+            _ = vec.try_push(x as Limb);
+            _ = vec.try_push((x >> 32) as Limb);
         } else {
-            // SAFETY: safe since we can always add 1 item.
-            unsafe { vec.push_unchecked(x as Limb) };
+            _ = vec.try_push(x as Limb);
         }
         vec.normalize();
         vec
