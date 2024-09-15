@@ -143,18 +143,12 @@ pub unsafe trait Iter<'a> {
     /// sensitivity.
     #[inline(always)]
     fn first_is(&mut self, value: u8, is_cased: bool) -> bool {
-        if let Some(&c) = self.first() {
-            if is_cased {
-                c == value
-            } else {
-                c.to_ascii_lowercase() == value.to_ascii_lowercase()
-            }
+        if is_cased {
+            self.first_is_cased(value)
         } else {
-            false
+            self.first_is_uncased(value)
         }
     }
-
-    // TODO(ahuszagh) Change `first_is` to have cased or uncased
 
     // STEP BY
     // -------
@@ -344,14 +338,10 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     /// sensitivity.
     #[inline(always)]
     fn peek_is(&mut self, value: u8, is_cased: bool) -> bool {
-        if let Some(&c) = self.peek() {
-            if is_cased {
-                c == value
-            } else {
-                c.to_ascii_lowercase() == value.to_ascii_lowercase()
-            }
+        if is_cased {
+            self.peek_is_cased(value)
         } else {
-            false
+            self.peek_is_uncased(value)
         }
     }
 
@@ -378,7 +368,13 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     /// Read a value if the value matches the provided one.
     #[inline(always)]
     fn read_if_value_cased(&mut self, value: u8) -> Option<u8> {
-        self.read_if(|x| x == value)
+        if self.peek() == Some(&value) {
+            // SAFETY: the slice cannot be empty because we peeked a value.
+            unsafe { self.step_unchecked() };
+            Some(value)
+        } else {
+            None
+        }
     }
 
     /// Read a value if the value matches the provided one without case

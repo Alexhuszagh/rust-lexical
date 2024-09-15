@@ -125,7 +125,7 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
     ///
     /// # Safety
     ///
-    /// Safe if `index <= selfbuffer_length()`.
+    /// Safe if `index <= self.buffer_length()`.
     #[inline(always)]
     unsafe fn set_cursor(&mut self, index: usize) {
         debug_assert!(index <= self.buffer_length());
@@ -228,7 +228,7 @@ unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> 
     #[inline(always)]
     unsafe fn set_cursor(&mut self, index: usize) {
         debug_assert!(index <= self.buffer_length());
-        // SAFETY: safe if `index <= selfbuffer_length()`.
+        // SAFETY: safe if `index <= self.buffer_length()`.
         unsafe { self.byte.set_cursor(index) };
     }
 
