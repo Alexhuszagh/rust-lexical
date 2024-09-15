@@ -107,21 +107,19 @@ fn builder_test() {
     assert_eq!(builder.get_infinity_string(), Some("Infiniiiiiity".as_bytes()));
 
     assert!(builder.is_valid());
-    assert_eq!(builder.build(), Ok(unsafe { builder.build_unchecked() }));
+    assert_eq!(builder.build(), Ok(builder.build_unchecked()));
 }
 
 #[test]
 fn options_test() {
     let mut opts = Options::new();
 
-    unsafe {
-        opts.set_lossy(true);
-        opts.set_exponent(b'^');
-        opts.set_decimal_point(b',');
-        opts.set_nan_string(Some(b"nan"));
-        opts.set_inf_string(Some(b"Infinity"));
-        opts.set_infinity_string(Some(b"Infiniiiiiity"));
-    }
+    opts.set_lossy(true);
+    opts.set_exponent(b'^');
+    opts.set_decimal_point(b',');
+    opts.set_nan_string(Some(b"nan"));
+    opts.set_inf_string(Some(b"Infinity"));
+    opts.set_infinity_string(Some(b"Infiniiiiiity"));
 
     assert_eq!(opts.lossy(), true);
     assert_eq!(opts.exponent(), b'^');

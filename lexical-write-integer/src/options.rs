@@ -27,20 +27,15 @@ impl OptionsBuilder {
     }
 
     /// Build the Options struct with bounds validation.
-    ///
-    /// # Safety
-    ///
-    /// Safe as long as `is_valid` is true.
     #[inline(always)]
-    pub const unsafe fn build_unchecked(&self) -> Options {
+    pub const fn build_unchecked(&self) -> Options {
         Options {}
     }
 
     /// Build the Options struct.
     #[inline(always)]
     pub const fn build(&self) -> Result<Options> {
-        // SAFETY: always safe, since it must be valid.
-        Ok(unsafe { self.build_unchecked() })
+        Ok(self.build_unchecked())
     }
 }
 

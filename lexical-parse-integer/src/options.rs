@@ -52,12 +52,8 @@ impl OptionsBuilder {
     }
 
     /// Build the Options struct with bounds validation.
-    ///
-    /// # Safety
-    ///
-    /// Safe as long as`is_valid` is true.
     #[inline(always)]
-    pub const unsafe fn build_unchecked(&self) -> Options {
+    pub const fn build_unchecked(&self) -> Options {
         Options {
             no_multi_digit: self.no_multi_digit,
         }
@@ -66,8 +62,7 @@ impl OptionsBuilder {
     /// Build the Options struct.
     #[inline(always)]
     pub const fn build(&self) -> Result<Options> {
-        // SAFETY: always safe, since it must be valid.
-        Ok(unsafe { self.build_unchecked() })
+        Ok(self.build_unchecked())
     }
 }
 
@@ -107,8 +102,7 @@ impl Options {
     /// Create options with default values.
     #[inline(always)]
     pub const fn new() -> Self {
-        // SAFETY: always safe since it uses the default arguments.
-        unsafe { Self::builder().build_unchecked() }
+        Self::builder().build_unchecked()
     }
 
     // GETTERS
@@ -128,12 +122,8 @@ impl Options {
     // SETTERS
 
     /// Set if we disable the use of multi-digit optimizations.
-    ///
-    /// # Safety
-    ///
-    /// Always safe, just marked as unsafe for API compatibility.
     #[inline(always)]
-    pub unsafe fn no_multi_digit(&mut self, no_multi_digit: bool) {
+    pub fn no_multi_digit(&mut self, no_multi_digit: bool) {
         self.no_multi_digit = no_multi_digit;
     }
 
@@ -178,18 +168,14 @@ const_assert!(STANDARD.is_valid());
 
 /// Optiobns optimized for small numbers.
 #[rustfmt::skip]
-pub const SMALL_NUMBERS: Options = unsafe {
-    Options::builder()
+pub const SMALL_NUMBERS: Options = Options::builder()
         .no_multi_digit(true)
-        .build_unchecked()
-};
+        .build_unchecked();
 const_assert!(SMALL_NUMBERS.is_valid());
 
 /// Optiobns optimized for large numbers and long strings.
 #[rustfmt::skip]
-pub const LARGE_NUMBERS: Options = unsafe {
-    Options::builder()
+pub const LARGE_NUMBERS: Options = Options::builder()
         .no_multi_digit(false)
-        .build_unchecked()
-};
+        .build_unchecked();
 const_assert!(LARGE_NUMBERS.is_valid());

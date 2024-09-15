@@ -89,25 +89,23 @@ fn builder_test() {
     assert_eq!(builder.get_inf_string(), Some("Infinity".as_bytes()));
 
     assert!(builder.is_valid());
-    assert_eq!(builder.build(), Ok(unsafe { builder.build_unchecked() }));
+    assert_eq!(builder.build(), Ok(builder.build_unchecked()));
 }
 
 #[test]
 fn options_test() {
     let mut opts = Options::new();
 
-    unsafe {
-        opts.set_max_significant_digits(num::NonZeroUsize::new(10));
-        opts.set_min_significant_digits(num::NonZeroUsize::new(5));
-        opts.set_positive_exponent_break(num::NonZeroI32::new(9));
-        opts.set_negative_exponent_break(num::NonZeroI32::new(-9));
-        opts.set_round_mode(options::RoundMode::Truncate);
-        opts.set_trim_floats(true);
-        opts.set_exponent(b'^');
-        opts.set_decimal_point(b',');
-        opts.set_nan_string(Some(b"nan"));
-        opts.set_inf_string(Some(b"Infinity"));
-    }
+    opts.set_max_significant_digits(num::NonZeroUsize::new(10));
+    opts.set_min_significant_digits(num::NonZeroUsize::new(5));
+    opts.set_positive_exponent_break(num::NonZeroI32::new(9));
+    opts.set_negative_exponent_break(num::NonZeroI32::new(-9));
+    opts.set_round_mode(options::RoundMode::Truncate);
+    opts.set_trim_floats(true);
+    opts.set_exponent(b'^');
+    opts.set_decimal_point(b',');
+    opts.set_nan_string(Some(b"nan"));
+    opts.set_inf_string(Some(b"Infinity"));
 
     assert_eq!(opts.max_significant_digits().unwrap().get(), 10);
     assert_eq!(opts.min_significant_digits().unwrap().get(), 5);
