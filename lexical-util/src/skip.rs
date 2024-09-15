@@ -410,20 +410,6 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         }
     }
 
-    /// Check if the next element is a given value without case sensitivity.
-    #[inline(always)]
-    pub fn peek_is_uncased(&mut self, value: u8) -> bool {
-        // TODO: Fix this??? Should this be first???
-
-        // Don't assert not a digit separator, since this can occur when
-        // a different component does not allow digit separators there.
-        if let Some(&c) = self.first() {
-            c.to_ascii_lowercase() == value.to_ascii_lowercase()
-        } else {
-            false
-        }
-    }
-
     /// Get iterator over integer digits.
     #[inline(always)]
     pub fn integer_iter<'b>(&'b mut self) -> IntegerDigitsIterator<'a, 'b, FORMAT> {
@@ -769,7 +755,7 @@ macro_rules! skip_iterator_bytesiter_impl {
             skip_iterator_iter_base!(FORMAT, $mask);
         }
 
-        unsafe impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for $iterator<'a, 'b, FORMAT> {
+        impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for $iterator<'a, 'b, FORMAT> {
             skip_iterator_digits_iter_base!();
 
             /// Peek the next value of the iterator, without consuming it.
@@ -886,7 +872,7 @@ unsafe impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for SpecialDigitsIterator<'
     skip_iterator_iter_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
 }
 
-unsafe impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a>
+impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a>
     for SpecialDigitsIterator<'a, 'b, FORMAT>
 {
     skip_iterator_digits_iter_base!();

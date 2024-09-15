@@ -74,22 +74,6 @@ impl<'a, const __: u128> Bytes<'a, __> {
         self.index >= self.slc.len()
     }
 
-    // TODO: Remove the peek_is, these shouldn't be on bytes
-
-    /// Check if the next element is a given value.
-    #[inline(always)]
-    pub fn peek_is_cased(&mut self, value: u8) -> bool {
-        // TODO: These 2 need to be changed
-        self.first_is(value)
-    }
-
-    /// Check if the next element is a given value without case sensitivity.
-    #[inline(always)]
-    pub fn peek_is_uncased(&mut self, value: u8) -> bool {
-        // TODO: These 2 need to be changed
-        self.case_insensitive_first_is(value)
-    }
-
     /// Get iterator over integer digits.
     #[inline(always)]
     pub fn integer_iter<'b>(&'b mut self) -> DigitsIterator<'a, 'b, __> {
@@ -330,7 +314,7 @@ unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> 
     }
 }
 
-unsafe impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for DigitsIterator<'a, 'b, FORMAT> {
+impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for DigitsIterator<'a, 'b, FORMAT> {
     #[inline(always)]
     fn is_consumed(&mut self) -> bool {
         Self::is_done(self)

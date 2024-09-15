@@ -113,17 +113,13 @@ pub unsafe trait Iter<'a> {
 
     /// Check if the next element is a given value.
     #[inline(always)]
-    fn first_is(&self, value: u8) -> bool {
-        if let Some(&c) = self.first() {
-            c == value
-        } else {
-            false
-        }
+    fn first_is_cased(&self, value: u8) -> bool {
+        Some(&value) == self.first()
     }
 
     /// Check if the next element is a given value without case sensitivity.
     #[inline(always)]
-    fn case_insensitive_first_is(&self, value: u8) -> bool {
+    fn first_is_uncased(&self, value: u8) -> bool {
         if let Some(&c) = self.first() {
             c.to_ascii_lowercase() == value.to_ascii_lowercase()
         } else {
@@ -218,8 +214,7 @@ pub unsafe trait Iter<'a> {
 /// the methods for `read_32`, `read_64`, etc. check the bounds
 /// of the underlying contiguous buffer and is only called on
 /// contiguous buffers.
-pub unsafe trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
-    // TODO: Move some of these to `Iter` as required.
+pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
 
     // TODO: Fix the documentation
     /// Get if the iterator cannot return any more elements.
@@ -299,7 +294,21 @@ pub unsafe trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         }
     }
 
-    // TODO(ahuszagh) Add `peek_is` to have cased or uncased
+    /// Check if the next element is a given value with optional case sensitivity.
+    #[inline(always)]
+    fn peek_is(&mut self, value: u8, is_cased: bool) -> bool {
+        if let Some(&c) = self.peek() {
+            if is_cased {
+                c == value
+            } else {
+                c.to_ascii_lowercase() == value.to_ascii_lowercase()
+            }
+        } else {
+            false
+        }
+    }
+
+    // TODO: Add `peek_is` to have cased or uncased
 
     /// Peek the next value and consume it if the read value matches the
     /// expected one.
@@ -320,6 +329,10 @@ pub unsafe trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
             None
         }
     }
+
+    // TODO: Add read_is_value_cased
+    // TODO: Add read_is_value_uncased
+    // TODO: Add read_is_value
 
     /// Skip zeros from the start of the iterator
     #[inline(always)]

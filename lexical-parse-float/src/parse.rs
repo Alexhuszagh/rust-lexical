@@ -618,7 +618,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let mut implicit_exponent: i64;
     let int_end = n_digits as i64;
     let mut fraction_digits = None;
-    if byte.first_is(decimal_point) {
+    // TODO: Change this to something different from read_if_value but same idea
+    if byte.first_is_cased(decimal_point) {
         // SAFETY: byte cannot be empty due to first_is
         unsafe { byte.step_unchecked() };
         let before = byte.clone();
@@ -658,9 +659,9 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     // Handle scientific notation.
     let mut explicit_exponent = 0_i64;
     let is_exponent = if cfg!(feature = "format") && format.case_sensitive_exponent() {
-        byte.first_is(exponent_character)
+        byte.first_is_cased(exponent_character)
     } else {
-        byte.case_insensitive_first_is(exponent_character)
+        byte.first_is_uncased(exponent_character)
     };
     if is_exponent {
         // Check float format syntax checks.
@@ -708,9 +709,9 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     #[cfg(feature = "format")]
     if base_suffix != 0 {
         let is_suffix: bool = if format.case_sensitive_base_suffix() {
-            byte.first_is(base_suffix)
+            byte.first_is_cased(base_suffix)
         } else {
-            byte.case_insensitive_first_is(base_suffix)
+            byte.first_is_uncased(base_suffix)
         };
         if is_suffix {
             // SAFETY: safe since `byte.len() >= 1`.
@@ -747,13 +748,14 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     n_digits -= step;
     let mut zeros = start.clone();
     let mut zeros_integer = zeros.integer_iter();
+    // TODO: Change to read_if_value
     while zeros_integer.peek_is_cased(b'0') {
         n_digits = n_digits.saturating_sub(1);
         // TODO: Change to read_if
         // SAFETY: safe since zeros cannot be empty due to peek_is
         unsafe { zeros_integer.step_unchecked() };
     }
-    if zeros.first_is(decimal_point) {
+    if zeros.first_is_cased(decimal_point) {
         // SAFETY: safe since zeros cannot be empty due to first_is
         unsafe { zeros.step_unchecked() };
     }
