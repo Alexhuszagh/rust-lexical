@@ -126,6 +126,9 @@ mod table_lemire;
 mod table_radix;
 mod table_small;
 
+#[macro_use(parse_sign)]
+extern crate lexical_parse_integer;
+
 // Re-exports
 #[cfg(feature = "f16")]
 pub use lexical_util::bf16::bf16;

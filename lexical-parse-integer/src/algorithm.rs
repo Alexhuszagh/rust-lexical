@@ -124,6 +124,8 @@ macro_rules! fmt_invalid_digit {
                 // invalid_digit!. Need to ensure we include the
                 // base suffix in that.
 
+                // TODO: This isn't localized and needs to be fixed
+
                 // SAFETY: safe since the iterator is not empty, as checked
                 // in `$iter.is_done()` and `$is_end`. If `$is_end` is false,
                 // then we have more elements in our
@@ -158,25 +160,48 @@ macro_rules! fmt_invalid_digit {
 ///
 /// Returns if the value is negative, or any values detected when
 /// validating the input.
+#[macro_export]
+macro_rules! parse_sign {
+    (
+        $byte:ident,
+        $is_signed:expr,
+        $no_positive:expr,
+        $required:expr,
+        $invalid_positive:ident,
+        $missing:ident
+    ) => {
+        // NOTE: read_if optimizes poorly since we then match after
+        match $byte.integer_iter().peek() {
+            Some(&b'+') if !$no_positive => {
+                // SAFETY: We have at least 1 item left since we peaked a value
+                unsafe { $byte.step_unchecked() };
+                Ok(false)
+            },
+            Some(&b'+') if $no_positive => Err(Error::$invalid_positive($byte.cursor())),
+            Some(&b'-') if $is_signed => {
+                // SAFETY: We have at least 1 item left since we peaked a value
+                unsafe { $byte.step_unchecked() };
+                Ok(true)
+            },
+            Some(_) if $required => Err(Error::$missing($byte.cursor())),
+            _ if $required => Err(Error::$missing($byte.cursor())),
+            _ => Ok(false),
+        }
+    };
+}
+
+/// Parse the sign from the leading digits.
 #[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn parse_sign<T: Integer, const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> Result<bool> {
     let format = NumberFormat::<FORMAT> {};
-    match byte.integer_iter().peek() {
-        Some(&b'+') if !format.no_positive_mantissa_sign() => {
-            unsafe { byte.step_unchecked() };
-            Ok(false)
-        },
-        Some(&b'+') if format.no_positive_mantissa_sign() => {
-            Err(Error::InvalidPositiveSign(byte.cursor()))
-        },
-        Some(&b'-') if T::IS_SIGNED => {
-            unsafe { byte.step_unchecked() };
-            Ok(true)
-        },
-        Some(_) if format.required_mantissa_sign() => Err(Error::MissingSign(byte.cursor())),
-        _ if format.required_mantissa_sign() => Err(Error::MissingSign(byte.cursor())),
-        _ => Ok(false),
-    }
+    parse_sign!(
+        byte,
+        T::IS_SIGNED,
+        format.no_positive_mantissa_sign(),
+        format.required_mantissa_sign(),
+        InvalidPositiveSign,
+        MissingSign
+    )
 }
 
 // FOUR DIGITS
@@ -238,7 +263,7 @@ where
     debug_assert!(Iter::IS_CONTIGUOUS);
 
     // Read our digits, validate the input, and check from there.
-    let bytes = u32::from_le(iter.read_u32()?);
+    let bytes = u32::from_le(iter.peek_u32()?);
     if is_4digits::<FORMAT>(bytes) {
         // SAFETY: safe since we have at least 4 bytes in the buffer.
         unsafe { iter.step_by_unchecked(4) };
@@ -312,7 +337,7 @@ where
     debug_assert!(Iter::IS_CONTIGUOUS);
 
     // Read our digits, validate the input, and check from there.
-    let bytes = u64::from_le(iter.read_u64()?);
+    let bytes = u64::from_le(iter.peek_u64()?);
     if is_8digits::<FORMAT>(bytes) {
         // SAFETY: safe since we have at least 8 bytes in the buffer.
         unsafe { iter.step_by_unchecked(8) };
@@ -447,13 +472,13 @@ macro_rules! parse_digits_unchecked {
         // `try_parse_4digits` it will be optimized out and the overflow won't
         // matter.
         let format = NumberFormat::<FORMAT> {};
-        if use_multi && T::BITS >= 64 && $iter.length() >= 8 {
+        if use_multi && T::BITS >= 64 && $iter.buffer_length() >= 8 {
             // Try our fast, 8-digit at a time optimizations.
             let radix8 = T::from_u32(format.radix8());
             while let Some(value) = try_parse_8digits::<T, _, FORMAT>(&mut $iter) {
                 $value = $value.wrapping_mul(radix8).$add_op(value);
             }
-        } else if use_multi && T::BITS == 32 && $iter.length() >= 4 {
+        } else if use_multi && T::BITS == 32 && $iter.buffer_length() >= 4 {
             // Try our fast, 8-digit at a time optimizations.
             let radix4 = T::from_u32(format.radix4());
             while let Some(value) = try_parse_4digits::<T, _, FORMAT>(&mut $iter) {
@@ -576,20 +601,12 @@ macro_rules! algorithm {
         if base_prefix != 0 && zeros == 1 {
             // Check to see if the next character is the base prefix.
             // We must have a format like `0x`, `0d`, `0o`. Note:
-            if let Some(&c) = iter.peek() {
-                is_prefix = if format.case_sensitive_base_prefix() {
-                    c == base_prefix
+            if iter.read_if_value(base_prefix, format.case_sensitive_base_prefix()).is_some() {
+                is_prefix = true;
+                if iter.is_done() {
+                    return into_error!(Empty, iter.cursor());
                 } else {
-                    c.to_ascii_lowercase() == base_prefix.to_ascii_lowercase()
-                };
-                if is_prefix {
-                    // SAFETY: safe since we `byte.len() >= 1` (we got an item from peek).
-                    unsafe { iter.step_unchecked() };
-                    if iter.is_done() {
-                        return into_error!(Empty, iter.cursor());
-                    } else {
-                        start_index += 1;
-                    }
+                    start_index += 1;
                 }
             }
         }
@@ -634,7 +651,7 @@ macro_rules! algorithm {
         parse_digits_checked!(value, iter, checked_add, wrapping_add, start_index, $invalid_digit, Overflow, $no_multi_digit, overflow_digits);
     }
 
-    $into_ok!(value, iter.length())
+    $into_ok!(value, iter.buffer_length())
 }};
 }
 

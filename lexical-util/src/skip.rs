@@ -149,7 +149,7 @@ macro_rules! peek_1 {
             // a non-digit separator character. Don't need any complex checks
             // here, since we've already done them above.
             let mut index = $self.byte.index + 1;
-            while index < $self.length()
+            while index < $self.buffer_length()
                 && $self.byte.slc.get(index).map_or(false, |&x| $self.is_digit_separator(x))
             {
                 index += 1;
@@ -448,18 +448,6 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
     const IS_CONTIGUOUS: bool = NumberFormat::<{ FORMAT }>::DIGIT_SEPARATOR == 0;
 
     #[inline(always)]
-    fn as_ptr(&self) -> *const u8 {
-        self.as_slice().as_ptr()
-    }
-
-    #[inline(always)]
-    fn as_slice(&self) -> &'a [u8] {
-        debug_assert!(self.index <= self.length());
-        // SAFETY: safe since index must be in range.
-        unsafe { self.slc.get_unchecked(self.index..) }
-    }
-
-    #[inline(always)]
     fn get_buffer(&self) -> &'a [u8] {
         self.slc
     }
@@ -474,10 +462,10 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
     ///
     /// # Safety
     ///
-    /// Safe if `index <= self.length()`.
+    /// Safe if `index <= self.buffer_length()`.
     #[inline(always)]
     unsafe fn set_cursor(&mut self, index: usize) {
-        debug_assert!(index <= self.length());
+        debug_assert!(index <= self.buffer_length());
         self.index = index
     }
 
@@ -530,35 +518,13 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
     }
 
     #[inline(always)]
-    unsafe fn read_unchecked<V>(&self) -> V {
+    unsafe fn peek_many_unchecked<V>(&self) -> V {
         debug_assert!(Self::IS_CONTIGUOUS);
         debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
 
         let slc = self.as_slice();
         // SAFETY: safe as long as the slice has at least count elements.
         unsafe { ptr::read_unaligned::<V>(slc.as_ptr() as *const _) }
-    }
-
-    #[inline(always)]
-    fn read_u32(&self) -> Option<u32> {
-        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u32>() {
-            // SAFETY: safe since we've guaranteed the buffer is greater than
-            // the number of elements read. u32 is valid for all bit patterns
-            unsafe { Some(self.read_unchecked()) }
-        } else {
-            None
-        }
-    }
-
-    #[inline(always)]
-    fn read_u64(&self) -> Option<u64> {
-        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u64>() {
-            // SAFETY: safe since we've guaranteed the buffer is greater than
-            // the number of elements read. u64 is valid for all bit patterns
-            unsafe { Some(self.read_unchecked()) }
-        } else {
-            None
-        }
     }
 }
 
@@ -601,7 +567,9 @@ macro_rules! skip_iterator_impl {
 
             /// Create a new digits iterator from the bytes underlying item.
             pub fn new(byte: &'b mut Bytes<'a, FORMAT>) -> Self {
-                Self { byte }
+                Self {
+                    byte,
+                }
             }
 
             /// Take the first N digits from the iterator.
@@ -666,16 +634,6 @@ macro_rules! skip_iterator_iter_base {
         const IS_CONTIGUOUS: bool = $format & flags::$mask == 0;
 
         #[inline(always)]
-        fn as_ptr(&self) -> *const u8 {
-            self.byte.as_ptr()
-        }
-
-        #[inline(always)]
-        fn as_slice(&self) -> &'a [u8] {
-            self.byte.as_slice()
-        }
-
-        #[inline(always)]
         fn get_buffer(&self) -> &'a [u8] {
             self.byte.get_buffer()
         }
@@ -687,8 +645,8 @@ macro_rules! skip_iterator_iter_base {
 
         #[inline(always)]
         unsafe fn set_cursor(&mut self, index: usize) {
-            debug_assert!(index <= self.length());
-            // SAFETY: safe if `index <= self.length()`.
+            debug_assert!(index <= self.buffer_length());
+            // SAFETY: safe if `index <= self.buffer_length()`.
             unsafe { self.byte.set_cursor(index) };
         }
 
@@ -715,20 +673,10 @@ macro_rules! skip_iterator_iter_base {
         }
 
         #[inline(always)]
-        unsafe fn read_unchecked<V>(&self) -> V {
+        unsafe fn peek_many_unchecked<V>(&self) -> V {
             debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
             // SAFETY: safe as long as the slice has at least count elements.
-            unsafe { self.byte.read_unchecked() }
-        }
-
-        #[inline(always)]
-        fn read_u32(&self) -> Option<u32> {
-            self.byte.read_u32()
-        }
-
-        #[inline(always)]
-        fn read_u64(&self) -> Option<u64> {
-            self.byte.read_u64()
+            unsafe { self.byte.peek_many_unchecked() }
         }
     };
 }
@@ -872,9 +820,7 @@ unsafe impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for SpecialDigitsIterator<'
     skip_iterator_iter_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
 }
 
-impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a>
-    for SpecialDigitsIterator<'a, 'b, FORMAT>
-{
+impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for SpecialDigitsIterator<'a, 'b, FORMAT> {
     skip_iterator_digits_iter_base!();
 
     /// Peek the next value of the iterator, without consuming it.

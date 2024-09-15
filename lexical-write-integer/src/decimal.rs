@@ -259,13 +259,7 @@ macro_rules! decimal_impl {
         impl Decimal for $t {
             #[inline(always)]
             fn decimal(self, buffer: &mut [u8]) -> usize {
-                // SAFETY: safe since we've guaranteed the buffer is large enough to hold the max value.
-                let count = self.digit_count();
-                assert!(count <= buffer.len());
-                unsafe {
-                    algorithm(self, 10, &DIGIT_TO_BASE10_SQUARED, &mut buffer[..count]);
-                    count
-                }
+                algorithm(self, 10, &DIGIT_TO_BASE10_SQUARED, buffer)
             }
         }
     )*);
@@ -276,17 +270,10 @@ decimal_impl! { u32 u64 }
 impl Decimal for u128 {
     #[inline(always)]
     fn decimal(self, buffer: &mut [u8]) -> usize {
-        // SAFETY: safe since we've guaranteed the buffer is large enough to hold the
-        // max value.
-        let count = self.digit_count();
-        assert!(count <= buffer.len());
-        unsafe {
-            algorithm_u128::<{ STANDARD }, { RADIX }, { RADIX_SHIFT }>(
-                self,
-                &DIGIT_TO_BASE10_SQUARED,
-                &mut buffer[..count],
-            );
-            count
-        }
+        algorithm_u128::<{ STANDARD }, { RADIX }, { RADIX_SHIFT }>(
+            self,
+            &DIGIT_TO_BASE10_SQUARED,
+            buffer,
+        )
     }
 }

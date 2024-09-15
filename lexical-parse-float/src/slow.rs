@@ -357,12 +357,12 @@ macro_rules! round_up_truncated {
 /// - `count` - The total number of parsed digits
 macro_rules! round_up_nonzero {
     ($format:ident, $iter:expr, $result:ident, $count:ident) => {{
-        // NOTE: All digits must be valid.
+        // NOTE: All digits must already be valid.
         let mut iter = $iter;
 
         // First try reading 8-digits at a time.
         if iter.is_contiguous() {
-            while let Some(value) = iter.read_u64() {
+            while let Some(value) = iter.peek_u64() {
                 // SAFETY: safe since we have at least 8 bytes in the buffer.
                 unsafe { iter.step_by_unchecked(8) };
                 if value != 0x3030_3030_3030_3030 {

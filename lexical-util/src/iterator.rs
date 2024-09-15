@@ -6,6 +6,8 @@
 
 #![cfg(feature = "parse")]
 
+use core::mem;
+
 // Re-export our digit iterators.
 #[cfg(not(feature = "format"))]
 pub use crate::noskip::{AsBytes, Bytes};
@@ -35,18 +37,25 @@ pub unsafe trait Iter<'a> {
     // -------
 
     /// Get a ptr to the current start of the buffer.
-    fn as_ptr(&self) -> *const u8;
+    #[inline(always)]
+    fn as_ptr(&self) -> *const u8 {
+        self.as_slice().as_ptr()
+    }
 
     /// Get a slice to the current start of the buffer.
-    fn as_slice(&self) -> &'a [u8];
+    #[inline(always)]
+    fn as_slice(&self) -> &'a [u8] {
+        debug_assert!(self.cursor() <= self.buffer_length());
+        // SAFETY: safe since index must be in range.
+        unsafe { self.get_buffer().get_unchecked(self.cursor()..) }
+    }
 
     /// Get a slice to the full underlying contiguous buffer,
     fn get_buffer(&self) -> &'a [u8];
 
-    // TODO: Rename to `buffer_length`.
     /// Get the total number of elements in the underlying buffer.
     #[inline(always)]
-    fn length(&self) -> usize {
+    fn buffer_length(&self) -> usize {
         self.get_buffer().len()
     }
 
@@ -63,8 +72,8 @@ pub unsafe trait Iter<'a> {
     ///
     /// # Safety
     ///
-    /// Safe if `index <= self.length()`. Although this won't
-    /// affect safety, the caller also should be careful it
+    /// Safe if `index <= self.buffer_length()`. Although this
+    /// won't affect safety, the caller also should be careful it
     /// does not set the cursor within skipped characters
     /// since this could affect correctness: an iterator that
     /// only accepts non-consecutive digit separators would
@@ -72,6 +81,9 @@ pub unsafe trait Iter<'a> {
     unsafe fn set_cursor(&mut self, index: usize);
 
     /// Get the current number of values returned by the iterator.
+    ///
+    /// For contiguous iterators, this is always the cursor, for
+    /// non-contiguous iterators this can be smaller.
     fn current_count(&self) -> usize;
 
     // TODO: DOCUMENT
@@ -127,6 +139,21 @@ pub unsafe trait Iter<'a> {
         }
     }
 
+    /// Check if the next item in buffer is a given value with optional case
+    /// sensitivity.
+    #[inline(always)]
+    fn first_is(&mut self, value: u8, is_cased: bool) -> bool {
+        if let Some(&c) = self.first() {
+            if is_cased {
+                c == value
+            } else {
+                c.to_ascii_lowercase() == value.to_ascii_lowercase()
+            }
+        } else {
+            false
+        }
+    }
+
     // TODO(ahuszagh) Change `first_is` to have cased or uncased
 
     // STEP BY
@@ -164,7 +191,7 @@ pub unsafe trait Iter<'a> {
     #[inline(always)]
     unsafe fn step_unchecked(&mut self) {
         debug_assert!(!self.as_slice().is_empty());
-        // SAFETY: safe if `self.index < self.length()`.
+        // SAFETY: safe if `self.index < self.buffer_length()`.
         unsafe { self.step_by_unchecked(1) };
     }
 
@@ -173,9 +200,13 @@ pub unsafe trait Iter<'a> {
 
     /// Read a value of a difference type from the iterator.
     ///
-    /// This advances the internal state of the iterator. This
-    /// can only be implemented for contiguous iterators: non-
+    /// This does **not** advance the internal state of the iterator.
+    /// This can only be implemented for contiguous iterators: non-
     /// contiguous iterators **MUST** panic.
+    ///
+    /// # Panics
+    ///
+    /// If the iterator is a non-contiguous iterator.
     ///
     /// # Safety
     ///
@@ -183,19 +214,37 @@ pub unsafe trait Iter<'a> {
     /// many bytes as the size of V. This must be unimplemented for
     /// non-contiguous iterators.
     #[inline(always)]
-    unsafe fn read_unchecked<V>(&self) -> V {
+    unsafe fn peek_many_unchecked<V>(&self) -> V {
         unimplemented!();
     }
 
     /// Try to read a the next four bytes as a u32.
     ///
-    /// This advances the internal state of the iterator.
-    fn read_u32(&self) -> Option<u32>;
+    /// This does not advance the internal state of the iterator.
+    #[inline(always)]
+    fn peek_u32(&self) -> Option<u32> {
+        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u32>() {
+            // SAFETY: safe since we've guaranteed the buffer is greater than
+            // the number of elements read. u32 is valid for all bit patterns
+            unsafe { Some(self.peek_many_unchecked()) }
+        } else {
+            None
+        }
+    }
 
     /// Try to read the next eight bytes as a u64.
     ///
-    /// This advances the internal state of the iterator.
-    fn read_u64(&self) -> Option<u64>;
+    /// This does not advance the internal state of the iterator.
+    #[inline(always)]
+    fn peek_u64(&self) -> Option<u64> {
+        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u64>() {
+            // SAFETY: safe since we've guaranteed the buffer is greater than
+            // the number of elements read. u64 is valid for all bit patterns
+            unsafe { Some(self.peek_many_unchecked()) }
+        } else {
+            None
+        }
+    }
 }
 
 /// Iterator over a contiguous block of bytes.
@@ -215,7 +264,6 @@ pub unsafe trait Iter<'a> {
 /// of the underlying contiguous buffer and is only called on
 /// contiguous buffers.
 pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
-
     // TODO: Fix the documentation
     /// Get if the iterator cannot return any more elements.
     ///
@@ -267,7 +315,6 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     /// Peek the next value of the iterator, and step only if it exists.
     #[inline(always)]
     fn try_read(&mut self) -> Option<Self::Item> {
-        // TODO: Fix this
         if let Some(value) = self.peek() {
             // SAFETY: the slice cannot be empty because we peeked a value.
             unsafe { self.step_unchecked() };
@@ -278,7 +325,6 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     }
 
     /// Check if the next element is a given value.
-    // TODO: Change this to peek_is_cased
     #[inline(always)]
     fn peek_is_cased(&mut self, value: u8) -> bool {
         Some(&value) == self.peek()
@@ -294,7 +340,8 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         }
     }
 
-    /// Check if the next element is a given value with optional case sensitivity.
+    /// Check if the next element is a given value with optional case
+    /// sensitivity.
     #[inline(always)]
     fn peek_is(&mut self, value: u8, is_cased: bool) -> bool {
         if let Some(&c) = self.peek() {
@@ -308,16 +355,14 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         }
     }
 
-    // TODO: Add `peek_is` to have cased or uncased
-
     /// Peek the next value and consume it if the read value matches the
     /// expected one.
     #[inline(always)]
-    fn read_if<Pred: FnOnce(&u8) -> bool>(&mut self, pred: Pred) -> Option<Self::Item> {
+    fn read_if<Pred: FnOnce(u8) -> bool>(&mut self, pred: Pred) -> Option<u8> {
         // NOTE: This was implemented to remove usage of unsafe throughout to code
         // base, however, performance was really not up to scratch. I'm not sure
         // the cause of this.
-        if let Some(peeked) = self.peek() {
+        if let Some(&peeked) = self.peek() {
             if pred(peeked) {
                 // SAFETY: the slice cannot be empty because we peeked a value.
                 unsafe { self.step_unchecked() };
@@ -330,19 +375,34 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         }
     }
 
-    // TODO: Add read_is_value_cased
-    // TODO: Add read_is_value_uncased
-    // TODO: Add read_is_value
+    /// Read a value if the value matches the provided one.
+    #[inline(always)]
+    fn read_if_value_cased(&mut self, value: u8) -> Option<u8> {
+        self.read_if(|x| x == value)
+    }
+
+    /// Read a value if the value matches the provided one without case
+    /// sensitivity.
+    #[inline(always)]
+    fn read_if_value_uncased(&mut self, value: u8) -> Option<u8> {
+        self.read_if(|x| x.to_ascii_lowercase() == value.to_ascii_lowercase())
+    }
+
+    /// Read a value if the value matches the provided one.
+    #[inline(always)]
+    fn read_if_value(&mut self, value: u8, is_cased: bool) -> Option<u8> {
+        if is_cased {
+            self.read_if_value_cased(value)
+        } else {
+            self.read_if_value_uncased(value)
+        }
+    }
 
     /// Skip zeros from the start of the iterator
     #[inline(always)]
     fn skip_zeros(&mut self) -> usize {
         let start = self.cursor();
-        // TODO: Change to `read_if` for performance.
-        while let Some(&b'0') = self.peek() {
-            // TODO: Can probably remove peek? This would be a lot slower like this
-            self.next();
-        }
+        while self.read_if_value_cased(b'0').is_some() {}
         self.cursor() - start
     }
 

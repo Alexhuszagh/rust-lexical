@@ -8,8 +8,8 @@
 use core::{mem, ptr};
 
 use crate::digit::char_is_digit_const;
-use crate::iterator::{DigitsIter, Iter};
 use crate::format::NumberFormat;
+use crate::iterator::{DigitsIter, Iter};
 
 // AS DIGITS
 // ---------
@@ -111,18 +111,6 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
     const IS_CONTIGUOUS: bool = true;
 
     #[inline(always)]
-    fn as_ptr(&self) -> *const u8 {
-        self.as_slice().as_ptr()
-    }
-
-    #[inline(always)]
-    fn as_slice(&self) -> &'a [u8] {
-        debug_assert!(self.index <= self.length());
-        // SAFETY: safe since index must be in range.
-        unsafe { self.slc.get_unchecked(self.index..) }
-    }
-
-    #[inline(always)]
     fn get_buffer(&self) -> &'a [u8] {
         self.slc
     }
@@ -137,10 +125,10 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
     ///
     /// # Safety
     ///
-    /// Safe if `index <= self.length()`.
+    /// Safe if `index <= selfbuffer_length()`.
     #[inline(always)]
     unsafe fn set_cursor(&mut self, index: usize) {
-        debug_assert!(index <= self.length());
+        debug_assert!(index <= self.buffer_length());
         self.index = index
     }
 
@@ -171,34 +159,12 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
 
     #[inline(always)]
     #[allow(clippy::assertions_on_constants)]
-    unsafe fn read_unchecked<V>(&self) -> V {
+    unsafe fn peek_many_unchecked<V>(&self) -> V {
         debug_assert!(Self::IS_CONTIGUOUS);
         debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
 
         // SAFETY: safe as long as the slice has at least count elements.
         unsafe { ptr::read_unaligned::<V>(self.as_ptr() as *const _) }
-    }
-
-    #[inline(always)]
-    fn read_u32(&self) -> Option<u32> {
-        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u32>() {
-            // SAFETY: safe since we've guaranteed the buffer is greater than
-            // the number of elements read. u32 is valid for all bit patterns
-            unsafe { Some(self.read_unchecked()) }
-        } else {
-            None
-        }
-    }
-
-    #[inline(always)]
-    fn read_u64(&self) -> Option<u64> {
-        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u64>() {
-            // SAFETY: safe since we've guaranteed the buffer is greater than
-            // the number of elements read. u64 is valid for all bit patterns
-            unsafe { Some(self.read_unchecked()) }
-        } else {
-            None
-        }
     }
 }
 
@@ -215,7 +181,9 @@ impl<'a: 'b, 'b, const __: u128> DigitsIterator<'a, 'b, __> {
     /// Create a new digits iterator from the bytes underlying item.
     #[inline(always)]
     pub fn new(byte: &'b mut Bytes<'a, __>) -> Self {
-        Self { byte }
+        Self {
+            byte,
+        }
     }
 
     // TODO: Move as a trait
@@ -248,16 +216,6 @@ unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> 
     const IS_CONTIGUOUS: bool = Bytes::<'a, __>::IS_CONTIGUOUS;
 
     #[inline(always)]
-    fn as_ptr(&self) -> *const u8 {
-        self.byte.as_ptr()
-    }
-
-    #[inline(always)]
-    fn as_slice(&self) -> &'a [u8] {
-        self.byte.as_slice()
-    }
-
-    #[inline(always)]
     fn get_buffer(&self) -> &'a [u8] {
         self.byte.get_buffer()
     }
@@ -269,8 +227,8 @@ unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> 
 
     #[inline(always)]
     unsafe fn set_cursor(&mut self, index: usize) {
-        debug_assert!(index <= self.length());
-        // SAFETY: safe if `index <= self.length()`.
+        debug_assert!(index <= self.buffer_length());
+        // SAFETY: safe if `index <= selfbuffer_length()`.
         unsafe { self.byte.set_cursor(index) };
     }
 
@@ -297,20 +255,10 @@ unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> 
     }
 
     #[inline(always)]
-    unsafe fn read_unchecked<V>(&self) -> V {
+    unsafe fn peek_many_unchecked<V>(&self) -> V {
         debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
         // SAFETY: safe as long as the slice has at least count elements.
-        unsafe { self.byte.read_unchecked() }
-    }
-
-    #[inline(always)]
-    fn read_u32(&self) -> Option<u32> {
-        self.byte.read_u32()
-    }
-
-    #[inline(always)]
-    fn read_u64(&self) -> Option<u64> {
-        self.byte.read_u64()
+        unsafe { self.byte.peek_many_unchecked() }
     }
 }
 
@@ -352,6 +300,6 @@ impl<'a: 'b, 'b, const __: u128> Iterator for DigitsIterator<'a, 'b, __> {
 impl<'a: 'b, 'b, const __: u128> ExactSizeIterator for DigitsIterator<'a, 'b, __> {
     #[inline(always)]
     fn len(&self) -> usize {
-        self.length() - self.cursor()
+        self.buffer_length() - self.cursor()
     }
 }

@@ -165,85 +165,31 @@ parse_float_as_f32! { bf16 f16 }
 //  code is only like 30 lines.
 
 /// Parse the sign from the leading digits.
-///
-/// This routine does the following:
-///
-/// 1. Parses the sign digit.
-/// 2. Handles if positive signs before integers are not allowed.
-/// 3. Handles negative signs if the type is unsigned.
-/// 4. Handles if the sign is required, but missing.
-/// 5. Handles if the iterator is empty, before or after parsing the sign.
-/// 6. Handles if the iterator has invalid, leading zeros.
-///
-/// Returns if the value is negative, or any values detected when
-/// validating the input.
 #[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn parse_mantissa_sign<const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> Result<bool> {
     let format = NumberFormat::<{ FORMAT }> {};
-
-    // NOTE: Using `read_if` with a predicate compiles badly and is very slow.
-    // Also, it's better to do the step_unchecked inside rather than get the step
-    // count and do `step_by_unchecked`. The compiler knows what to do better.
-    match byte.integer_iter().peek() {
-        Some(&b'+') if !format.no_positive_mantissa_sign() => {
-            // SAFETY: Safe, we peeked 1 byte.
-            unsafe { byte.step_unchecked() };
-            Ok(false)
-        },
-        Some(&b'+') if format.no_positive_mantissa_sign() => {
-            Err(Error::InvalidPositiveSign(byte.cursor()))
-        },
-        Some(&b'-') => {
-            // SAFETY: Safe, we peeked 1 byte.
-            unsafe { byte.step_unchecked() };
-            Ok(true)
-        },
-        Some(_) if format.required_mantissa_sign() => Err(Error::MissingSign(byte.cursor())),
-        _ if format.required_mantissa_sign() => Err(Error::MissingSign(byte.cursor())),
-        _ => Ok(false),
-    }
+    parse_sign!(
+        byte,
+        true,
+        format.no_positive_mantissa_sign(),
+        format.required_mantissa_sign(),
+        InvalidPositiveSign,
+        MissingSign
+    )
 }
 
 /// Parse the sign from the leading digits.
-///
-/// This routine does the following:
-///
-/// 1. Parses the sign digit.
-/// 2. Handles if positive signs before integers are not allowed.
-/// 3. Handles negative signs if the type is unsigned.
-/// 4. Handles if the sign is required, but missing.
-/// 5. Handles if the iterator is empty, before or after parsing the sign.
-/// 6. Handles if the iterator has invalid, leading zeros.
-///
-/// Returns if the value is negative, or any values detected when
-/// validating the input.
 #[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn parse_exponent_sign<const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> Result<bool> {
     let format = NumberFormat::<{ FORMAT }> {};
-
-    // NOTE: Using `read_if` with a predicate compiles badly and is very slow.
-    // Also, it's better to do the step_unchecked inside rather than get the step
-    // count and do `step_by_unchecked`. The compiler knows what to do better.
-    match byte.integer_iter().peek() {
-        Some(&b'+') if !format.no_positive_exponent_sign() => {
-            // SAFETY: Safe, we peeked 1 byte.
-            unsafe { byte.step_unchecked() };
-            Ok(false)
-        },
-        Some(&b'+') if format.no_positive_exponent_sign() => {
-            Err(Error::InvalidPositiveExponentSign(byte.cursor()))
-        },
-        Some(&b'-') => {
-            // SAFETY: Safe, we peeked 1 byte.
-            unsafe { byte.step_unchecked() };
-            Ok(true)
-        },
-        Some(_) if format.required_exponent_sign() => {
-            Err(Error::MissingExponentSign(byte.cursor()))
-        },
-        _ if format.required_exponent_sign() => Err(Error::MissingExponentSign(byte.cursor())),
-        _ => Ok(false),
-    }
+    parse_sign!(
+        byte,
+        true,
+        format.no_positive_exponent_sign(),
+        format.required_exponent_sign(),
+        InvalidPositiveExponentSign,
+        MissingExponentSign
+    )
 }
 
 /// Utility to extract the result and handle any errors from parsing a `Number`.
@@ -546,31 +492,20 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     // INTEGER
 
     // Check to see if we have a valid base prefix.
-    // NOTE: `read_if` compiles poorly so use `peek` and then `step_unchecked`.
     #[allow(unused_variables)]
     let mut is_prefix = false;
     #[cfg(feature = "format")]
     {
         let base_prefix = format.base_prefix();
         let mut iter = byte.integer_iter();
-        if base_prefix != 0 && iter.peek() == Some(&b'0') {
-            // SAFETY: safe since `byte.len() >= 1`.
-            unsafe { iter.step_unchecked() };
+        if base_prefix != 0 && iter.read_if_value_cased(b'0').is_some() {
             // Check to see if the next character is the base prefix.
             // We must have a format like `0x`, `0d`, `0o`. Note:
-            if let Some(&c) = iter.peek() {
-                is_prefix = if format.case_sensitive_base_prefix() {
-                    c == base_prefix
-                } else {
-                    c.to_ascii_lowercase() == base_prefix.to_ascii_lowercase()
-                };
-                if is_prefix {
-                    // SAFETY: safe since `byte.len() >= 1`.
-                    unsafe { iter.step_unchecked() };
-                    if iter.is_done() {
-                        return Err(Error::Empty(iter.cursor()));
-                    }
-                }
+            is_prefix = true;
+            if iter.read_if_value(base_prefix, format.case_sensitive_base_prefix()).is_some()
+                && iter.is_done()
+            {
+                return Err(Error::Empty(iter.cursor()));
             }
         }
     }
@@ -658,11 +593,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 
     // Handle scientific notation.
     let mut explicit_exponent = 0_i64;
-    let is_exponent = if cfg!(feature = "format") && format.case_sensitive_exponent() {
-        byte.first_is_cased(exponent_character)
-    } else {
-        byte.first_is_uncased(exponent_character)
-    };
+    let is_exponent = byte
+        .first_is(exponent_character, format.case_sensitive_exponent() && cfg!(feature = "format"));
     if is_exponent {
         // Check float format syntax checks.
         #[cfg(feature = "format")]
@@ -677,6 +609,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         }
 
         // SAFETY: byte cannot be empty due to `first_is` from `is_exponent`.`
+        // TODO: Fix: we need a read_if for bytes themselves?
         unsafe { byte.step_unchecked() };
         let is_negative = parse_exponent_sign(&mut byte)?;
 
@@ -708,12 +641,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let base_suffix = format.base_suffix();
     #[cfg(feature = "format")]
     if base_suffix != 0 {
-        let is_suffix: bool = if format.case_sensitive_base_suffix() {
-            byte.first_is_cased(base_suffix)
-        } else {
-            byte.first_is_uncased(base_suffix)
-        };
-        if is_suffix {
+        if byte.first_is(base_suffix, format.case_sensitive_base_suffix()) {
             // SAFETY: safe since `byte.len() >= 1`.
             unsafe { byte.step_unchecked() };
         }
@@ -744,26 +672,20 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     }
 
     // Check for leading zeros, and to see if we had a false overflow.
-    // NOTE: Once again, `read_if` is slow: do peek and step
     n_digits -= step;
     let mut zeros = start.clone();
     let mut zeros_integer = zeros.integer_iter();
-    // TODO: Change to read_if_value
-    while zeros_integer.peek_is_cased(b'0') {
+    while zeros_integer.read_if_value_cased(b'0').is_some() {
         n_digits = n_digits.saturating_sub(1);
-        // TODO: Change to read_if
-        // SAFETY: safe since zeros cannot be empty due to peek_is
-        unsafe { zeros_integer.step_unchecked() };
     }
     if zeros.first_is_cased(decimal_point) {
+        // TODO: Fix with some read_if like logic
         // SAFETY: safe since zeros cannot be empty due to first_is
         unsafe { zeros.step_unchecked() };
     }
     let mut zeros_fraction = zeros.fraction_iter();
-    while zeros_fraction.peek_is_cased(b'0') {
+    while zeros_fraction.read_if_value_cased(b'0').is_some() {
         n_digits = n_digits.saturating_sub(1);
-        // SAFETY: safe since zeros cannot be empty due to peek_is
-        unsafe { zeros_fraction.step_unchecked() };
     }
 
     // OVERFLOW
@@ -826,7 +748,7 @@ pub fn parse_number<'a, const FORMAT: u128>(
     is_negative: bool,
     options: &Options,
 ) -> Result<Number<'a>> {
-    let length = byte.length();
+    let length = byte.buffer_length();
     let (float, count) = parse_partial_number::<FORMAT>(byte, is_negative, options)?;
     if count == length {
         Ok(float)
@@ -853,6 +775,8 @@ where
             None => break,
         }
         // SAFETY: iter cannot be empty due to `iter.peek()`.
+        // NOTE: Because of the match statement, this would optimize poorly with
+        // read_if.
         unsafe { iter.step_unchecked() };
     }
 }
@@ -959,7 +883,7 @@ where
     }
 
     let cursor = byte.cursor();
-    let length = byte.length() - cursor;
+    let length = byte.buffer_length() - cursor;
     if let Some(nan_string) = options.nan_string() {
         if length >= nan_string.len() {
             let count = is_special_eq::<FORMAT>(byte.clone(), nan_string);
@@ -1015,7 +939,7 @@ pub fn parse_special<F, const FORMAT: u128>(
 where
     F: LemireFloat,
 {
-    let length = byte.length();
+    let length = byte.buffer_length();
     if let Some((float, count)) = parse_partial_special::<F, FORMAT>(byte, is_negative, options) {
         if count == length {
             return Some(float);
