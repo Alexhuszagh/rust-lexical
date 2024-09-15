@@ -20,7 +20,7 @@ fn digits_iterator_test() {
     assert_eq!(iter.as_slice(), &digits[..]);
     assert_eq!(iter.as_ptr(), digits.as_ptr());
     assert_eq!(iter.is_consumed(), false);
-    assert_eq!(iter.is_done(), false);
+    assert_eq!(iter.is_buffer_empty(), false);
     assert_eq!(u32::from_le(iter.peek_u32().unwrap()), 0x34333231);
     assert_eq!(iter.buffer_length(), 5);
     assert_eq!(iter.cursor(), 0);
@@ -83,7 +83,7 @@ fn skip_iterator_test() {
     assert_eq!(iter.as_slice(), &digits[..]);
     assert_eq!(iter.as_ptr(), digits.as_ptr());
     assert_eq!(iter.is_consumed(), false);
-    assert_eq!(iter.is_done(), false);
+    assert_eq!(iter.is_buffer_empty(), false);
     assert_eq!(iter.buffer_length(), 6);
     assert_eq!(iter.cursor(), 0);
     assert_eq!(iter.current_count(), 0);

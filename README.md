@@ -142,7 +142,7 @@ Lexical is highly customizable, and contains numerous other optional features:
 - **f16**: &ensp; Add support for numeric conversions to-and-from 16-bit floats.
     <blockquote>Adds <code>f16</code>, a half-precision IEEE-754 floating-point type, and <code>bf16</code>, the Brain Float 16 type, and numeric conversions to-and-from these floats. Note that since these are storage formats, and therefore do not have native arithmetic operations, all conversions are done using an intermediate <code>f32</code>.</blockquote>
 
-To ensure the safety when bounds checking is disabled, we extensively fuzz the all numeric conversion routines. See the [Safety](#safety) section below for more information.
+To ensure memory safety, we extensively fuzz the all numeric conversion routines. See the [Safety](#safety) section below for more information.
 
 Lexical also places a heavy focus on code bloat: with algorithms both optimized for performance and size. By default, this focuses on performance, however, using the `compact` feature, you can also opt-in to reduced code size at the cost of performance. The compact algorithms minimize the use of pre-computed tables and other optimizations at a major cost to performance.
 
@@ -304,9 +304,7 @@ A benchmark on writing floats generated via a random-number generator and parsed
 
 ## Safety
 
-Due to the use of memory unsafe code in the integer and float writers, we extensively fuzz our float writers and parsers. The fuzz harnesses may be found under [fuzz](https://github.com/Alexhuszagh/rust-lexical/tree/main/fuzz), and are run continuously. So far, we've parsed and written over 72 billion floats.
-
-Due to the simple logic of the integer writers, and the lack of memory safety in the integer parsers, we minimally fuzz both, and test it with edge-cases, which has shown no memory safety issues to date.
+Due to the use of memory unsafe code in the library, we extensively fuzz our float writers and parsers. The fuzz harnesses may be found under [fuzz](https://github.com/Alexhuszagh/rust-lexical/tree/main/fuzz), and are run continuously. So far, we've parsed and written over 72 billion floats.
 
 ## Platform Support
 

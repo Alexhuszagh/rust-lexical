@@ -485,7 +485,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let decimal_point = options.decimal_point();
     let exponent_character = options.exponent();
     debug_assert!(format.is_valid());
-    debug_assert!(!byte.is_done());
+    debug_assert!(!byte.is_buffer_empty());
     let bits_per_digit = shared::log2(format.mantissa_radix()) as i64;
     let bits_per_base = shared::log2(format.exponent_base()) as i64;
 
@@ -503,7 +503,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
             // We must have a format like `0x`, `0d`, `0o`. Note:
             is_prefix = true;
             if iter.read_if_value(base_prefix, format.case_sensitive_base_prefix()).is_some()
-                && iter.is_done()
+                && iter.is_buffer_empty()
             {
                 return Err(Error::Empty(iter.cursor()));
             }
@@ -553,7 +553,6 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let mut implicit_exponent: i64;
     let int_end = n_digits as i64;
     let mut fraction_digits = None;
-    // TODO: Change this to something different from read_if_value but same idea
     if byte.first_is_cased(decimal_point) {
         // SAFETY: byte cannot be empty due to first_is
         unsafe { byte.step_unchecked() };
@@ -596,23 +595,23 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let is_exponent = byte
         .first_is(exponent_character, format.case_sensitive_exponent() && cfg!(feature = "format"));
     if is_exponent {
+        // SAFETY: byte cannot be empty due to `first_is` from `is_exponent`.`
+        unsafe { byte.step_unchecked() };
+
         // Check float format syntax checks.
         #[cfg(feature = "format")]
         {
+            // NOTE: We've overstepped for the safety invariant before.
             if format.no_exponent_notation() {
-                return Err(Error::InvalidExponent(byte.cursor()));
+                return Err(Error::InvalidExponent(byte.cursor() - 1));
             }
             // Check if we have no fraction but we required exponent notation.
             if format.no_exponent_without_fraction() && fraction_digits.is_none() {
-                return Err(Error::ExponentWithoutFraction(byte.cursor()));
+                return Err(Error::ExponentWithoutFraction(byte.cursor() - 1));
             }
         }
 
-        // SAFETY: byte cannot be empty due to `first_is` from `is_exponent`.`
-        // TODO: Fix: we need a read_if for bytes themselves?
-        unsafe { byte.step_unchecked() };
         let is_negative = parse_exponent_sign(&mut byte)?;
-
         let before = byte.current_count();
         parse_digits::<_, _, FORMAT>(byte.exponent_iter(), |digit| {
             if explicit_exponent < 0x10000000 {
@@ -679,7 +678,6 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         n_digits = n_digits.saturating_sub(1);
     }
     if zeros.first_is_cased(decimal_point) {
-        // TODO: Fix with some read_if like logic
         // SAFETY: safe since zeros cannot be empty due to first_is
         unsafe { zeros.step_unchecked() };
     }

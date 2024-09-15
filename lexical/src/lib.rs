@@ -350,8 +350,6 @@ pub use lexical_core::{ToLexical, ToLexicalWithOptions};
 #[inline]
 #[cfg(feature = "write")]
 pub fn to_string<N: ToLexical>(n: N) -> String {
-    // TODO: Change to use our `MaybeUnint` API and a `with_capacity` to
-    // avoid the overhead of the calloc here.
     let mut buf = vec![0u8; N::FORMATTED_SIZE_DECIMAL];
     let len = lexical_core::write(n, buf.as_mut_slice()).len();
 

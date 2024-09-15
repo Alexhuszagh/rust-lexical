@@ -49,10 +49,10 @@ impl<'a, const __: u128> Bytes<'a, __> {
         }
     }
 
-    // TODO: Move to `Iter` as a trait along with `new` as well`
     /// Initialize the slice from raw parts.
     ///
     /// # Safety
+    ///
     /// This is safe if and only if the index is <= slc.len().
     /// For this reason, since it's easy to get wrong, we only
     /// expose it to `DigitsIterator` and nothing else.
@@ -65,13 +65,6 @@ impl<'a, const __: u128> Bytes<'a, __> {
             slc,
             index,
         }
-    }
-
-    /// Get if the buffer underlying the iterator is empty.
-    /// Same as `is_consumed`.
-    #[inline(always)]
-    pub fn is_done(&self) -> bool {
-        self.index >= self.slc.len()
     }
 
     /// Get iterator over integer digits.
@@ -107,7 +100,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     }
 }
 
-unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
+impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
     const IS_CONTIGUOUS: bool = true;
 
     #[inline(always)]
@@ -136,12 +129,6 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
     #[inline(always)]
     fn current_count(&self) -> usize {
         self.index
-    }
-
-    // TODO: Rename
-    #[inline(always)]
-    fn is_empty(&self) -> bool {
-        self.as_slice().is_empty()
     }
 
     #[inline(always)]
@@ -212,7 +199,7 @@ impl<'a: 'b, 'b, const __: u128> DigitsIterator<'a, 'b, __> {
     }
 }
 
-unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> {
+impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> {
     const IS_CONTIGUOUS: bool = Bytes::<'a, __>::IS_CONTIGUOUS;
 
     #[inline(always)]
@@ -238,16 +225,6 @@ unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> 
     }
 
     #[inline(always)]
-    fn is_empty(&self) -> bool {
-        self.byte.is_done()
-    }
-
-    #[inline(always)]
-    fn first(&self) -> Option<&'a u8> {
-        self.byte.first()
-    }
-
-    #[inline(always)]
     unsafe fn step_by_unchecked(&mut self, count: usize) {
         debug_assert!(self.as_slice().len() >= count);
         // SAFETY: safe as long as `slc.len() >= count`.
@@ -265,12 +242,7 @@ unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> 
 impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for DigitsIterator<'a, 'b, FORMAT> {
     #[inline(always)]
     fn is_consumed(&mut self) -> bool {
-        Self::is_done(self)
-    }
-
-    #[inline(always)]
-    fn is_done(&self) -> bool {
-        self.byte.is_done()
+        self.is_buffer_empty()
     }
 
     #[inline(always)]
