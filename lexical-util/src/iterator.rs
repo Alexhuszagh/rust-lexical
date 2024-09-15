@@ -31,12 +31,53 @@ pub unsafe trait Iter<'a> {
     /// Determine if the buffer is contiguous in memory.
     const IS_CONTIGUOUS: bool;
 
+    // CURSORS
+    // -------
+
     /// Get a ptr to the current start of the buffer.
     fn as_ptr(&self) -> *const u8;
 
     /// Get a slice to the current start of the buffer.
     fn as_slice(&self) -> &'a [u8];
 
+    /// Get a slice to the full underlying contiguous buffer,
+    fn get_buffer(&self) -> &'a [u8];
+
+    // TODO: Rename to `buffer_length`.
+    /// Get the total number of elements in the underlying buffer.
+    #[inline(always)]
+    fn length(&self) -> usize {
+        self.get_buffer().len()
+    }
+
+    /// Get the current index of the iterator in the slice.
+    fn cursor(&self) -> usize;
+
+    /// Set the current index of the iterator in the slice.
+    ///
+    /// This is **NOT** the current position of the iterator,
+    /// since iterators may skip digits: this is the cursor
+    /// in the underlying buffer. For example, if `slc[2]` is
+    /// skipped, `set_cursor(3)` would be the 3rd element in
+    /// the iterator, not the 4th.
+    ///
+    /// # Safety
+    ///
+    /// Safe if `index <= self.length()`. Although this won't
+    /// affect safety, the caller also should be careful it
+    /// does not set the cursor within skipped characters
+    /// since this could affect correctness: an iterator that
+    /// only accepts non-consecutive digit separators would
+    /// pass if the cursor was set between the two.
+    unsafe fn set_cursor(&mut self, index: usize);
+
+    /// Get the current number of values returned by the iterator.
+    fn current_count(&self) -> usize;
+
+    // TODO: DOCUMENT
+    // PROPERTIES
+
+    // TODO: Fix this naming convention
     /// Get if no bytes are available in the buffer.
     ///
     /// This operators on the underlying buffer: that is,
@@ -54,19 +95,12 @@ pub unsafe trait Iter<'a> {
         Self::IS_CONTIGUOUS
     }
 
-    /// Peek the next value of the buffer, without checking bounds.
-    ///
-    /// # Safety
-    ///
-    /// Safe as long as there is at least a single valid value left in
-    /// the buffer. Note that the behavior of this may lead to out-of-bounds
-    /// access (for contiguous buffers) or panics (for non-contiguous
-    /// buffers).
-    unsafe fn first_unchecked(&self) -> &'a u8;
-
     // TODO: Ensure we get this **RIGHT**
 
     /// Get the next value available without consuming it.
+    ///
+    /// This does **NOT** skip digits, and directly fetches the item
+    /// from the underlying buffer.
     ///
     /// # Safety
     ///
@@ -75,15 +109,7 @@ pub unsafe trait Iter<'a> {
     /// ensure that one value remains, if the iterator is non-
     /// contiguous this means advancing the iterator to the next
     /// position.
-    #[inline(always)]
-    fn first(&self) -> Option<&'a u8> {
-        if !self.is_empty() {
-            // SAFETY: safe since the buffer cannot be empty as validated before.
-            unsafe { Some(self.first_unchecked()) }
-        } else {
-            None
-        }
-    }
+    fn first(&self) -> Option<&'a u8>;
 
     /// Check if the next element is a given value.
     #[inline(always)]
@@ -104,6 +130,76 @@ pub unsafe trait Iter<'a> {
             false
         }
     }
+
+    // TODO(ahuszagh) Change `first_is` to have cased or uncased
+
+    // STEP BY
+    // -------
+
+    /// Advance the internal slice by `N` elements.
+    ///
+    /// This does not advance the iterator by `N` elements for
+    /// non-contiguous iterators: this just advances the internal,
+    /// underlying buffer. This is useful for multi-digit optimizations
+    /// for contiguous iterators.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the buffer advances for non-contiguous
+    /// iterators if the current byte is a digit separator, or if the
+    /// count is more than 1.
+    ///
+    /// # Safety
+    ///
+    /// As long as the iterator is at least `N` elements, this
+    /// is safe.
+    unsafe fn step_by_unchecked(&mut self, count: usize);
+
+    /// Advance the internal slice by 1 element.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the buffer advances for non-contiguous
+    /// iterators if the current byte is a digit separator.
+    ///
+    /// # Safety
+    ///
+    /// Safe as long as the iterator is not empty.
+    #[inline(always)]
+    unsafe fn step_unchecked(&mut self) {
+        debug_assert!(!self.as_slice().is_empty());
+        // SAFETY: safe if `self.index < self.length()`.
+        unsafe { self.step_by_unchecked(1) };
+    }
+
+    // READ
+    // ----
+
+    /// Read a value of a difference type from the iterator.
+    ///
+    /// This advances the internal state of the iterator. This
+    /// can only be implemented for contiguous iterators: non-
+    /// contiguous iterators **MUST** panic.
+    ///
+    /// # Safety
+    ///
+    /// Safe as long as the number of the buffer is contains as least as
+    /// many bytes as the size of V. This must be unimplemented for
+    /// non-contiguous iterators.
+    #[inline(always)]
+    unsafe fn read_unchecked<V>(&self) -> V {
+        unimplemented!();
+    }
+
+    /// Try to read a the next four bytes as a u32.
+    ///
+    /// This advances the internal state of the iterator.
+    fn read_u32(&self) -> Option<u32>;
+
+    /// Try to read the next eight bytes as a u64.
+    ///
+    /// This advances the internal state of the iterator.
+    fn read_u64(&self) -> Option<u64>;
 }
 
 /// Iterator over a contiguous block of bytes.
@@ -124,33 +220,6 @@ pub unsafe trait Iter<'a> {
 /// contiguous buffers.
 pub unsafe trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     // TODO: Move some of these to `Iter` as required.
-
-    /// Get the total number of elements in the underlying slice.
-    fn length(&self) -> usize;
-
-    /// Get the current index of the iterator in the slice.
-    fn cursor(&self) -> usize;
-
-    /// Set the current index of the iterator in the slice.
-    ///
-    /// This is **NOT** the current position of the iterator,
-    /// since iterators may skip digits: this is the cursor
-    /// in the underlying buffer. For example, if `slc[2]` is
-    /// skipped, `set_cursor(3)` would be the 3rd element in
-    /// the iterator, not the 4th.
-    ///
-    /// # Safety
-    ///
-    /// Safe if `index <= self.length()`. Although this won't
-    /// affect safety, the caller also should be careful it
-    /// does not set the cursor within skipped characters.
-    unsafe fn set_cursor(&mut self, index: usize);
-
-    /// Get a slice to the full underlying contiguous buffer,
-    fn get_buffer(&self) -> &'a [u8];
-
-    /// Get the current number of values returned by the iterator.
-    fn current_count(&self) -> usize;
 
     // TODO: Fix the documentation
     /// Get if the iterator cannot return any more elements.
@@ -230,6 +299,8 @@ pub unsafe trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         }
     }
 
+    // TODO(ahuszagh) Add `peek_is` to have cased or uncased
+
     /// Peek the next value and consume it if the read value matches the
     /// expected one.
     #[inline(always)]
@@ -254,56 +325,14 @@ pub unsafe trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     #[inline(always)]
     fn skip_zeros(&mut self) -> usize {
         let start = self.cursor();
+        // TODO: Change to `read_if` for performance.
         while let Some(&b'0') = self.peek() {
+            // TODO: Can probably remove peek? This would be a lot slower like this
             self.next();
         }
         self.cursor() - start
     }
 
-    /// Read a value of a difference type from the iterator.
-    ///
-    /// This advances the internal state of the iterator. This
-    /// can only be implemented for contiguous iterators: non-
-    /// contiguous iterators **MUST** panic.
-    ///
-    /// # Safety
-    ///
-    /// Safe as long as the number of the buffer is contains as least as
-    /// many bytes as the size of V. This must be unimplemented for
-    /// non-contiguous iterators.
-    #[inline(always)]
-    unsafe fn read_unchecked<V>(&self) -> V {
-        unimplemented!();
-    }
-
-    /// Try to read a the next four bytes as a u32.
-    /// This advances the internal state of the iterator.
-    fn read_u32(&self) -> Option<u32>;
-
-    /// Try to read the next eight bytes as a u64
-    /// This advances the internal state of the iterator.
-    fn read_u64(&self) -> Option<u64>;
-
-    /// Advance the internal slice by `N` elements.
-    ///
-    /// This does not advance the iterator by `N` elements for
-    /// non-contiguous iterators: this just advances the internal,
-    /// underlying buffer. This is useful for multi-digit optimizations
-    /// for contiguous iterators.
-    ///
-    /// # Safety
-    ///
-    /// As long as the iterator is at least `N` elements, this
-    /// is safe.
-    unsafe fn step_by_unchecked(&mut self, count: usize);
-
-    /// Advance the internal slice by 1 element.
-    ///
-    /// # Safety
-    ///
-    /// Safe as long as the iterator is not empty.
-    #[inline(always)]
-    unsafe fn step_unchecked(&mut self) {
-        unsafe { self.step_by_unchecked(1) };
-    }
+    /// Determine if the character is a digit.
+    fn is_digit(&self, value: u8) -> bool;
 }
