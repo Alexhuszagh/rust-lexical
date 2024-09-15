@@ -40,11 +40,11 @@ fn starts_with_test() {
 }
 
 #[test]
-fn case_insensitive_starts_with_test() {
-    assert_eq!(shared::case_insensitive_starts_with(b"NaN".iter(), b"nAN".iter()), true);
-    assert_eq!(shared::case_insensitive_starts_with(b"nAN".iter(), b"nAN".iter()), true);
-    assert_eq!(shared::case_insensitive_starts_with(b"nAN1".iter(), b"nAN".iter()), true);
-    assert_eq!(shared::case_insensitive_starts_with(b"nAN1".iter(), b"nAN12".iter()), false);
+fn starts_with_uncased_test() {
+    assert_eq!(shared::starts_with_uncased(b"NaN".iter(), b"nAN".iter()), true);
+    assert_eq!(shared::starts_with_uncased(b"nAN".iter(), b"nAN".iter()), true);
+    assert_eq!(shared::starts_with_uncased(b"nAN1".iter(), b"nAN".iter()), true);
+    assert_eq!(shared::starts_with_uncased(b"nAN1".iter(), b"nAN12".iter()), false);
 }
 
 #[test]

@@ -7,7 +7,7 @@
 
 use core::{mem, ptr};
 
-use crate::{buffer::Buffer, iterator::BytesIter};
+use crate::iterator::{DigitsIter, Iter};
 
 // AS DIGITS
 // ---------
@@ -47,12 +47,13 @@ impl<'a, const __: u128> Bytes<'a, __> {
         }
     }
 
+    // TODO: Move to `Iter` as a trait along with `new` as well`
     /// Initialize the slice from raw parts.
     ///
     /// # Safety
     /// This is safe if and only if the index is <= slc.len().
     /// For this reason, since it's easy to get wrong, we only
-    /// expose it to `BytesIterator` and nothing else.
+    /// expose it to `DigitsIterator` and nothing else.
     #[inline(always)]
     #[allow(clippy::assertions_on_constants)]
     const unsafe fn from_parts(slc: &'a [u8], index: usize) -> Self {
@@ -146,44 +147,45 @@ impl<'a, const __: u128> Bytes<'a, __> {
 
     /// Check if the next element is a given value.
     #[inline(always)]
-    pub fn peek_is(&mut self, value: u8) -> bool {
+    pub fn peek_is_cased(&mut self, value: u8) -> bool {
         self.first_is(value)
     }
 
     /// Check if the next element is a given value without case sensitivity.
     #[inline(always)]
-    pub fn case_insensitive_peek_is(&mut self, value: u8) -> bool {
+    pub fn peek_is_uncased(&mut self, value: u8) -> bool {
         self.case_insensitive_first_is(value)
     }
 
+    // TODO: Rename to DigitsIterator
     /// Get iterator over integer digits.
     #[inline(always)]
-    pub fn integer_iter<'b>(&'b mut self) -> BytesIterator<'a, 'b, __> {
-        BytesIterator {
+    pub fn integer_iter<'b>(&'b mut self) -> DigitsIterator<'a, 'b, __> {
+        DigitsIterator {
             byte: self,
         }
     }
 
     /// Get iterator over fraction digits.
     #[inline(always)]
-    pub fn fraction_iter<'b>(&'b mut self) -> BytesIterator<'a, 'b, __> {
-        BytesIterator {
+    pub fn fraction_iter<'b>(&'b mut self) -> DigitsIterator<'a, 'b, __> {
+        DigitsIterator {
             byte: self,
         }
     }
 
     /// Get iterator over exponent digits.
     #[inline(always)]
-    pub fn exponent_iter<'b>(&'b mut self) -> BytesIterator<'a, 'b, __> {
-        BytesIterator {
+    pub fn exponent_iter<'b>(&'b mut self) -> DigitsIterator<'a, 'b, __> {
+        DigitsIterator {
             byte: self,
         }
     }
 
     /// Get iterator over special floating point values.
     #[inline(always)]
-    pub fn special_iter<'b>(&'b mut self) -> BytesIterator<'a, 'b, __> {
-        BytesIterator {
+    pub fn special_iter<'b>(&'b mut self) -> DigitsIterator<'a, 'b, __> {
+        DigitsIterator {
             byte: self,
         }
     }
@@ -216,7 +218,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     }
 }
 
-unsafe impl<'a, const __: u128> Buffer<'a> for Bytes<'a, __> {
+unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
     const IS_CONTIGUOUS: bool = true;
 
     #[inline(always)]
@@ -247,12 +249,12 @@ unsafe impl<'a, const __: u128> Buffer<'a> for Bytes<'a, __> {
 // ---------------
 
 /// Slice iterator that stores the original length of the slice.
-pub struct BytesIterator<'a: 'b, 'b, const __: u128> {
+pub struct DigitsIterator<'a: 'b, 'b, const __: u128> {
     /// The internal byte object for the noskip iterator.
     byte: &'b mut Bytes<'a, __>,
 }
 
-impl<'a: 'b, 'b, const __: u128> BytesIterator<'a, 'b, __> {
+impl<'a: 'b, 'b, const __: u128> DigitsIterator<'a, 'b, __> {
     /// Take the first N digits from the iterator.
     ///
     /// This only takes the digits if we have a contiguous iterator.
@@ -277,7 +279,7 @@ impl<'a: 'b, 'b, const __: u128> BytesIterator<'a, 'b, __> {
     }
 }
 
-unsafe impl<'a: 'b, 'b, const __: u128> Buffer<'a> for BytesIterator<'a, 'b, __> {
+unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> {
     const IS_CONTIGUOUS: bool = Bytes::<'a, __>::IS_CONTIGUOUS;
 
     #[inline(always)]
@@ -302,7 +304,7 @@ unsafe impl<'a: 'b, 'b, const __: u128> Buffer<'a> for BytesIterator<'a, 'b, __>
     }
 }
 
-unsafe impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
+unsafe impl<'a: 'b, 'b, const __: u128> DigitsIter<'a> for DigitsIterator<'a, 'b, __> {
     #[inline(always)]
     fn length(&self) -> usize {
         self.byte.length()
@@ -321,7 +323,7 @@ unsafe impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, 
     }
 
     #[inline(always)]
-    fn as_full_slice(&self) -> &'a [u8] {
+    fn get_buffer(&self) -> &'a [u8] {
         self.byte.slc
     }
 
@@ -341,14 +343,8 @@ unsafe impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, 
     }
 
     #[inline(always)]
-    unsafe fn peek_unchecked(&mut self) -> <Self as Iterator>::Item {
-        // SAFETY: safe if `self.cursor() < self.length()`.
-        unsafe { self.first_unchecked() }
-    }
-
-    #[inline(always)]
     fn peek(&mut self) -> Option<<Self as Iterator>::Item> {
-        self.first()
+        self.byte.slc.get(self.byte.index)
     }
 
     #[inline(always)]
@@ -383,7 +379,7 @@ unsafe impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, 
     }
 }
 
-impl<'a: 'b, 'b, const __: u128> Iterator for BytesIterator<'a, 'b, __> {
+impl<'a: 'b, 'b, const __: u128> Iterator for DigitsIterator<'a, 'b, __> {
     type Item = &'a u8;
 
     #[inline(always)]
@@ -394,7 +390,7 @@ impl<'a: 'b, 'b, const __: u128> Iterator for BytesIterator<'a, 'b, __> {
     }
 }
 
-impl<'a: 'b, 'b, const __: u128> ExactSizeIterator for BytesIterator<'a, 'b, __> {
+impl<'a: 'b, 'b, const __: u128> ExactSizeIterator for DigitsIterator<'a, 'b, __> {
     #[inline(always)]
     fn len(&self) -> usize {
         self.length() - self.cursor()

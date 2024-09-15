@@ -13,13 +13,12 @@
 use lexical_parse_integer::algorithm;
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
-use lexical_util::buffer::Buffer;
 use lexical_util::digit::{char_to_digit_const, char_to_valid_digit_const};
 use lexical_util::error::Error;
 #[cfg(feature = "f16")]
 use lexical_util::f16::f16;
 use lexical_util::format::NumberFormat;
-use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
+use lexical_util::iterator::{AsBytes, Bytes, DigitsIter, Iter};
 use lexical_util::result::Result;
 use lexical_util::step::u64_step;
 
@@ -250,7 +249,7 @@ pub fn parse_exponent_sign<const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> 
 /// Utility to extract the result and handle any errors from parsing a `Number`.
 ///
 /// - `format` - The numberical format as a packed integer
-/// - `byte` - The BytesIter iterator
+/// - `byte` - The DigitsIter iterator
 /// - `is_negative` - If the final value is negative
 /// - `parse_normal` - The function to parse non-special numbers with
 /// - `parse_special` - The function to parse special numbers with
@@ -748,8 +747,9 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     n_digits -= step;
     let mut zeros = start.clone();
     let mut zeros_integer = zeros.integer_iter();
-    while zeros_integer.peek_is(b'0') {
+    while zeros_integer.peek_is_cased(b'0') {
         n_digits = n_digits.saturating_sub(1);
+        // TODO: Change to read_if
         // SAFETY: safe since zeros cannot be empty due to peek_is
         unsafe { zeros_integer.step_unchecked() };
     }
@@ -758,7 +758,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         unsafe { zeros.step_unchecked() };
     }
     let mut zeros_fraction = zeros.fraction_iter();
-    while zeros_fraction.peek_is(b'0') {
+    while zeros_fraction.peek_is_cased(b'0') {
         n_digits = n_digits.saturating_sub(1);
         // SAFETY: safe since zeros cannot be empty due to peek_is
         unsafe { zeros_fraction.step_unchecked() };
@@ -840,7 +840,7 @@ pub fn parse_number<'a, const FORMAT: u128>(
 #[inline(always)]
 pub fn parse_digits<'a, Iter, Cb, const FORMAT: u128>(mut iter: Iter, mut cb: Cb)
 where
-    Iter: BytesIter<'a>,
+    Iter: DigitsIter<'a>,
     Cb: FnMut(u32),
 {
     let format = NumberFormat::<{ FORMAT }> {};
@@ -860,7 +860,7 @@ where
 #[cfg(not(feature = "compact"))]
 pub fn parse_8digits<'a, Iter, const FORMAT: u128>(mut iter: Iter, mantissa: &mut u64)
 where
-    Iter: BytesIter<'a>,
+    Iter: DigitsIter<'a>,
 {
     let format = NumberFormat::<{ FORMAT }> {};
     let radix: u64 = format.radix() as u64;
@@ -886,7 +886,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     mantissa: &mut u64,
     step: &mut usize,
 ) where
-    Iter: BytesIter<'a>,
+    Iter: DigitsIter<'a>,
 {
     let format = NumberFormat::<{ FORMAT }> {};
     let radix = format.radix() as u64;
@@ -934,7 +934,7 @@ pub fn is_special_eq<const FORMAT: u128>(mut byte: Bytes<FORMAT>, string: &'stat
             byte.special_iter().peek();
             return byte.cursor();
         }
-    } else if shared::case_insensitive_starts_with(byte.special_iter(), string.iter()) {
+    } else if shared::starts_with_uncased(byte.special_iter(), string.iter()) {
         // Trim the iterator afterwards.
         byte.special_iter().peek();
         return byte.cursor();

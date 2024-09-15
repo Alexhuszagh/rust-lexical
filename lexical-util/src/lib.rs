@@ -42,10 +42,10 @@
 //! traits to clearly define safety invariants and localize any unsafety to
 //! 1 or 2 lines of code.
 //!
-//! The core, unsafe trait is `BytesIter` and `Buffer`, both which expect
+//! The core, unsafe trait is `DigitsIter` and `Iter`, both which expect
 //! to be backed by a contiguous block of memory (a slice) but may skip
 //! bytes internally. To guarantee safety, for non-skip iterators you
-//! must implement [BytesIter::is_consumed][is_consumed] correctly.
+//! must implement [DigitsIter::is_consumed][is_consumed] correctly.
 //!
 //! This must correctly determine if there are any elements left in the
 //! iterator. If the buffer is contiguous, this can just be `index ==
@@ -55,21 +55,18 @@
 //! correctly.
 //!
 //! To see if the cursor is at the end of the buffer, use
-//! [BytesIter::is_done][is_done].
+//! [DigitsIter::is_done][is_done].
 //!
 //! Any iterators must be peekable: you must be able to read and return the next
 //! value without advancing the iterator past that point. For iterators that
 //! skip bytes, this means advancing to the next element to be returned and
-//! returning that value. Therefore, [peek_unchecked] for skip iterators must be
-//! implemented in terms of [peek]: you must peek the next element and
-//! [peek_unchecked] will merely unwrap this value. Contiguous iterators can use
-//! raw indexing instead.
+//! returning that value.
 //!
 //! For examples of how to safely implement skip iterators, you can do something
 //! like:
 //!
 //! ```rust,ignore
-//! unsafe impl<_> BytesIter<_> for MyIter {
+//! unsafe impl<_> DigitsIter<_> for MyIter {
 //!     fn peek(&mut self) -> Option<u8> {
 //!         loop {
 //!             let value = self.bytes.get(self.index)?;
@@ -98,10 +95,9 @@
 //! }
 //! ```
 //!
-//! [is_done]: iterator::BytesIter::is_done
-//! [is_consumed]: iterator::BytesIter::is_consumed
-//! [peek]: iterator::BytesIter::peek
-//! [peek_unchecked]: iterator::BytesIter::peek_unchecked
+//! [is_done]: iterator::DigitsIter::is_done
+//! [is_consumed]: iterator::DigitsIter::is_consumed
+//! [peek]: iterator::DigitsIter::peek
 
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
@@ -113,7 +109,6 @@ pub mod algorithm;
 pub mod ascii;
 pub mod assert;
 pub mod bf16;
-pub mod buffer;
 pub mod constants;
 pub mod digit;
 pub mod div128;

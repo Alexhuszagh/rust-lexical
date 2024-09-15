@@ -1,7 +1,6 @@
 #![cfg(feature = "parse")]
 
-use lexical_util::buffer::Buffer;
-use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
+use lexical_util::iterator::{AsBytes, Bytes, DigitsIter, Iter};
 
 #[test]
 #[cfg(not(feature = "format"))]
@@ -32,7 +31,7 @@ fn digits_iterator_test() {
     assert_eq!(iter.length(), 5);
     assert_eq!(iter.cursor(), 4);
     assert_eq!(iter.current_count(), 4);
-    assert_eq!(unsafe { iter.peek_unchecked() }, &b'5');
+    assert_eq!(iter.peek(), Some(&b'5'));
     assert_eq!(iter.peek(), Some(&b'5'));
     assert_eq!(iter.next(), Some(&b'5'));
     assert_eq!(iter.peek(), None);
@@ -97,7 +96,7 @@ fn skip_iterator_test() {
 
     let mut byte = digits.bytes::<{ FORMAT }>();
     let mut iter = byte.integer_iter();
-    assert_eq!(unsafe { iter.peek_unchecked() }, &b'1');
+    assert_eq!(iter.peek(), Some(&b'1'));
     assert_eq!(iter.peek(), Some(&b'1'));
     assert_eq!(iter.next(), Some(&b'1'));
     assert_eq!(iter.next(), Some(&b'2'));

@@ -1,16 +1,110 @@
 //! Specialized iterator traits.
 //!
-//! The traits are iterable, and provide optimizations for contiguous
-//! iterators, while still working for non-contiguous data.
+//! The traits are for iterables containing bytes, and provide optimizations
+//! which then can be used for contiguous or non-contiguous iterables,
+//! including containers or iterators of any kind.
 
 #![cfg(feature = "parse")]
 
-pub use crate::buffer::Buffer;
 // Re-export our digit iterators.
 #[cfg(not(feature = "format"))]
 pub use crate::noskip::{AsBytes, Bytes};
 #[cfg(feature = "format")]
 pub use crate::skip::{AsBytes, Bytes};
+
+/// A trait for working with iterables of bytes.
+///
+/// These iterators can either be contiguous or not contiguous and provide
+/// methods for reading data and accessing underlying data. The readers
+/// can either be contiguous or non-contiguous, although performance and
+/// some API methods may not be available for both.
+///
+/// # Safety
+///
+/// // TODO: FIX CORRECTNESS DOCUMENTATION
+/// This trait is effectively safe but the implementor must guarantee that
+/// `is_empty` is implemented correctly. For most implementations, this can
+/// be `self.as_slice().is_empty()`, where `as_slice` is implemented as
+/// `&self.bytes[self.index..]`.
+#[cfg(feature = "parse")]
+pub unsafe trait Iter<'a> {
+    /// Determine if the buffer is contiguous in memory.
+    const IS_CONTIGUOUS: bool;
+
+    /// Get a ptr to the current start of the buffer.
+    fn as_ptr(&self) -> *const u8;
+
+    /// Get a slice to the current start of the buffer.
+    fn as_slice(&self) -> &'a [u8];
+
+    /// Get if no bytes are available in the buffer.
+    ///
+    /// This operators on the underlying buffer: that is,
+    /// it returns if [as_slice] would return an empty slice.
+    ///
+    /// [as_slice]: Iter::as_slice
+    #[inline(always)]
+    fn is_empty(&self) -> bool {
+        self.as_slice().is_empty()
+    }
+
+    /// Determine if the buffer is contiguous.
+    #[inline(always)]
+    fn is_contiguous(&self) -> bool {
+        Self::IS_CONTIGUOUS
+    }
+
+    /// Peek the next value of the buffer, without checking bounds.
+    ///
+    /// # Safety
+    ///
+    /// Safe as long as there is at least a single valid value left in
+    /// the buffer. Note that the behavior of this may lead to out-of-bounds
+    /// access (for contiguous buffers) or panics (for non-contiguous
+    /// buffers).
+    unsafe fn first_unchecked(&self) -> &'a u8;
+
+    // TODO: Ensure we get this **RIGHT**
+
+    /// Get the next value available without consuming it.
+    ///
+    /// # Safety
+    ///
+    /// An implementor must implement `is_empty` correctly in
+    /// order to guarantee the traitt is safe: `is_empty` **MUST**
+    /// ensure that one value remains, if the iterator is non-
+    /// contiguous this means advancing the iterator to the next
+    /// position.
+    #[inline(always)]
+    fn first(&self) -> Option<&'a u8> {
+        if !self.is_empty() {
+            // SAFETY: safe since the buffer cannot be empty as validated before.
+            unsafe { Some(self.first_unchecked()) }
+        } else {
+            None
+        }
+    }
+
+    /// Check if the next element is a given value.
+    #[inline(always)]
+    fn first_is(&self, value: u8) -> bool {
+        if let Some(&c) = self.first() {
+            c == value
+        } else {
+            false
+        }
+    }
+
+    /// Check if the next element is a given value without case sensitivity.
+    #[inline(always)]
+    fn case_insensitive_first_is(&self, value: u8) -> bool {
+        if let Some(&c) = self.first() {
+            c.to_ascii_lowercase() == value.to_ascii_lowercase()
+        } else {
+            false
+        }
+    }
+}
 
 /// Iterator over a contiguous block of bytes.
 ///
@@ -23,11 +117,14 @@ pub use crate::skip::{AsBytes, Bytes};
 ///
 /// # Safety
 ///
+/// TODO: Fix the safety documentation here...
 /// The safe methods are sound as long as the caller ensures that
 /// the methods for `read_32`, `read_64`, etc. check the bounds
 /// of the underlying contiguous buffer and is only called on
 /// contiguous buffers.
-pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> + Buffer<'a> {
+pub unsafe trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
+    // TODO: Move some of these to `Iter` as required.
+
     /// Get the total number of elements in the underlying slice.
     fn length(&self) -> usize;
 
@@ -49,13 +146,13 @@ pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> + Buffer<'a> {
     /// does not set the cursor within skipped characters.
     unsafe fn set_cursor(&mut self, index: usize);
 
-    /// Get a slice to the full buffer, which may or may not be the same as
-    /// `as_slice`.
-    fn as_full_slice(&self) -> &'a [u8];
+    /// Get a slice to the full underlying contiguous buffer,
+    fn get_buffer(&self) -> &'a [u8];
 
     /// Get the current number of values returned by the iterator.
     fn current_count(&self) -> usize;
 
+    // TODO: Fix the documentation
     /// Get if the iterator cannot return any more elements.
     ///
     /// This may advance the internal iterator state, but not
@@ -77,9 +174,9 @@ pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> + Buffer<'a> {
     /// If you would like to see if the cursor is at the end of the buffer,
     /// see [is_done] or [is_empty] instead.
     ///
-    /// [is_done]: BytesIter::is_done
-    /// [is_empty]: Buffer::is_empty
-    /// [peek]: BytesIter::peek
+    /// [is_done]: DigitsIter::is_done
+    /// [is_empty]: Iter::is_empty
+    /// [peek]: DigitsIter::peek
     #[inline(always)]
     #[allow(clippy::wrong_self_convention)]
     fn is_consumed(&mut self) -> bool {
@@ -94,39 +191,19 @@ pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> + Buffer<'a> {
     /// iterator has an empty slice. It is effectively a cheaper,
     /// but weaker variant of [is_consumed].
     ///
-    /// [is_consumed]: BytesIter::is_consumed
+    /// [is_consumed]: DigitsIter::is_consumed
     fn is_done(&self) -> bool;
-
-    /// Peek the next value of the iterator, without checking bounds.
-    ///
-    /// Note that this can modify the internal state, by skipping digits
-    /// for iterators that find the first non-zero value, etc.
-    ///
-    /// # Safety
-    ///
-    /// Safe as long as there is at least a single valid value left in
-    /// the iterator. Note that the behavior of this may lead to out-of-bounds
-    /// access (for contiguous iterators) or panics (for non-contiguous
-    /// iterators).
-    unsafe fn peek_unchecked(&mut self) -> Self::Item;
 
     /// Peek the next value of the iterator, without consuming it.
     ///
     /// Note that this can modify the internal state, by skipping digits
     /// for iterators that find the first non-zero value, etc.
-    #[inline(always)]
-    fn peek(&mut self) -> Option<Self::Item> {
-        if !self.is_empty() {
-            // SAFETY: safe since the buffer cannot be empty
-            unsafe { Some(self.peek_unchecked()) }
-        } else {
-            None
-        }
-    }
+    fn peek(&mut self) -> Option<Self::Item>;
 
     /// Peek the next value of the iterator, and step only if it exists.
     #[inline(always)]
     fn try_read(&mut self) -> Option<Self::Item> {
+        // TODO: Fix this
         if let Some(value) = self.peek() {
             // SAFETY: the slice cannot be empty because we peeked a value.
             unsafe { self.step_unchecked() };
@@ -137,10 +214,17 @@ pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> + Buffer<'a> {
     }
 
     /// Check if the next element is a given value.
+    // TODO: Change this to peek_is_cased
     #[inline(always)]
-    fn peek_is(&mut self, value: u8) -> bool {
+    fn peek_is_cased(&mut self, value: u8) -> bool {
+        Some(&value) == self.peek()
+    }
+
+    /// Check if the next element is a given value without case sensitivity.
+    #[inline(always)]
+    fn peek_is_uncased(&mut self, value: u8) -> bool {
         if let Some(&c) = self.peek() {
-            c == value
+            c.to_ascii_lowercase() == value.to_ascii_lowercase()
         } else {
             false
         }
@@ -163,16 +247,6 @@ pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> + Buffer<'a> {
             }
         } else {
             None
-        }
-    }
-
-    /// Check if the next element is a given value without case sensitivity.
-    #[inline(always)]
-    fn case_insensitive_peek_is(&mut self, value: u8) -> bool {
-        if let Some(&c) = self.peek() {
-            c.to_ascii_lowercase() == value.to_ascii_lowercase()
-        } else {
-            false
         }
     }
 

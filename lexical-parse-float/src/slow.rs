@@ -10,12 +10,11 @@ use core::cmp;
 
 #[cfg(not(feature = "compact"))]
 use lexical_parse_integer::algorithm;
-use lexical_util::buffer::Buffer;
 use lexical_util::digit::char_to_valid_digit_const;
 #[cfg(feature = "radix")]
 use lexical_util::digit::digit_to_char_const;
 use lexical_util::format::NumberFormat;
-use lexical_util::iterator::{AsBytes, BytesIter};
+use lexical_util::iterator::{AsBytes, DigitsIter, Iter};
 use lexical_util::num::{AsPrimitive, Integer};
 
 #[cfg(feature = "radix")]

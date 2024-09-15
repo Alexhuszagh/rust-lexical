@@ -32,11 +32,10 @@
 
 #![doc(hidden)]
 
-use lexical_util::buffer::Buffer;
 use lexical_util::digit::char_to_digit_const;
 use lexical_util::error::Error;
 use lexical_util::format::NumberFormat;
-use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
+use lexical_util::iterator::{AsBytes, Bytes, DigitsIter, Iter};
 use lexical_util::num::{as_cast, Integer};
 use lexical_util::result::Result;
 
@@ -45,7 +44,7 @@ use crate::Options;
 // HELPERS
 
 /// Check if we should do multi-digit optimizations
-const fn can_try_parse_multidigits<'a, Iter: BytesIter<'a>, const FORMAT: u128>(_: &Iter) -> bool {
+const fn can_try_parse_multidigits<'a, Iter: DigitsIter<'a>, const FORMAT: u128>(_: &Iter) -> bool {
     let format = NumberFormat::<FORMAT> {};
     Iter::IS_CONTIGUOUS && (cfg!(not(feature = "power-of-two")) || format.mantissa_radix() <= 10)
 }
@@ -230,7 +229,7 @@ pub fn parse_4digits<const FORMAT: u128>(mut v: u32) -> u32 {
 pub fn try_parse_4digits<'a, T, Iter, const FORMAT: u128>(iter: &mut Iter) -> Option<T>
 where
     T: Integer,
-    Iter: BytesIter<'a>,
+    Iter: DigitsIter<'a>,
 {
     // Can't do fast optimizations with radixes larger than 10, since
     // we no longer have a contiguous ASCII block. Likewise, cannot
@@ -304,7 +303,7 @@ pub fn parse_8digits<const FORMAT: u128>(mut v: u64) -> u64 {
 pub fn try_parse_8digits<'a, T, Iter, const FORMAT: u128>(iter: &mut Iter) -> Option<T>
 where
     T: Integer,
-    Iter: BytesIter<'a>,
+    Iter: DigitsIter<'a>,
 {
     // Can't do fast optimizations with radixes larger than 10, since
     // we no longer have a contiguous ASCII block. Likewise, cannot
