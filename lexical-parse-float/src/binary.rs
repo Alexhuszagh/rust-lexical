@@ -10,7 +10,7 @@
 use lexical_parse_integer::algorithm;
 use lexical_util::digit::char_to_valid_digit_const;
 use lexical_util::format::NumberFormat;
-use lexical_util::iterator::{AsBytes, BytesIter};
+use lexical_util::iterator::{AsBytes, DigitsIter};
 use lexical_util::step::u64_step;
 
 use crate::float::{ExtendedFloat80, RawFloat};
@@ -104,7 +104,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     overflowed: &mut bool,
     zero: &mut bool,
 ) where
-    Iter: BytesIter<'a>,
+    Iter: DigitsIter<'a>,
 {
     let format = NumberFormat::<{ FORMAT }> {};
     let radix = format.radix() as u64;

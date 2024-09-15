@@ -1,7 +1,6 @@
 #![cfg(feature = "parse")]
 
-use lexical_util::buffer::Buffer;
-use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
+use lexical_util::iterator::{AsBytes, Bytes, DigitsIter, Iter};
 
 #[test]
 #[cfg(not(feature = "format"))]
@@ -22,17 +21,17 @@ fn digits_iterator_test() {
     assert_eq!(iter.as_ptr(), digits.as_ptr());
     assert_eq!(iter.is_consumed(), false);
     assert_eq!(iter.is_done(), false);
-    assert_eq!(u32::from_le(iter.read_u32().unwrap()), 0x34333231);
-    assert_eq!(iter.length(), 5);
+    assert_eq!(u32::from_le(iter.peek_u32().unwrap()), 0x34333231);
+    assert_eq!(iter.buffer_length(), 5);
     assert_eq!(iter.cursor(), 0);
     assert_eq!(iter.current_count(), 0);
     unsafe {
         iter.step_by_unchecked(4);
     }
-    assert_eq!(iter.length(), 5);
+    assert_eq!(iter.buffer_length(), 5);
     assert_eq!(iter.cursor(), 4);
     assert_eq!(iter.current_count(), 4);
-    assert_eq!(unsafe { iter.peek_unchecked() }, &b'5');
+    assert_eq!(iter.peek(), Some(&b'5'));
     assert_eq!(iter.peek(), Some(&b'5'));
     assert_eq!(iter.next(), Some(&b'5'));
     assert_eq!(iter.peek(), None);
@@ -40,7 +39,7 @@ fn digits_iterator_test() {
 
     let mut byte = digits.bytes::<{ STANDARD }>();
     let mut iter = byte.integer_iter();
-    assert_eq!(iter.read_u64(), None);
+    assert_eq!(iter.peek_u64(), None);
     assert_eq!(iter.nth(4).unwrap(), &b'5');
     assert_eq!(iter.as_slice(), &digits[digits.len()..]);
     assert_eq!(iter.as_ptr(), digits[digits.len()..].as_ptr());
@@ -85,7 +84,7 @@ fn skip_iterator_test() {
     assert_eq!(iter.as_ptr(), digits.as_ptr());
     assert_eq!(iter.is_consumed(), false);
     assert_eq!(iter.is_done(), false);
-    assert_eq!(iter.length(), 6);
+    assert_eq!(iter.buffer_length(), 6);
     assert_eq!(iter.cursor(), 0);
     assert_eq!(iter.current_count(), 0);
     unsafe { iter.step_unchecked() };
@@ -97,7 +96,7 @@ fn skip_iterator_test() {
 
     let mut byte = digits.bytes::<{ FORMAT }>();
     let mut iter = byte.integer_iter();
-    assert_eq!(unsafe { iter.peek_unchecked() }, &b'1');
+    assert_eq!(iter.peek(), Some(&b'1'));
     assert_eq!(iter.peek(), Some(&b'1'));
     assert_eq!(iter.next(), Some(&b'1'));
     assert_eq!(iter.next(), Some(&b'2'));

@@ -114,7 +114,7 @@ where
 /// This optimizes decently well, to the following ASM for pure slices:
 ///
 /// ```text
-/// case_insensitive_starts_with_slc:
+/// starts_with_uncased:
 ///         xor     eax, eax
 /// .LBB1_1:
 ///         cmp     rcx, rax
@@ -134,7 +134,7 @@ where
 ///         ret
 /// ```
 #[cfg_attr(not(feature = "compact"), inline(always))]
-pub fn case_insensitive_starts_with<'a, 'b, Iter1, Iter2>(mut x: Iter1, mut y: Iter2) -> bool
+pub fn starts_with_uncased<'a, 'b, Iter1, Iter2>(mut x: Iter1, mut y: Iter2) -> bool
 where
     Iter1: Iterator<Item = &'a u8>,
     Iter2: Iterator<Item = &'b u8>,

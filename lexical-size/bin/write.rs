@@ -1,8 +1,6 @@
 #[allow(unused_macros)]
 macro_rules! integer_module {
     ($t:ty) => {
-        #[cfg(feature = "lexical")]
-        use core::mem;
         use std::io::BufRead;
         #[cfg(not(feature = "lexical"))]
         use std::io::Write;
@@ -27,10 +25,7 @@ macro_rules! integer_module {
 
             #[cfg(feature = "lexical")]
             {
-                // FIXME: This is UB but it doesn't affect code integrity here
-                //  Undo when we implement #92.
-                let buffer: mem::MaybeUninit<[u8; 128]> = mem::MaybeUninit::uninit();
-                let mut buffer = unsafe { buffer.assume_init() };
+                let mut buffer: [u8; 128] = [0u8; 128];
                 println!("{}", value.to_lexical(&mut buffer).len());
             }
 
@@ -47,8 +42,6 @@ macro_rules! integer_module {
 #[allow(unused_macros)]
 macro_rules! float_module {
     ($t:ty) => {
-        #[cfg(feature = "lexical")]
-        use core::mem;
         use std::io::BufRead;
         #[cfg(not(feature = "lexical"))]
         use std::io::Write;
@@ -73,10 +66,7 @@ macro_rules! float_module {
 
             #[cfg(feature = "lexical")]
             {
-                // FIXME: This is UB but it doesn't affect code integrity here
-                //  Undo when we implement #92.
-                let buffer: mem::MaybeUninit<[u8; 128]> = mem::MaybeUninit::uninit();
-                let mut buffer = unsafe { buffer.assume_init() };
+                let mut buffer = [0u8; 128];
                 println!("{}", value.to_lexical(&mut buffer).len());
             }
 

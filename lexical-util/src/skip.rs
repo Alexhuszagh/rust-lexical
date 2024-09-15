@@ -43,11 +43,10 @@
 
 use core::{mem, ptr};
 
-use crate::buffer::Buffer;
 use crate::digit::char_is_digit_const;
 use crate::format::NumberFormat;
 use crate::format_flags as flags;
-use crate::iterator::BytesIter;
+use crate::iterator::{DigitsIter, Iter};
 
 // PEEK
 // ----
@@ -150,7 +149,7 @@ macro_rules! peek_1 {
             // a non-digit separator character. Don't need any complex checks
             // here, since we've already done them above.
             let mut index = $self.byte.index + 1;
-            while index < $self.length()
+            while index < $self.buffer_length()
                 && $self.byte.slc.get(index).map_or(false, |&x| $self.is_digit_separator(x))
             {
                 index += 1;
@@ -370,7 +369,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// # Safety
     /// This is safe if and only if the index is <= slc.len().
     /// For this reason, since it's easy to get wrong, we only
-    /// expose it to our `BytesIterator`s and nothing else.
+    /// expose it to our `DigitsIterator`s and nothing else.
     ///
     /// This is only ever used for contiguous arrays.
     #[inline(always)]
@@ -384,40 +383,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         }
     }
 
-    /// Get the total number of elements in the underlying slice.
-    #[inline(always)]
-    pub fn length(&self) -> usize {
-        self.slc.len()
-    }
-
-    /// Get the current index of the iterator in the slice.
-    #[inline(always)]
-    pub fn cursor(&self) -> usize {
-        self.index
-    }
-
-    /// Set the current index of the iterator in the slice.
-    ///
-    /// # Safety
-    ///
-    /// Safe if `index <= self.length()`.
-    #[inline(always)]
-    pub unsafe fn set_cursor(&mut self, index: usize) {
-        debug_assert!(index <= self.length());
-        self.index = index
-    }
-
-    /// Get the current number of values returned by the iterator.
-    #[inline(always)]
-    pub fn current_count(&self) -> usize {
-        // If the buffer is contiguous, then we don't need to track the
-        // number of values: the current index is enough.
-        if Self::IS_CONTIGUOUS {
-            self.index
-        } else {
-            self.count
-        }
-    }
+    // TODO: Move this to our iter trait
 
     /// Get if the buffer underlying the iterator is empty.
     ///
@@ -431,57 +397,10 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         self.index >= self.slc.len()
     }
 
-    // Determine if the abstraction is contiguous.
-    #[inline(always)]
-    pub fn is_contiguous(&self) -> bool {
-        Self::IS_CONTIGUOUS
-    }
-
-    /// Read a value of a difference type from the iterator.
-    /// This advances the internal state of the iterator.
-    ///
-    /// # Safety
-    ///
-    /// Safe as long as the number of the buffer is contains as least as
-    /// many bytes as the size of V, and V is valid for all bit patterns.
-    #[inline(always)]
-    pub unsafe fn read_unchecked<V>(&self) -> V {
-        debug_assert!(Self::IS_CONTIGUOUS);
-        debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
-
-        let slc = self.as_slice();
-        // SAFETY: safe as long as the slice has at least count elements.
-        unsafe { ptr::read_unaligned::<V>(slc.as_ptr() as *const _) }
-    }
-
-    /// Try to read a the next four bytes as a u32.
-    /// This advances the internal state of the iterator.
-    #[inline(always)]
-    fn read_u32(&self) -> Option<u32> {
-        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u32>() {
-            // SAFETY: safe since we've guaranteed the buffer is greater than
-            // the number of elements read. u32 is valid for all bit patterns
-            unsafe { Some(self.read_unchecked()) }
-        } else {
-            None
-        }
-    }
-    /// Try to read a the next four bytes as a u32.
-    /// This advances the internal state of the iterator.
-    #[inline(always)]
-    fn read_u64(&self) -> Option<u64> {
-        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u64>() {
-            // SAFETY: safe since we've guaranteed the buffer is greater than
-            // the number of elements read. u64 is valid for all bit patterns
-            unsafe { Some(self.read_unchecked()) }
-        } else {
-            None
-        }
-    }
-
     /// Check if the next element is a given value.
+    // TODO: Remove the peek methods, these shouldn't be on `bytes`.
     #[inline(always)]
-    pub fn peek_is(&mut self, value: u8) -> bool {
+    pub fn peek_is_cased(&mut self, value: u8) -> bool {
         // Don't assert not a digit separator, since this can occur when
         // a different component does not allow digit separators there.
         if let Some(&c) = self.first() {
@@ -491,58 +410,90 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         }
     }
 
-    /// Check if the next element is a given value without case sensitivity.
-    #[inline(always)]
-    pub fn case_insensitive_peek_is(&mut self, value: u8) -> bool {
-        // Don't assert not a digit separator, since this can occur when
-        // a different component does not allow digit separators there.
-        if let Some(&c) = self.first() {
-            c.to_ascii_lowercase() == value.to_ascii_lowercase()
-        } else {
-            false
-        }
-    }
-
     /// Get iterator over integer digits.
     #[inline(always)]
-    pub fn integer_iter<'b>(&'b mut self) -> IntegerBytesIterator<'a, 'b, FORMAT> {
-        IntegerBytesIterator {
+    pub fn integer_iter<'b>(&'b mut self) -> IntegerDigitsIterator<'a, 'b, FORMAT> {
+        IntegerDigitsIterator {
             byte: self,
         }
     }
 
     /// Get iterator over fraction digits.
     #[inline(always)]
-    pub fn fraction_iter<'b>(&'b mut self) -> FractionBytesIterator<'a, 'b, FORMAT> {
-        FractionBytesIterator {
+    pub fn fraction_iter<'b>(&'b mut self) -> FractionDigitsIterator<'a, 'b, FORMAT> {
+        FractionDigitsIterator {
             byte: self,
         }
     }
 
     /// Get iterator over exponent digits.
     #[inline(always)]
-    pub fn exponent_iter<'b>(&'b mut self) -> ExponentBytesIterator<'a, 'b, FORMAT> {
-        ExponentBytesIterator {
+    pub fn exponent_iter<'b>(&'b mut self) -> ExponentDigitsIterator<'a, 'b, FORMAT> {
+        ExponentDigitsIterator {
             byte: self,
         }
     }
 
     /// Get iterator over special floating point values.
     #[inline(always)]
-    pub fn special_iter<'b>(&'b mut self) -> SpecialBytesIterator<'a, 'b, FORMAT> {
-        SpecialBytesIterator {
+    pub fn special_iter<'b>(&'b mut self) -> SpecialDigitsIterator<'a, 'b, FORMAT> {
+        SpecialDigitsIterator {
             byte: self,
         }
     }
+}
 
-    /// Advance the byte by `N` elements.
+unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
+    /// If each yielded value is adjacent in memory.
+    const IS_CONTIGUOUS: bool = NumberFormat::<{ FORMAT }>::DIGIT_SEPARATOR == 0;
+
+    #[inline(always)]
+    fn get_buffer(&self) -> &'a [u8] {
+        self.slc
+    }
+
+    /// Get the current index of the iterator in the slice.
+    #[inline(always)]
+    fn cursor(&self) -> usize {
+        self.index
+    }
+
+    /// Set the current index of the iterator in the slice.
     ///
     /// # Safety
     ///
-    /// As long as the iterator is at least `N` elements, this
-    /// is safe.
+    /// Safe if `index <= self.buffer_length()`.
     #[inline(always)]
-    pub unsafe fn step_by_unchecked(&mut self, count: usize) {
+    unsafe fn set_cursor(&mut self, index: usize) {
+        debug_assert!(index <= self.buffer_length());
+        self.index = index
+    }
+
+    /// Get the current number of values returned by the iterator.
+    #[inline(always)]
+    fn current_count(&self) -> usize {
+        // If the buffer is contiguous, then we don't need to track the
+        // number of values: the current index is enough.
+        if Self::IS_CONTIGUOUS {
+            self.index
+        } else {
+            self.count
+        }
+    }
+
+    // TODO: Rename
+    #[inline(always)]
+    fn is_empty(&self) -> bool {
+        self.index >= self.slc.len()
+    }
+
+    #[inline(always)]
+    fn first(&self) -> Option<&'a u8> {
+        self.slc.get(self.index)
+    }
+
+    #[inline(always)]
+    unsafe fn step_by_unchecked(&mut self, count: usize) {
         if Self::IS_CONTIGUOUS {
             // Contiguous, can skip most of these checks.
             debug_assert!(self.as_slice().len() >= count);
@@ -566,44 +517,14 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         }
     }
 
-    /// Advance the byte by 1 element.
-    ///
-    /// # Safety
-    ///
-    /// Safe as long as the iterator is not empty.
     #[inline(always)]
-    pub unsafe fn step_unchecked(&mut self) {
-        debug_assert!(!self.as_slice().is_empty());
-        // SAFETY: safe if `self.index < self.length()`.
-        unsafe { self.step_by_unchecked(1) };
-    }
-}
+    unsafe fn peek_many_unchecked<V>(&self) -> V {
+        debug_assert!(Self::IS_CONTIGUOUS);
+        debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
 
-unsafe impl<'a, const FORMAT: u128> Buffer<'a> for Bytes<'a, FORMAT> {
-    /// If each yielded value is adjacent in memory.
-    const IS_CONTIGUOUS: bool = NumberFormat::<{ FORMAT }>::DIGIT_SEPARATOR == 0;
-
-    #[inline(always)]
-    fn as_ptr(&self) -> *const u8 {
-        self.as_slice().as_ptr()
-    }
-
-    #[inline(always)]
-    fn as_slice(&self) -> &'a [u8] {
-        debug_assert!(self.index <= self.length());
-        // SAFETY: safe since index must be in range.
-        unsafe { self.slc.get_unchecked(self.index..) }
-    }
-
-    #[inline(always)]
-    fn is_empty(&self) -> bool {
-        self.index >= self.slc.len()
-    }
-
-    #[inline(always)]
-    unsafe fn first_unchecked(&self) -> &'a u8 {
-        // SAFETY: safe if there's at least 1 item in the buffer
-        unsafe { self.as_slice().get_unchecked(0) }
+        let slc = self.as_slice();
+        // SAFETY: safe as long as the slice has at least count elements.
+        unsafe { ptr::read_unaligned::<V>(slc.as_ptr() as *const _) }
     }
 }
 
@@ -644,11 +565,11 @@ macro_rules! skip_iterator_impl {
         impl<'a: 'b, 'b, const FORMAT: u128> $iterator<'a, 'b, FORMAT> {
             is_digit_separator!(FORMAT);
 
-            /// Determine if the character is a digit.
-            #[inline(always)]
-            pub const fn is_digit(&self, value: u8) -> bool {
-                let format = NumberFormat::<{ FORMAT }> {};
-                char_is_digit_const(value, format.$radix_cb())
+            /// Create a new digits iterator from the bytes underlying item.
+            pub fn new(byte: &'b mut Bytes<'a, FORMAT>) -> Self {
+                Self {
+                    byte,
+                }
             }
 
             /// Take the first N digits from the iterator.
@@ -656,7 +577,7 @@ macro_rules! skip_iterator_impl {
             /// This only takes the digits if we have a contiguous iterator.
             /// It takes the digits, validating the bounds, and then advanced
             /// the iterators state. It does not support non-contiguous iterators
-            /// since we would lost information on the count.
+            /// since we would lose information on the count.
             #[cfg_attr(not(feature = "compact"), inline(always))]
             #[allow(clippy::assertions_on_constants)]
             pub fn take_n(&mut self, n: usize) -> Option<Bytes<'a, FORMAT>> {
@@ -704,8 +625,8 @@ macro_rules! skip_iterator_iterator_impl {
     };
 }
 
-/// Create base methods for the Buffer block of a skip iterator.
-macro_rules! skip_iterator_buffer_base {
+/// Create base methods for the Iter block of a skip iterator.
+macro_rules! skip_iterator_iter_base {
     ($format:ident, $mask:ident) => {
         // It's contiguous if we don't skip over any values.
         // IE, the digit separator flags for the iterator over
@@ -713,34 +634,8 @@ macro_rules! skip_iterator_buffer_base {
         const IS_CONTIGUOUS: bool = $format & flags::$mask == 0;
 
         #[inline(always)]
-        fn as_ptr(&self) -> *const u8 {
-            self.byte.as_ptr()
-        }
-
-        #[inline(always)]
-        fn as_slice(&self) -> &'a [u8] {
-            self.byte.as_slice()
-        }
-
-        #[inline(always)]
-        fn is_empty(&self) -> bool {
-            self.byte.is_done()
-        }
-
-        #[inline(always)]
-        unsafe fn first_unchecked(&self) -> <Self as Iterator>::Item {
-            // SAFETY: safe if `self.cursor() < self.length()`.
-            unsafe { self.byte.slc.get_unchecked(self.byte.index) }
-        }
-    };
-}
-
-/// Create base methods for the BytesIter block of a skip iterator.
-macro_rules! skip_iterator_bytesiter_base {
-    () => {
-        #[inline(always)]
-        fn length(&self) -> usize {
-            self.byte.length()
+        fn get_buffer(&self) -> &'a [u8] {
+            self.byte.get_buffer()
         }
 
         #[inline(always)]
@@ -750,14 +645,9 @@ macro_rules! skip_iterator_bytesiter_base {
 
         #[inline(always)]
         unsafe fn set_cursor(&mut self, index: usize) {
-            debug_assert!(index <= self.length());
-            // SAFETY: safe if `index <= self.length()`.
+            debug_assert!(index <= self.buffer_length());
+            // SAFETY: safe if `index <= self.buffer_length()`.
             unsafe { self.byte.set_cursor(index) };
-        }
-
-        #[inline(always)]
-        fn as_full_slice(&self) -> &'a [u8] {
-            self.byte.slc
         }
 
         #[inline(always)]
@@ -765,6 +655,35 @@ macro_rules! skip_iterator_bytesiter_base {
             self.byte.current_count()
         }
 
+        #[inline(always)]
+        fn is_empty(&self) -> bool {
+            self.byte.is_done()
+        }
+
+        #[inline(always)]
+        fn first(&self) -> Option<&'a u8> {
+            self.byte.first()
+        }
+
+        #[inline(always)]
+        unsafe fn step_by_unchecked(&mut self, count: usize) {
+            debug_assert!(self.as_slice().len() >= count);
+            // SAFETY: safe as long as `slc.len() >= count`.
+            unsafe { self.byte.step_by_unchecked(count) }
+        }
+
+        #[inline(always)]
+        unsafe fn peek_many_unchecked<V>(&self) -> V {
+            debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
+            // SAFETY: safe as long as the slice has at least count elements.
+            unsafe { self.byte.peek_many_unchecked() }
+        }
+    };
+}
+
+/// Create base methods for the DigitsIter block of a skip iterator.
+macro_rules! skip_iterator_digits_iter_base {
+    () => {
         #[inline(always)]
         fn is_consumed(&mut self) -> bool {
             self.peek().is_none()
@@ -774,47 +693,18 @@ macro_rules! skip_iterator_bytesiter_base {
         fn is_done(&self) -> bool {
             self.byte.is_done()
         }
-
-        #[inline(always)]
-        unsafe fn peek_unchecked(&mut self) -> <Self as Iterator>::Item {
-            self.peek().unwrap()
-        }
-
-        #[inline(always)]
-        unsafe fn read_unchecked<V>(&self) -> V {
-            debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
-            // SAFETY: safe as long as the slice has at least count elements.
-            unsafe { self.byte.read_unchecked() }
-        }
-
-        #[inline(always)]
-        fn read_u32(&self) -> Option<u32> {
-            self.byte.read_u32()
-        }
-
-        #[inline(always)]
-        fn read_u64(&self) -> Option<u64> {
-            self.byte.read_u64()
-        }
-
-        #[inline(always)]
-        unsafe fn step_by_unchecked(&mut self, count: usize) {
-            debug_assert!(self.as_slice().len() >= count);
-            // SAFETY: safe as long as `slc.len() >= count`.
-            unsafe { self.byte.step_by_unchecked(count) }
-        }
     };
 }
 
 /// Create impl ByteIter block for skip iterator.
 macro_rules! skip_iterator_bytesiter_impl {
     ($iterator:ident, $mask:ident, $i:ident, $l:ident, $t:ident, $c:ident) => {
-        unsafe impl<'a: 'b, 'b, const FORMAT: u128> Buffer<'a> for $iterator<'a, 'b, FORMAT> {
-            skip_iterator_buffer_base!(FORMAT, $mask);
+        unsafe impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for $iterator<'a, 'b, FORMAT> {
+            skip_iterator_iter_base!(FORMAT, $mask);
         }
 
-        unsafe impl<'a: 'b, 'b, const FORMAT: u128> BytesIter<'a> for $iterator<'a, 'b, FORMAT> {
-            skip_iterator_bytesiter_base!();
+        impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for $iterator<'a, 'b, FORMAT> {
+            skip_iterator_digits_iter_base!();
 
             /// Peek the next value of the iterator, without consuming it.
             #[inline(always)]
@@ -851,6 +741,13 @@ macro_rules! skip_iterator_bytesiter_impl {
                     _ => unreachable!(),
                 }
             }
+
+            /// Determine if the character is a digit.
+            #[inline(always)]
+            fn is_digit(&self, value: u8) -> bool {
+                let format = NumberFormat::<{ FORMAT }> {};
+                char_is_digit_const(value, format.mantissa_radix())
+            }
         }
     };
 }
@@ -858,11 +755,11 @@ macro_rules! skip_iterator_bytesiter_impl {
 // INTEGER DIGITS ITERATOR
 // -----------------------
 
-skip_iterator!(IntegerBytesIterator, "Iterator that skips over digit separators in the integer.");
-skip_iterator_impl!(IntegerBytesIterator, mantissa_radix);
-skip_iterator_iterator_impl!(IntegerBytesIterator);
+skip_iterator!(IntegerDigitsIterator, "Iterator that skips over digit separators in the integer.");
+skip_iterator_impl!(IntegerDigitsIterator, mantissa_radix);
+skip_iterator_iterator_impl!(IntegerDigitsIterator);
 skip_iterator_bytesiter_impl!(
-    IntegerBytesIterator,
+    IntegerDigitsIterator,
     INTEGER_DIGIT_SEPARATOR_FLAG_MASK,
     INTEGER_INTERNAL_DIGIT_SEPARATOR,
     INTEGER_LEADING_DIGIT_SEPARATOR,
@@ -873,11 +770,14 @@ skip_iterator_bytesiter_impl!(
 // FRACTION DIGITS ITERATOR
 // ------------------------
 
-skip_iterator!(FractionBytesIterator, "Iterator that skips over digit separators in the fraction.");
-skip_iterator_impl!(FractionBytesIterator, mantissa_radix);
-skip_iterator_iterator_impl!(FractionBytesIterator);
+skip_iterator!(
+    FractionDigitsIterator,
+    "Iterator that skips over digit separators in the fraction."
+);
+skip_iterator_impl!(FractionDigitsIterator, mantissa_radix);
+skip_iterator_iterator_impl!(FractionDigitsIterator);
 skip_iterator_bytesiter_impl!(
-    FractionBytesIterator,
+    FractionDigitsIterator,
     FRACTION_DIGIT_SEPARATOR_FLAG_MASK,
     FRACTION_INTERNAL_DIGIT_SEPARATOR,
     FRACTION_LEADING_DIGIT_SEPARATOR,
@@ -888,11 +788,14 @@ skip_iterator_bytesiter_impl!(
 // EXPONENT DIGITS ITERATOR
 // ------------------------
 
-skip_iterator!(ExponentBytesIterator, "Iterator that skips over digit separators in the exponent.");
-skip_iterator_impl!(ExponentBytesIterator, exponent_radix);
-skip_iterator_iterator_impl!(ExponentBytesIterator);
+skip_iterator!(
+    ExponentDigitsIterator,
+    "Iterator that skips over digit separators in the exponent."
+);
+skip_iterator_impl!(ExponentDigitsIterator, exponent_radix);
+skip_iterator_iterator_impl!(ExponentDigitsIterator);
 skip_iterator_bytesiter_impl!(
-    ExponentBytesIterator,
+    ExponentDigitsIterator,
     EXPONENT_DIGIT_SEPARATOR_FLAG_MASK,
     EXPONENT_INTERNAL_DIGIT_SEPARATOR,
     EXPONENT_LEADING_DIGIT_SEPARATOR,
@@ -904,21 +807,21 @@ skip_iterator_bytesiter_impl!(
 // -----------------------
 
 skip_iterator!(
-    SpecialBytesIterator,
+    SpecialDigitsIterator,
     "Iterator that skips over digit separators in special floats."
 );
-skip_iterator_iterator_impl!(SpecialBytesIterator);
+skip_iterator_iterator_impl!(SpecialDigitsIterator);
 
-impl<'a: 'b, 'b, const FORMAT: u128> SpecialBytesIterator<'a, 'b, FORMAT> {
+impl<'a: 'b, 'b, const FORMAT: u128> SpecialDigitsIterator<'a, 'b, FORMAT> {
     is_digit_separator!(FORMAT);
 }
 
-unsafe impl<'a: 'b, 'b, const FORMAT: u128> Buffer<'a> for SpecialBytesIterator<'a, 'b, FORMAT> {
-    skip_iterator_buffer_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
+unsafe impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for SpecialDigitsIterator<'a, 'b, FORMAT> {
+    skip_iterator_iter_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
 }
 
-unsafe impl<'a: 'b, 'b, const FORMAT: u128> BytesIter<'a> for SpecialBytesIterator<'a, 'b, FORMAT> {
-    skip_iterator_bytesiter_base!();
+impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for SpecialDigitsIterator<'a, 'b, FORMAT> {
+    skip_iterator_digits_iter_base!();
 
     /// Peek the next value of the iterator, without consuming it.
     #[inline(always)]
@@ -929,5 +832,12 @@ unsafe impl<'a: 'b, 'b, const FORMAT: u128> BytesIter<'a> for SpecialBytesIterat
         } else {
             peek_noskip!(self)
         }
+    }
+
+    /// Determine if the character is a digit.
+    #[inline(always)]
+    fn is_digit(&self, value: u8) -> bool {
+        let format = NumberFormat::<{ FORMAT }> {};
+        char_is_digit_const(value, format.mantissa_radix())
     }
 }

@@ -16,6 +16,8 @@ use lexical_util::format::{radix_from_flags, NumberFormat};
 use lexical_util::num::{AsCast, UnsignedInteger};
 use lexical_util::step::u64_step;
 
+use crate::decimal::DigitCount;
+
 /// Write 2 digits to buffer.
 ///
 /// # Safety
@@ -78,7 +80,7 @@ macro_rules! write_digit {
 /// See [algorithm] and the [crate] documentation for more detailed
 /// information on the safety considerations.
 #[inline(always)]
-unsafe fn write_digits<T: UnsignedInteger>(
+unsafe fn write_digits<T: UnsignedInteger + DigitCount>(
     mut value: T,
     radix: u32,
     table: &[u8],
@@ -86,6 +88,10 @@ unsafe fn write_digits<T: UnsignedInteger>(
     mut index: usize,
 ) -> usize {
     debug_assert_radix(radix);
+    debug_assert!(
+        buffer.len() >= value.digit_count(),
+        "buffer must at least be as the digit count"
+    );
 
     // Pre-compute our powers of radix.
     let radix = T::from_u32(radix);
@@ -147,7 +153,7 @@ unsafe fn write_digits<T: UnsignedInteger>(
 /// This is safe as long as the buffer is large enough to hold `T::MAX`
 /// digits in radix `N`. See [algorithm] for more safety considerations.
 #[inline(always)]
-unsafe fn write_step_digits<T: UnsignedInteger>(
+unsafe fn write_step_digits<T: UnsignedInteger + DigitCount>(
     value: T,
     radix: u32,
     table: &[u8],
@@ -163,10 +169,8 @@ unsafe fn write_step_digits<T: UnsignedInteger>(
     // Write the remaining 0 bytes.
     // SAFETY: this is always safe since `end < index && index < start`.
     let end = start.saturating_sub(step);
-    unsafe {
-        let zeros = &mut index_unchecked_mut!(buffer[end..index]);
-        slice_fill_unchecked!(zeros, b'0');
-    }
+    let zeros = unsafe { &mut index_unchecked_mut!(buffer[end..index]) };
+    zeros.fill(b'0');
 
     end
 }
@@ -182,25 +186,28 @@ unsafe fn write_step_digits<T: UnsignedInteger>(
 ///
 /// See the crate [crate] documentation for more security considerations.
 ///
-/// `write_digits` internally
-///
 /// [digit_count]: crate::decimal::DigitCount
 #[inline(always)]
-pub unsafe fn algorithm<T>(value: T, radix: u32, table: &[u8], buffer: &mut [u8]) -> usize
+pub fn algorithm<T>(value: T, radix: u32, table: &[u8], buffer: &mut [u8]) -> usize
 where
-    T: UnsignedInteger,
+    T: UnsignedInteger + DigitCount,
 {
     // This is so that radix^4 does not overflow, since 36^4 overflows a u16.
     assert!(T::BITS >= 32, "Must have at least 32 bits in the input.");
     assert!(radix <= 36, "radix must be <= 36");
     assert!(table.len() >= (radix * radix * 2) as usize, "table must be 2 * radix^2 long");
 
+    let count = value.digit_count();
+    assert!(count <= buffer.len());
+    let buffer = &mut buffer[..count];
+
     // SAFETY: Both forms of unchecked indexing cannot overflow.
     // The table always has 2*radix^2 elements, so it must be a legal index.
     // The buffer is ensured to have at least `FORMATTED_SIZE` or
     // `FORMATTED_SIZE_DECIMAL` characters, which is the maximum number of
     // digits an integer of that size may write.
-    unsafe { write_digits(value, radix, table, buffer, buffer.len()) }
+    unsafe { write_digits(value, radix, table, buffer, buffer.len()) };
+    count
 }
 
 /// Optimized implementation for radix-N 128-bit numbers.
@@ -216,7 +223,7 @@ where
 ///
 /// [digit_count]: crate::decimal::DigitCount
 #[inline(always)]
-pub unsafe fn algorithm_u128<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
+pub fn algorithm_u128<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
     value: u128,
     table: &[u8],
     buffer: &mut [u8],
@@ -224,6 +231,10 @@ pub unsafe fn algorithm_u128<const FORMAT: u128, const MASK: u128, const SHIFT: 
     // NOTE: Use the const version of radix for u64_step and
     // u128_divrem to ensure they're evaluated at compile time.
     assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+
+    let count = value.digit_count();
+    assert!(count <= buffer.len());
+    let buffer = &mut buffer[..count];
 
     // Quick approximations to make the algorithm **a lot** faster.
     // If the value can be represented in a 64-bit integer, we can
@@ -254,15 +265,16 @@ pub unsafe fn algorithm_u128<const FORMAT: u128, const MASK: u128, const SHIFT: 
     let mut index = buffer.len();
     index = unsafe { write_step_digits(low, radix, table, buffer, index, step) };
     if value <= u64::MAX as _ {
-        return unsafe { write_digits(value as u64, radix, table, buffer, index) };
+        unsafe { write_digits(value as u64, radix, table, buffer, index) };
+        return count;
     }
 
     // Value has to be greater than 1.8e38
     let (value, mid) = u128_divrem(value, radix_from_flags(FORMAT, MASK, SHIFT));
     index = unsafe { write_step_digits(mid, radix, table, buffer, index, step) };
     if index != 0 {
-        index = unsafe { write_digits(value as u64, radix, table, buffer, index) };
+        unsafe { write_digits(value as u64, radix, table, buffer, index) };
     }
 
-    index
+    count
 }
