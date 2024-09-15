@@ -33,7 +33,7 @@ const BASE16_4_10: u128 = NumberFormatBuilder::new()
     .exponent_base(num::NonZeroU8::new(4))
     .exponent_radix(num::NonZeroU8::new(10))
     .build();
-const HEX_OPTIONS: Options = unsafe { Options::builder().exponent(b'^').build_unchecked() };
+const HEX_OPTIONS: Options = Options::builder().exponent(b'^').build_unchecked();
 
 // NOTE: This doesn't handle float rounding or truncation.
 // It assumes this has already been done.

@@ -80,7 +80,7 @@ fn hex_test() {
         .exponent_base(num::NonZeroU8::new(2))
         .exponent_radix(num::NonZeroU8::new(10))
         .build();
-    const HEX_OPTIONS: Options = unsafe { Options::builder().exponent(b'^').build_unchecked() };
+    const HEX_OPTIONS: Options = Options::builder().exponent(b'^').build_unchecked();
 
     let mut buffer = [b'\x00'; BUFFER_SIZE];
     let float = 12345.0f64;

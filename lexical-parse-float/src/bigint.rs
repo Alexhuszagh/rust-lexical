@@ -390,7 +390,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
     ///
     /// Safe if `self.len() < self.capacity()`.
     #[inline(always)]
-    pub unsafe fn push_unchecked(&mut self, value: Limb) {
+    unsafe fn push_unchecked(&mut self, value: Limb) {
         debug_assert!(self.len() < self.capacity());
         // SAFETY: safe, capacity is less than the current size.
         unsafe {
@@ -419,7 +419,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
     ///
     /// Safe if `self.len() > 0`.
     #[inline(always)]
-    pub unsafe fn pop_unchecked(&mut self) -> Limb {
+    unsafe fn pop_unchecked(&mut self) -> Limb {
         debug_assert!(!self.is_empty());
         // SAFETY: safe if `self.length > 0`.
         // We have a trivial drop and copy, so this is safe.
@@ -445,7 +445,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
     ///
     /// Safe if `self.len() + slc.len() <= self.capacity()`.
     #[inline(always)]
-    pub unsafe fn extend_unchecked(&mut self, slc: &[Limb]) {
+    unsafe fn extend_unchecked(&mut self, slc: &[Limb]) {
         let index = self.len();
         let new_len = index + slc.len();
         debug_assert!(self.len() + slc.len() <= self.capacity());
@@ -1228,6 +1228,7 @@ pub fn large_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Optio
     // multiplication.
     if y.len() == 1 {
         // SAFETY: safe since `y.len() == 1`.
+        // NOTE: The compiler does not seem to optimize this out correctly.
         small_mul(x, unsafe { index_unchecked!(y[0]) })?;
     } else {
         *x = long_mul(y, x)?;
@@ -1369,6 +1370,7 @@ pub fn shl_limbs<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<
         let x_len = x.len();
         let ptr = x.as_mut_ptr();
         let src = ptr;
+        // FIXME: Change to `split_at_mut` and `clone_from_slice`?
         // SAFE: since x is not empty, and `x.len() + n <= x.capacity()`.
         unsafe {
             // Move the elements.

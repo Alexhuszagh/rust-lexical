@@ -8,9 +8,9 @@ use crate::num::Integer;
 /// performance isn't the highest consideration here.
 #[inline(always)]
 #[cfg(feature = "write")]
-pub fn copy_to_dst<Bytes: AsRef<[u8]>>(dst: &mut [u8], src: Bytes) -> usize {
+pub fn copy_to_dst<T: Copy, Bytes: AsRef<[T]>>(dst: &mut [T], src: Bytes) -> usize {
     let src = src.as_ref();
-    dst[..src.len()].clone_from_slice(src);
+    dst[..src.len()].copy_from_slice(src);
 
     src.len()
 }

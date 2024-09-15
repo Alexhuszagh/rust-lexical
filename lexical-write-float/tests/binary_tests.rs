@@ -46,7 +46,7 @@ const BASE32_2_32: u128 = NumberFormatBuilder::new()
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(32))
     .build();
-const HEX_OPTIONS: Options = unsafe { Options::builder().exponent(b'^').build_unchecked() };
+const HEX_OPTIONS: Options = Options::builder().exponent(b'^').build_unchecked();
 
 #[test]
 fn fast_log2_test() {
