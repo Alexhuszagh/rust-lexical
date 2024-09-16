@@ -171,7 +171,7 @@ Due the high variability in the syntax of numbers in different programming and d
 - Options API.
     <blockquote>This contains run-time rules for parsing and writing numbers. This includes exponent break points, rounding modes, the exponent and decimal point characters, and the string representation of NaN and Infinity.</blockquote>
 
-A limited subset of functionality is documented in examples below, however, the complete specification can be found in the API reference documentation.
+A limited subset of functionality is documented in examples below, however, the complete specification can be found in the API reference documentation ([parse-float](https://docs.rs/lexical-parse-float/latest/lexical_parse_float/struct.Options.html), [parse-integer](https://docs.rs/lexical-parse-integer/latest/lexical_parse_integer/struct.Options.html), and [write-float](https://docs.rs/lexical-write-float/latest/lexical_write_float/struct.Options.html)).
 
 ### Number Format API
 
@@ -259,7 +259,7 @@ Float parsing is difficult to do correctly, and major bugs have been found in im
 4. Nigel Tao's [tests](https://github.com/nigeltao/parse-number-fxx-test-data) extracted from test suites for Freetype, Google's double-conversion library, IBM's IEEE-754R compliance test, as well as numerous other curated examples.
 5. [Various](https://www.exploringbinary.com/glibc-strtod-incorrectly-converts-2-to-the-negative-1075/) [difficult](https://www.exploringbinary.com/how-glibc-strtod-works/) [cases](https://www.exploringbinary.com/how-strtod-works-and-sometimes-doesnt/) reported on blogs.
 
-Although lexical may contain bugs leading to rounding error, it is tested against a comprehensive suite of random-data and near-halfway representations, and should be fast and correct for the vast majority of use-cases.
+Lexical is extensively used in production, the same float parsing algorithm has been adopted by Golang's and Rust's standard libraries, and is unlikely to have correctness issues.
 
 ## Metrics
 
@@ -328,7 +328,7 @@ lexical-core should also work on a wide variety of other architectures and ISAs.
 The currently supported versions are:
 - v1.0.x
 
-Due to security considerations, all other versions have been yanked.
+Due to security considerations, all other versions are not supported and security advisories exist for them..
 
 **Rustc Compatibility**
 
