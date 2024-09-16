@@ -20,8 +20,23 @@ pub use crate::skip::{AsBytes, Bytes};
 /// methods for reading data and accessing underlying data. The readers
 /// can either be contiguous or non-contiguous, although performance and
 /// some API methods may not be available for both.
+///
+/// # Safety
+///
+/// Safe if [set_cursor] is set to an index <= [buffer_length], so no
+/// out-of-bounds reads can occur. Also, [get_buffer] must return a slice of
+/// initialized bytes. The caller must also ensure that any calls that increment
+/// the cursor, such as [step_by_unchecked], [step_unchecked], and
+/// [peek_many_unchecked] never exceed [buffer_length] as well.
+///
+/// [set_cursor] Iter::set_cursor
+/// [buffer_length] Iter::buffer_length
+/// [get_buffer]: Iter::get_buffer
+/// [step_by_unchecked]: Iter::step_by_unchecked
+/// [step_unchecked]: Iter::step_unchecked
+/// [peek_many_unchecked]: Iter::peek_many_unchecked
 #[cfg(feature = "parse")]
-pub trait Iter<'a> {
+pub unsafe trait Iter<'a> {
     /// Determine if the buffer is contiguous in memory.
     const IS_CONTIGUOUS: bool;
 
@@ -233,7 +248,6 @@ pub trait Iter<'a> {
 /// This trait **should never** return `null` from `as_ptr`, or be
 /// implemented for non-contiguous data.
 pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
-    // TODO: Fix the documentation
     /// Get if the iterator cannot return any more elements.
     ///
     /// This may advance the internal iterator state, but not
