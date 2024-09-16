@@ -55,7 +55,7 @@
 //! correctly.
 //!
 //! To see if the cursor is at the end of the buffer, use
-//! [is_buffer_empty][crate::iterator::Iter::is_buffer_empty].
+//! [is_buffer_empty][is_buffer_empty].
 //!
 //! Any iterators must be peekable: you must be able to read and return the next
 //! value without advancing the iterator past that point. For iterators that
@@ -95,9 +95,9 @@
 //! }
 //! ```
 //!
-//! [is_buffer_empty]: iterator::Iter::is_buffer_empty
-//! [is_consumed]: iterator::DigitsIter::is_consumed
-//! [peek]: iterator::DigitsIter::peek
+//! [is_buffer_empty]: <https://github.com/Alexhuszagh/rust-lexical/blob/8fe1d9a/lexical-util/src/iterator.rs#76>
+//! [is_consumed]: <https://github.com/Alexhuszagh/rust-lexical/blob/8fe1d9a/lexical-util/src/iterator.rs#L276>
+//! [peek]: <https://github.com/Alexhuszagh/rust-lexical/blob/8fe1d9a/lexical-util/src/iterator.rs#L284>
 
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
