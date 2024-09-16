@@ -4,7 +4,7 @@ High-performance numeric conversion routines for use in a `no_std` environment. 
 
 **Similar Projects**
 
-If you want a minimal, stable, and compile-time friendly version of lexical's float-parsing algorithm, see [minimal-lexical](https://github.com/Alexhuszagh/minimal-lexical). If you want a minimal, performant float parser, recent versions of the Rust standard library should be [sufficient](https://github.com/rust-lang/rust/pull/86761).
+If you want a minimal, stable, and compile-time friendly version of lexical's float-parsing algorithm, see [minimal-lexical](https://github.com/Alexhuszagh/minimal-lexical). If you want a minimal, performant float parser, recent versions of the Rust standard library should be [sufficient](https://github.com/rust-lang/rust/pull/86761). For high-performance integer formatters, look at [itoa](https://docs.rs/itoa/latest/itoa/).
 
 **Table of Contents**
 
