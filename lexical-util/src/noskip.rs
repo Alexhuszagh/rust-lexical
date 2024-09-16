@@ -100,7 +100,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     }
 }
 
-impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
+unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
     const IS_CONTIGUOUS: bool = true;
 
     #[inline(always)]
@@ -139,7 +139,7 @@ impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
     #[inline(always)]
     #[allow(clippy::assertions_on_constants)]
     unsafe fn step_by_unchecked(&mut self, count: usize) {
-        debug_assert!(Self::IS_CONTIGUOUS);
+        assert!(Self::IS_CONTIGUOUS);
         debug_assert!(self.as_slice().len() >= count);
         self.index += count;
     }
@@ -199,7 +199,7 @@ impl<'a: 'b, 'b, const __: u128> DigitsIterator<'a, 'b, __> {
     }
 }
 
-impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> {
+unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> {
     const IS_CONTIGUOUS: bool = Bytes::<'a, __>::IS_CONTIGUOUS;
 
     #[inline(always)]
