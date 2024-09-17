@@ -100,6 +100,7 @@ pub struct Options {
 
 impl Options {
     /// Create options with default values.
+    #[must_use]
     #[inline(always)]
     pub const fn new() -> Self {
         Self::builder().build_unchecked()
@@ -129,13 +130,13 @@ impl Options {
 
     // BUILDERS
 
-    /// Get OptionsBuilder as a static function.
+    /// Get `OptionsBuilder` as a static function.
     #[inline(always)]
     pub const fn builder() -> OptionsBuilder {
         OptionsBuilder::new()
     }
 
-    /// Create OptionsBuilder using existing values.
+    /// Create `OptionsBuilder` using existing values.
     #[inline(always)]
     pub const fn rebuild(&self) -> OptionsBuilder {
         OptionsBuilder {

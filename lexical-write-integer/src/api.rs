@@ -72,7 +72,7 @@ where
 
 // API
 
-// Implement ToLexical for numeric type.
+// Implement `ToLexical` for numeric type.
 macro_rules! unsigned_to_lexical {
     ($($narrow:tt $wide:tt ; )*) => ($(
         impl ToLexical for $narrow {
@@ -120,7 +120,7 @@ unsigned_to_lexical! { usize u32 ; }
 #[cfg(target_pointer_width = "64")]
 unsigned_to_lexical! { usize u64 ; }
 
-// Implement ToLexical for numeric type.
+// Implement `ToLexical` for numeric type.
 macro_rules! signed_to_lexical {
     ($($narrow:tt $wide:tt $unsigned:tt ; )*) => ($(
         impl ToLexical for $narrow {

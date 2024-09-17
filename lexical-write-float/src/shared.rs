@@ -29,9 +29,9 @@ pub fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, bool) {
     while index != 0 {
         let c = digits[index - 1];
         if c < max_char {
-            // SAFETY: safe since `index > 0 && index <= digits.len()`.
             let digit = char_to_valid_digit_const(c, radix);
             let rounded = digit_to_char_const(digit + 1, radix);
+            // Won't panic since `index > 0 && index <= digits.len()`.
             digits[index - 1] = rounded;
             return (index, false);
         }
@@ -52,8 +52,8 @@ pub fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, bool) {
 /// length of the written digits in `digits`, and `exp` is the decimal exponent
 /// relative to the digits. Returns the digit count, resulting exp, and if
 /// the input carried to the next digit.
-#[allow(clippy::comparison_chain)]
 #[cfg_attr(not(feature = "compact"), inline(always))]
+#[allow(clippy::comparison_chain)] // reason="conditions are different logical concepts"
 pub fn truncate_and_round_decimal(
     digits: &mut [u8],
     digit_count: usize,
@@ -81,7 +81,7 @@ pub fn truncate_and_round_decimal(
     // halfway at all, we need to round up, even if 1 digit.
 
     // Get the last non-truncated digit, and the remaining ones.
-    // SAFETY: safe if `digit_count < digits.len()`, since `max_digits <
+    // Won't panic if `digit_count < digits.len()`, since `max_digits <
     // digit_count`.
     let truncated = digits[max_digits];
     let (digits, carried) = if truncated < b'5' {
@@ -96,7 +96,7 @@ pub fn truncate_and_round_decimal(
         let is_odd = to_round[0] % 2 == 1;
         let is_above = to_round[2..].iter().any(|&x| x != b'0');
         if is_odd || is_above {
-            // SAFETY: safe if `digit_count <= digits.len()`, because `max_digits <
+            // Won't panic `digit_count <= digits.len()`, because `max_digits <
             // digit_count`.
             round_up(digits, max_digits, 10)
         } else {

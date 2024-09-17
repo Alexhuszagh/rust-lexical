@@ -23,7 +23,7 @@
 /// without overflowing for a given type. For example, 19 digits can
 /// always be processed for a decimal string for `u64` without overflowing.
 #[inline(always)]
-#[allow(clippy::needless_return)]
+#[allow(clippy::needless_return)] // reason="required depending on our radix configuration"
 pub const fn min_step(radix: u32, bits: usize, is_signed: bool) -> usize {
     // NOTE: to avoid branching when w don't need it, we use the compile logic
 
@@ -96,7 +96,7 @@ pub const fn min_step(radix: u32, bits: usize, is_signed: bool) -> usize {
 /// be processed for a decimal string for `u64` without overflowing, but
 /// it may overflow.
 #[inline(always)]
-#[allow(clippy::needless_return)]
+#[allow(clippy::needless_return)] // reason="required depending on our radix configuration"
 pub const fn max_step(radix: u32, bits: usize, is_signed: bool) -> usize {
     #[cfg(feature = "radix")]
     {

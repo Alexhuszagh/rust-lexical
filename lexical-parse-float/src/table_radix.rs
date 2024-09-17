@@ -3,7 +3,7 @@
 #![cfg(feature = "radix")]
 #![cfg(not(feature = "compact"))]
 #![doc(hidden)]
-#![allow(clippy::excessive_precision)]
+#![allow(clippy::excessive_precision)] // reason = "auto-generated values that need to be exact"
 
 use lexical_util::assert::debug_assert_radix;
 use static_assertions::const_assert;

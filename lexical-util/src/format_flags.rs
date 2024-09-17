@@ -108,7 +108,7 @@
 //! In order to limit the format specification and avoid parsing
 //! non-numerical data, all number formats require some significant
 //! digits. Examples of always invalid numbers include:
-//! - ``
+//! - ` `
 //! - `.`
 //! - `e`
 //! - `e7`
@@ -158,50 +158,50 @@
 //! Currently Supported Programming and Data Languages:
 //! ---------------------------------------------------
 //!
-//! 1. Rust
-//! 2. Python
-//! 3. C++ (98, 03, 11, 14, 17)
-//! 4. C (89, 90, 99, 11, 18)
-//! 5. Ruby
-//! 6. Swift
-//! 7. Go
-//! 8. Haskell
-//! 9. Javascript
-//! 10. Perl
-//! 11. PHP
-//! 12. Java
-//! 13. R
-//! 14. Kotlin
-//! 15. Julia
-//! 16. C# (ISO-1, ISO-2, 3, 4, 5, 6, 7)
-//! 17. Kawa
-//! 18. Gambit-C
-//! 19. Guile
-//! 20. Clojure
-//! 21. Erlang
-//! 22. Elm
-//! 23. Scala
-//! 24. Elixir
-//! 25. FORTRAN
-//! 26. D
-//! 27. Coffeescript
-//! 28. Cobol
-//! 29. F#
-//! 30. Visual Basic
-//! 31. OCaml
-//! 32. Objective-C
-//! 33. ReasonML
-//! 34. Octave
-//! 35. Matlab
-//! 36. Zig
-//! 37. SageMath
-//! 38. JSON
-//! 39. TOML
-//! 40. XML
-//! 41. SQLite
-//! 42. PostgreSQL
-//! 43. MySQL
-//! 44. MongoDB
+//! 1. `Rust`
+//! 2. `Python`
+//! 3. `C++` (98, 03, 11, 14, 17)
+//! 4. `C` (89, 90, 99, 11, 18)
+//! 5. `Ruby`
+//! 6. `Swift`
+//! 7. `Go`
+//! 8. `Haskell`
+//! 9. `Javascript`
+//! 10. `Perl`
+//! 11. `PHP`
+//! 12. `Java`
+//! 13. `R`
+//! 14. `Kotlin`
+//! 15. `Julia`
+//! 16. `C#` (ISO-1, ISO-2, 3, 4, 5, 6, 7)
+//! 17. `Kawa`
+//! 18. `Gambit-C`
+//! 19. `Guile`
+//! 20. `Clojure`
+//! 21. `Erlang`
+//! 22. `Elm`
+//! 23. `Scala`
+//! 24. `Elixir`
+//! 25. `FORTRAN`
+//! 26. `D`
+//! 27. `Coffeescript`
+//! 28. `Cobol`
+//! 29. `F#`
+//! 30. `Visual Basic`
+//! 31. `OCaml`
+//! 32. `Objective-C`
+//! 33. `ReasonML`
+//! 34. `Octave`
+//! 35. `Matlab`
+//! 36. `Zig`
+//! 37. `SageMath`
+//! 38. `JSON`
+//! 39. `TOML`
+//! 40. `XML`
+//! 41. `SQLite`
+//! 42. `PostgreSQL`
+//! 43. `MySQL`
+//! 44. `MongoDB`
 
 #![cfg_attr(rustfmt, rustfmt::skip)]
 
@@ -466,10 +466,10 @@ pub const MANTISSA_RADIX_SHIFT: i32 = 104;
 /// Mask to extract the mantissa radix: the radix for the significant digits.
 pub const MANTISSA_RADIX: u128 = 0xFF << MANTISSA_RADIX_SHIFT;
 
-/// Alias for MANTISSA_RADIX_SHIFT.
+/// Alias for `MANTISSA_RADIX_SHIFT`.
 pub const RADIX_SHIFT: i32 = MANTISSA_RADIX_SHIFT;
 
-/// Alias for MANTISSA_RADIX.
+/// Alias for `MANTISSA_RADIX`.
 pub const RADIX: u128 = MANTISSA_RADIX;
 
 /// Shift to convert to and from an exponent base as a `u32`.
@@ -741,7 +741,7 @@ pub const fn is_valid_base_suffix(format: u128) -> bool {
 
 /// Determine if all of the "punctuation" characters are valid.
 #[inline(always)]
-#[allow(clippy::if_same_then_else)]
+#[allow(clippy::if_same_then_else)] // reason="all are different logic conditions"
 pub const fn is_valid_punctuation(format: u128) -> bool {
     // All the checks against optional characters with mandatory are fine:
     // if they're not 0, then they can't overlap, and mandatory can't be 0.
@@ -766,7 +766,8 @@ pub const fn is_valid_punctuation(format: u128) -> bool {
 
 /// Determine if all of the "punctuation" characters for the options API are valid.
 #[inline(always)]
-#[allow(clippy::if_same_then_else, clippy::needless_bool)]
+#[allow(clippy::if_same_then_else)] // reason="all are different logic conditions"
+#[allow(clippy::needless_bool)] // reason="not needless depending on the format condition"
 pub const fn is_valid_options_punctuation(format: u128, exponent: u8, decimal_point: u8) -> bool {
     // All the checks against optional characters with mandatory are fine:
     // if they're not 0, then they can't overlap, and mandatory can't be 0.

@@ -87,6 +87,7 @@ def all_limits(mantissa_size, exponent_size, type_name):
     max_exp = 2**(exponent_size - 1) - 1
 
     print('/// Get the exponent limit as a const fn.')
+    print('#[must_use]')
     print('#[inline(always)]')
     print(f'pub const fn {type_name}_exponent_limit(radix: u32) -> (i64, i64) {{')
     print('    match radix {')
@@ -99,6 +100,7 @@ def all_limits(mantissa_size, exponent_size, type_name):
     print('')
 
     print('/// Get the mantissa limit as a const fn.')
+    print('#[must_use]')
     print('#[inline(always)]')
     print(f'pub const fn {type_name}_mantissa_limit(radix: u32) -> i64 {{')
     print('    match radix {')

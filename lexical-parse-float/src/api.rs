@@ -17,7 +17,7 @@ use crate::parse::ParseFloat;
 
 const DEFAULT_OPTIONS: Options = Options::new();
 
-/// Implement FromLexical for numeric type.
+/// Implement `FromLexical` for numeric type.
 ///
 /// Need to inline these, otherwise codegen is suboptimal.
 /// For some reason, it can't determine some of the const evaluations

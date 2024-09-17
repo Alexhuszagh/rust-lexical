@@ -23,18 +23,18 @@ pub use crate::skip::{AsBytes, Bytes};
 ///
 /// # Safety
 ///
-/// Safe if [set_cursor] is set to an index <= [buffer_length], so no
-/// out-of-bounds reads can occur. Also, [get_buffer] must return a slice of
+/// Safe if [`set_cursor`] is set to an index <= [`buffer_length`], so no
+/// out-of-bounds reads can occur. Also, [`get_buffer`] must return a slice of
 /// initialized bytes. The caller must also ensure that any calls that increment
-/// the cursor, such as [step_by_unchecked], [step_unchecked], and
-/// [peek_many_unchecked] never exceed [buffer_length] as well.
+/// the cursor, such as [`step_by_unchecked`], [`step_unchecked`], and
+/// [`peek_many_unchecked`] never exceed [`buffer_length`] as well.
 ///
-/// [set_cursor] Iter::set_cursor
-/// [buffer_length] Iter::buffer_length
-/// [get_buffer]: Iter::get_buffer
-/// [step_by_unchecked]: Iter::step_by_unchecked
-/// [step_unchecked]: Iter::step_unchecked
-/// [peek_many_unchecked]: Iter::peek_many_unchecked
+/// [`set_cursor`]: `Iter::set_cursor`
+/// [`buffer_length`]: `Iter::buffer_length`
+/// [`get_buffer`]: `Iter::get_buffer`
+/// [`step_by_unchecked`]: `Iter::step_by_unchecked`
+/// [`step_unchecked`]: `Iter::step_unchecked`
+/// [`peek_many_unchecked`]: `Iter::peek_many_unchecked`
 #[cfg(feature = "parse")]
 pub unsafe trait Iter<'a> {
     /// Determine if the buffer is contiguous in memory.
@@ -69,7 +69,7 @@ pub unsafe trait Iter<'a> {
     /// Get if no bytes are available in the buffer.
     ///
     /// This operators on the underlying buffer: that is,
-    /// it returns if [as_slice] would return an empty slice.
+    /// it returns if [`as_slice`] would return an empty slice.
     ///
     /// [as_slice]: Iter::as_slice
     #[inline(always)]
@@ -264,15 +264,15 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     /// non-contiguous iterators you **MUST** advance to the next element
     /// to be returned, then check to see if a value exists. The safest
     /// implementation is always to check if `self.peek().is_none()` and
-    /// ensure [peek] is always safe.
+    /// ensure [`peek`] is always safe.
     ///
     /// If you would like to see if the cursor is at the end of the buffer,
-    /// see [is_buffer_empty] instead.
+    /// see [`is_buffer_empty`] instead.
     ///
     /// [is_buffer_empty]: Iter::is_buffer_empty
     /// [peek]: DigitsIter::peek
     #[inline(always)]
-    #[allow(clippy::wrong_self_convention)]
+    #[allow(clippy::wrong_self_convention)] // reason="required for peeking next item"
     fn is_consumed(&mut self) -> bool {
         self.peek().is_none()
     }

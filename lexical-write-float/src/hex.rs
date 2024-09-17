@@ -175,7 +175,8 @@ where
     let exact_count = shared::min_exact_digits(digit_count, options);
 
     // Write any trailing digits to the output.
-    // SAFETY: safe if the buffer is large enough to hold the significant digits.
+    // Won't panic safe if the buffer is large enough to hold the significant
+    // digits.
     if !format.no_exponent_without_fraction() && cursor == 2 && options.trim_floats() {
         // Need to trim floats from trailing zeros, and we have only a decimal.
         cursor -= 1;
@@ -193,7 +194,7 @@ where
     }
 
     // Now, write our scientific notation.
-    // SAFETY: safe if bytes is large enough to store all digits.
+    // Won't panic safe if bytes is large enough to store all digits.
     let scaled_sci_exp = scale_sci_exp(sci_exp, bits_per_digit, bits_per_base);
     shared::write_exponent::<FORMAT>(bytes, &mut cursor, scaled_sci_exp, options.exponent());
 
@@ -205,7 +206,7 @@ where
 
 /// We need to scale the scientific exponent for writing.
 ///
-/// This is similar to [binary::scale_sci_exp](crate::binary::scale_sci_exp),
+/// This is similar to [`binary::scale_sci_exp`](crate::binary::scale_sci_exp),
 /// however, we need to effectively have the same algorithm with `bits_per_base`
 /// instead of `bits_per_digit`. However, `bits_per_base` is smaller, and
 /// will not properly floor the values, so we add in an extra step.

@@ -4,6 +4,7 @@
 //! a port of [fast_float](https://github.com/fastfloat/fast_float) to Rust.
 
 #![doc(hidden)]
+#![allow(clippy::exhaustive_structs)] // reason = "only public for testing"
 
 use lexical_util::format::NumberFormat;
 
@@ -33,10 +34,14 @@ pub struct Number<'a> {
 
 impl<'a> Number<'a> {
     /// Detect if the float can be accurately reconstructed from native floats.
+    #[must_use]
     #[inline(always)]
     pub fn is_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> bool {
         let format = NumberFormat::<FORMAT> {};
-        debug_assert!(format.mantissa_radix() == format.exponent_base());
+        debug_assert!(
+            format.mantissa_radix() == format.exponent_base(),
+            "fast path requires same radix"
+        );
         F::min_exponent_fast_path(format.radix()) <= self.exponent
             && self.exponent <= F::max_exponent_disguised_fast_path(format.radix())
             && self.mantissa <= F::MAX_MANTISSA_FAST_PATH
@@ -53,10 +58,15 @@ impl<'a> Number<'a> {
     /// There is an exception: disguised fast-path cases, where we can shift
     /// powers-of-10 from the exponent to the significant digits.
     // `set_precision` doesn't return a unit value on x87 FPUs.
-    #[allow(clippy::let_unit_value)]
+    #[must_use]
+    #[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
+    #[allow(clippy::let_unit_value)] // reason = "untentional ASM drop for X87 FPUs"
     pub fn try_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> Option<F> {
         let format = NumberFormat::<FORMAT> {};
-        debug_assert!(format.mantissa_radix() == format.exponent_base());
+        debug_assert!(
+            format.mantissa_radix() == format.exponent_base(),
+            "fast path requires same radix"
+        );
         // The fast path crucially depends on arithmetic being rounded to the correct
         // number of bits without any intermediate rounding. On x86 (without SSE
         // or SSE2) this requires the precision of the x87 FPU stack to be
@@ -64,7 +74,7 @@ impl<'a> Number<'a> {
         // function takes care of setting the precision on architectures which
         // require setting it by changing the global state (like the control word of the
         // x87 FPU).
-        let _cw = set_precision::<F>();
+        let _cw: () = set_precision::<F>();
 
         if self.is_fast_path::<F, FORMAT>() {
             let radix = format.radix();
@@ -73,9 +83,9 @@ impl<'a> Number<'a> {
                 // normal fast path
                 let value = F::as_cast(self.mantissa);
                 if self.exponent < 0 {
-                    value / F::pow_fast_path((-self.exponent) as _, radix)
+                    value / F::pow_fast_path((-self.exponent) as usize, radix)
                 } else {
-                    value * F::pow_fast_path(self.exponent as _, radix)
+                    value * F::pow_fast_path(self.exponent as usize, radix)
                 }
             } else {
                 // disguised fast path
@@ -85,7 +95,7 @@ impl<'a> Number<'a> {
                 if mantissa > F::MAX_MANTISSA_FAST_PATH {
                     return None;
                 }
-                F::as_cast(mantissa) * F::pow_fast_path(max_exponent as _, radix)
+                F::as_cast(mantissa) * F::pow_fast_path(max_exponent as usize, radix)
             };
             if self.is_negative {
                 value = -value;
@@ -98,10 +108,15 @@ impl<'a> Number<'a> {
 
     /// Force a fast-path algorithm, even when it may not be accurate.
     // `set_precision` doesn't return a unit value on x87 FPUs.
-    #[allow(clippy::let_unit_value)]
+    #[must_use]
+    #[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
+    #[allow(clippy::let_unit_value)] // reason = "untentional ASM drop for X87 FPUs"
     pub fn force_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> F {
         let format = NumberFormat::<FORMAT> {};
-        debug_assert!(format.mantissa_radix() == format.exponent_base());
+        debug_assert!(
+            format.mantissa_radix() == format.exponent_base(),
+            "fast path requires same radix"
+        );
 
         let _cw = set_precision::<F>();
 
@@ -111,16 +126,16 @@ impl<'a> Number<'a> {
         let mut exponent = self.exponent.abs();
         if self.exponent < 0 {
             while exponent > max_exponent {
-                value /= F::pow_fast_path(max_exponent as _, radix);
+                value /= F::pow_fast_path(max_exponent as usize, radix);
                 exponent -= max_exponent;
             }
-            value /= F::pow_fast_path(exponent as _, radix);
+            value /= F::pow_fast_path(exponent as usize, radix);
         } else {
             while exponent > max_exponent {
-                value *= F::pow_fast_path(max_exponent as _, radix);
+                value *= F::pow_fast_path(max_exponent as usize, radix);
                 exponent -= max_exponent;
             }
-            value *= F::pow_fast_path(exponent as _, radix);
+            value *= F::pow_fast_path(exponent as usize, radix);
         }
         if self.is_negative {
             value = -value;

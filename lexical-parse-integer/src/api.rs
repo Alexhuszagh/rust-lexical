@@ -8,7 +8,7 @@ use lexical_util::{from_lexical, from_lexical_with_options};
 use crate::options::{Options, STANDARD as DEFAULT_OPTIONS};
 use crate::parse::ParseInteger;
 
-/// Implement FromLexical for numeric type.
+/// Implement `FromLexical` for numeric type.
 ///
 /// Need to inline these, otherwise codegen is suboptimal.
 /// For some reason, it can't determine some of the const evaluations

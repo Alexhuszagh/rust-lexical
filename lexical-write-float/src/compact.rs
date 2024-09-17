@@ -85,7 +85,7 @@ pub fn write_float<F: RawFloat, const FORMAT: u128>(
 }
 
 /// Write float to string in scientific notation.
-#[allow(clippy::comparison_chain)]
+#[allow(clippy::comparison_chain)] // reason="logical approach for the algorithm"
 pub fn write_float_scientific<const FORMAT: u128>(
     bytes: &mut [u8],
     digits: &mut [u8],
@@ -143,7 +143,7 @@ pub fn write_float_scientific<const FORMAT: u128>(
 /// Write negative float to string without scientific notation.
 ///
 /// Has a negative exponent (shift right) and no scientific notation.
-#[allow(clippy::comparison_chain)]
+#[allow(clippy::comparison_chain)] // reason="logical approach for the algorithm"
 pub fn write_float_negative_exponent<const FORMAT: u128>(
     bytes: &mut [u8],
     digits: &mut [u8],

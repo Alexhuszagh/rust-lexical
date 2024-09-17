@@ -101,6 +101,7 @@ mod fpu_precision {
 // basis.
 #[cfg(any(not(target_arch = "x86"), target_feature = "sse2"))]
 mod fpu_precision {
-    pub fn set_precision<T>() {
+    #[inline]
+    pub const fn set_precision<T>() {
     }
 }

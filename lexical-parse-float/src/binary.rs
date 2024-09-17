@@ -25,7 +25,10 @@ use crate::shared;
 #[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn binary<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> ExtendedFloat80 {
     let format = NumberFormat::<{ FORMAT }> {};
-    debug_assert!(matches!(format.radix(), 2 | 4 | 8 | 16 | 32));
+    debug_assert!(
+        matches!(format.radix(), 2 | 4 | 8 | 16 | 32),
+        "algorithm requires a power-of-two"
+    );
 
     let fp_zero = ExtendedFloat80 {
         mant: 0,
@@ -112,7 +115,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     // Try to parse 8 digits at a time, if we can.
     #[cfg(not(feature = "compact"))]
     if can_try_parse_multidigit!(iter, radix) {
-        debug_assert!(radix < 16);
+        debug_assert!(radix < 16, "larger radices will wrap on radix^8");
         let radix8 = format.radix8() as u64;
         while *step > 8 {
             if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
@@ -126,9 +129,9 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
 
     // Parse single digits at a time.
     for &c in iter {
-        let digit = char_to_valid_digit_const(c, radix as _);
+        let digit = char_to_valid_digit_const(c, radix as u32);
         if !*overflowed {
-            let result = mantissa.checked_mul(radix as _).and_then(|x| x.checked_add(digit as _));
+            let result = mantissa.checked_mul(radix).and_then(|x| x.checked_add(digit as u64));
             if let Some(mant) = result {
                 *mantissa = mant;
             } else {
@@ -150,7 +153,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
 pub fn slow_binary<F: RawFloat, const FORMAT: u128>(num: Number) -> ExtendedFloat80 {
     let format = NumberFormat::<{ FORMAT }> {};
     let radix = format.radix();
-    debug_assert!(matches!(radix, 2 | 4 | 8 | 16 | 32));
+    debug_assert!(matches!(radix, 2 | 4 | 8 | 16 | 32), "algorithm requires a power-of-two");
 
     // This assumes the sign bit has already been parsed, and we're
     // starting with the integer digits, and the float format has been

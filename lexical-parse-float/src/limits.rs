@@ -116,6 +116,7 @@ impl ExactFloat for bf16 {
 // --------
 
 /// Get the exponent limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(feature = "radix")]
 pub const fn f32_exponent_limit(radix: u32) -> (i64, i64) {
@@ -160,6 +161,7 @@ pub const fn f32_exponent_limit(radix: u32) -> (i64, i64) {
 }
 
 /// Get the exponent limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
 pub const fn f32_exponent_limit(radix: u32) -> (i64, i64) {
@@ -175,6 +177,7 @@ pub const fn f32_exponent_limit(radix: u32) -> (i64, i64) {
 }
 
 /// Get the exponent limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
 pub const fn f32_exponent_limit(radix: u32) -> (i64, i64) {
@@ -185,6 +188,7 @@ pub const fn f32_exponent_limit(radix: u32) -> (i64, i64) {
 }
 
 /// Get the mantissa limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(feature = "radix")]
 pub const fn f32_mantissa_limit(radix: u32) -> i64 {
@@ -229,6 +233,7 @@ pub const fn f32_mantissa_limit(radix: u32) -> i64 {
 }
 
 /// Get the mantissa limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
 pub const fn f32_mantissa_limit(radix: u32) -> i64 {
@@ -244,6 +249,7 @@ pub const fn f32_mantissa_limit(radix: u32) -> i64 {
 }
 
 /// Get the mantissa limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
 pub const fn f32_mantissa_limit(radix: u32) -> i64 {
@@ -254,6 +260,7 @@ pub const fn f32_mantissa_limit(radix: u32) -> i64 {
 }
 
 /// Get the exponent limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(feature = "radix")]
 pub const fn f64_exponent_limit(radix: u32) -> (i64, i64) {
@@ -298,6 +305,7 @@ pub const fn f64_exponent_limit(radix: u32) -> (i64, i64) {
 }
 
 // Get the exponent limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
 pub const fn f64_exponent_limit(radix: u32) -> (i64, i64) {
@@ -313,8 +321,9 @@ pub const fn f64_exponent_limit(radix: u32) -> (i64, i64) {
 }
 
 /// Get the exponent limit as a const fn.
-#[cfg(not(feature = "power-of-two"))]
+#[must_use]
 #[inline(always)]
+#[cfg(not(feature = "power-of-two"))]
 pub const fn f64_exponent_limit(radix: u32) -> (i64, i64) {
     match radix {
         10 => (-22, 22),
@@ -323,6 +332,7 @@ pub const fn f64_exponent_limit(radix: u32) -> (i64, i64) {
 }
 
 /// Get the mantissa limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(feature = "radix")]
 pub const fn f64_mantissa_limit(radix: u32) -> i64 {
@@ -367,6 +377,7 @@ pub const fn f64_mantissa_limit(radix: u32) -> i64 {
 }
 
 /// Get the mantissa limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
 pub const fn f64_mantissa_limit(radix: u32) -> i64 {
@@ -382,6 +393,7 @@ pub const fn f64_mantissa_limit(radix: u32) -> i64 {
 }
 
 /// Get the mantissa limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
 pub const fn f64_mantissa_limit(radix: u32) -> i64 {
@@ -392,6 +404,7 @@ pub const fn f64_mantissa_limit(radix: u32) -> i64 {
 }
 
 /// Get the exponent limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(feature = "f128")]
 #[cfg(feature = "radix")]
@@ -455,6 +468,7 @@ pub const fn f128_exponent_limit(radix: u32) -> (i64, i64) {
 }
 
 /// Get the exponent limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(feature = "f128")]
 #[cfg(not(feature = "power-of-two"))]
@@ -467,6 +481,7 @@ pub const fn f128_exponent_limit(radix: u32) -> (i64, i64) {
 }
 
 /// Get the mantissa limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(feature = "f128")]
 #[cfg(feature = "radix")]
@@ -513,6 +528,7 @@ pub const fn f128_mantissa_limit(radix: u32) -> i64 {
 }
 
 /// Get the mantissa limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(feature = "f128")]
 #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
@@ -530,6 +546,7 @@ pub const fn f128_mantissa_limit(radix: u32) -> i64 {
 }
 
 /// Get the mantissa limit as a const fn.
+#[must_use]
 #[inline(always)]
 #[cfg(feature = "f128")]
 #[cfg(not(feature = "power-of-two"))]
@@ -577,6 +594,7 @@ pub const fn f128_mantissa_limit(radix: u32) -> i64 {
 
 /// Get the maximum value for `radix^N` that can be represented in a u32.
 /// This is calculated as `⌊log(2^32 - 1, b)⌋`.
+#[must_use]
 #[inline(always)]
 #[cfg(feature = "radix")]
 pub const fn u32_power_limit(radix: u32) -> u32 {
@@ -622,6 +640,7 @@ pub const fn u32_power_limit(radix: u32) -> u32 {
 }
 
 /// This is calculated as `⌊log(2^32 - 1, b)⌋`.
+#[must_use]
 #[inline(always)]
 #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
 pub const fn u32_power_limit(radix: u32) -> u32 {
@@ -639,6 +658,7 @@ pub const fn u32_power_limit(radix: u32) -> u32 {
 }
 
 /// This is calculated as `⌊log(2^32 - 1, b)⌋`.
+#[must_use]
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
 pub const fn u32_power_limit(radix: u32) -> u32 {
@@ -652,6 +672,7 @@ pub const fn u32_power_limit(radix: u32) -> u32 {
 
 /// Get the maximum value for `radix^N` that can be represented in a u64.
 /// This is calculated as `⌊log(2^64 - 1, b)⌋`.
+#[must_use]
 #[inline(always)]
 #[cfg(feature = "radix")]
 pub const fn u64_power_limit(radix: u32) -> u32 {
@@ -698,6 +719,7 @@ pub const fn u64_power_limit(radix: u32) -> u32 {
 
 /// Get the maximum value for `radix^N` that can be represented in a u64.
 /// This is calculated as `⌊log(2^64 - 1, b)⌋`.
+#[must_use]
 #[inline(always)]
 #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
 pub const fn u64_power_limit(radix: u32) -> u32 {
@@ -714,6 +736,7 @@ pub const fn u64_power_limit(radix: u32) -> u32 {
     }
 }
 
+#[must_use]
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
 pub const fn u64_power_limit(radix: u32) -> u32 {
@@ -836,6 +859,7 @@ pub const fn u64_power_limit(radix: u32) -> u32 {
 ///     print('    _ => None,')
 ///     print('}')
 /// ```
+#[allow(clippy::doc_markdown)] // reason="not meant to be function parameters"
 pub trait MaxDigits {
     fn max_digits(radix: u32) -> Option<usize>;
 }
@@ -907,6 +931,7 @@ impl MaxDigits for bf16 {
 // --------
 
 /// Get the maximum number of significant digits as a const fn.
+#[must_use]
 #[inline(always)]
 pub const fn f32_max_digits(radix: u32) -> Option<usize> {
     match radix {
@@ -930,6 +955,7 @@ pub const fn f32_max_digits(radix: u32) -> Option<usize> {
 }
 
 /// Get the maximum number of significant digits as a const fn.
+#[must_use]
 #[inline(always)]
 pub const fn f64_max_digits(radix: u32) -> Option<usize> {
     match radix {

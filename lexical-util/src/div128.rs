@@ -52,7 +52,7 @@ use crate::mul::mulhi;
 /// Therefore, the `shr` is `log2(radix) * digits`, and the mask is just the
 /// lower `shr` bits of the digits.
 #[inline(always)]
-#[allow(clippy::many_single_char_names)]
+#[allow(clippy::many_single_char_names)] // reason="mathematical names"
 pub const fn pow2_u128_divrem(n: u128, mask: u64, shr: u32) -> (u128, u64) {
     let quot = n >> shr;
     let rem = mask & n as u64;
@@ -62,7 +62,7 @@ pub const fn pow2_u128_divrem(n: u128, mask: u64, shr: u32) -> (u128, u64) {
 /// Fast division/remainder algorithm for u128, without a fast native
 /// approximation.
 #[inline(always)]
-#[allow(clippy::many_single_char_names)]
+#[allow(clippy::many_single_char_names)] // reason="mathematical names"
 pub fn fast_u128_divrem(
     n: u128,
     d: u64,
@@ -83,7 +83,7 @@ pub fn fast_u128_divrem(
 /// Fast division/remainder algorithm for u128, without a fast native
 /// approximation.
 #[inline(always)]
-#[allow(clippy::many_single_char_names)]
+#[allow(clippy::many_single_char_names)] // reason="mathematical names"
 pub fn moderate_u128_divrem(n: u128, d: u64, factor: u128, factor_shr: u32) -> (u128, u64) {
     let quot = mulhi::<u128, u64>(n, factor) >> factor_shr;
     let rem = (n - quot * d as u128) as u64;
@@ -99,7 +99,7 @@ pub fn moderate_u128_divrem(n: u128, d: u64, factor: u128, factor_shr: u32) -> (
 /// in the above paper, but this is a suitable fallback when we cannot use
 /// the faster algorithm.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-#[allow(clippy::many_single_char_names)]
+#[allow(clippy::many_single_char_names)] // reason="mathematical names"
 pub fn slow_u128_divrem(n: u128, d: u64, d_ctlz: u32) -> (u128, u64) {
     // Ensure we have the correct number of leading zeros passed.
     debug_assert_eq!(d_ctlz, d.leading_zeros());
@@ -154,9 +154,9 @@ pub fn slow_u128_divrem(n: u128, d: u64, d_ctlz: u32) -> (u128, u64) {
 ///
 /// This returns the quotient and the remainder.
 /// For the number of digits processed, see
-/// [min_step](crate::step::min_step).
+/// [`min_step`](crate::step::min_step).
 #[inline(always)]
-#[allow(clippy::needless_return)]
+#[allow(clippy::needless_return)] // reason="required based on radix configuration"
 pub fn u128_divrem(n: u128, radix: u32) -> (u128, u64) {
     debug_assert_radix(radix);
 

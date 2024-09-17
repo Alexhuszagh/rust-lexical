@@ -246,7 +246,8 @@ impl Bigfloat {
 #[cfg(feature = "radix")]
 impl ops::MulAssign<&Bigfloat> for Bigfloat {
     #[inline(always)]
-    #[allow(clippy::suspicious_op_assign_impl)]
+    #[allow(clippy::suspicious_op_assign_impl)] // reason="intended increment"
+    #[allow(clippy::unwrap_used)] // reason="exceeding the bounds is a developper error"
     fn mul_assign(&mut self, rhs: &Bigfloat) {
         large_mul(&mut self.data, &rhs.data).unwrap();
         self.exp += rhs.exp;
@@ -268,7 +269,8 @@ impl Default for Bigfloat {
 pub struct StackVec<const SIZE: usize> {
     /// The raw buffer for the elements.
     data: [mem::MaybeUninit<Limb>; SIZE],
-    /// The number of elements in the array (we never need more than u16::MAX).
+    /// The number of elements in the array (we never need more than
+    /// `u16::MAX`).
     length: u16,
 }
 
@@ -322,6 +324,7 @@ macro_rules! hi {
 
 impl<const SIZE: usize> StackVec<SIZE> {
     /// Construct an empty vector.
+    #[must_use]
     #[inline(always)]
     pub const fn new() -> Self {
         Self {
@@ -331,18 +334,21 @@ impl<const SIZE: usize> StackVec<SIZE> {
     }
 
     /// Get a mutable ptr to the current start of the big integer.
+    #[must_use]
     #[inline(always)]
     pub fn as_mut_ptr(&mut self) -> *mut Limb {
         self.data.as_mut_ptr().cast::<Limb>()
     }
 
     /// Get a ptr to the current start of the big integer.
+    #[must_use]
     #[inline(always)]
     pub fn as_ptr(&self) -> *const Limb {
         self.data.as_ptr().cast::<Limb>()
     }
 
     /// Construct a vector from an existing slice.
+    #[must_use]
     #[inline(always)]
     pub fn try_from(x: &[Limb]) -> Option<Self> {
         let mut vec = Self::new();
@@ -361,24 +367,27 @@ impl<const SIZE: usize> StackVec<SIZE> {
     /// Safe as long as `len` is less than `SIZE`.
     #[inline(always)]
     pub unsafe fn set_len(&mut self, len: usize) {
-        debug_assert!(len <= u16::MAX as usize);
-        debug_assert!(len <= SIZE);
+        debug_assert!(len <= u16::MAX as usize, "indexing must fit in 16 bits");
+        debug_assert!(len <= SIZE, "cannot exceed our array bounds");
         self.length = len as u16;
     }
 
     /// Get the number of elements stored in the vector.
+    #[must_use]
     #[inline(always)]
     pub const fn len(&self) -> usize {
         self.length as usize
     }
 
     /// If the vector is empty.
+    #[must_use]
     #[inline(always)]
     pub const fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// The number of items the vector can hold.
+    #[must_use]
     #[inline(always)]
     pub const fn capacity(&self) -> usize {
         SIZE
@@ -391,7 +400,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
     /// Safe if `self.len() < self.capacity()`.
     #[inline(always)]
     unsafe fn push_unchecked(&mut self, value: Limb) {
-        debug_assert!(self.len() < self.capacity());
+        debug_assert!(self.len() < self.capacity(), "cannot exceed our array bounds");
         // SAFETY: safe, capacity is less than the current size.
         unsafe {
             let len = self.len();
@@ -420,10 +429,10 @@ impl<const SIZE: usize> StackVec<SIZE> {
     /// Safe if `self.len() > 0`.
     #[inline(always)]
     unsafe fn pop_unchecked(&mut self) -> Limb {
-        debug_assert!(!self.is_empty());
+        debug_assert!(!self.is_empty(), "cannot pop a value if none exists");
+        self.length -= 1;
         // SAFETY: safe if `self.length > 0`.
         // We have a trivial drop and copy, so this is safe.
-        self.length -= 1;
         unsafe { ptr::read(self.as_mut_ptr().add(self.len())) }
     }
 
@@ -448,7 +457,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
     unsafe fn extend_unchecked(&mut self, slc: &[Limb]) {
         let index = self.len();
         let new_len = index + slc.len();
-        debug_assert!(self.len() + slc.len() <= self.capacity());
+        debug_assert!(self.len() + slc.len() <= self.capacity(), "cannot exceed our array bounds");
         let src = slc.as_ptr();
         // SAFETY: safe if `self.len() + slc.len() <= self.capacity()`.
         unsafe {
@@ -476,7 +485,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
     ///
     /// Safe as long as `len <= self.capacity()`.
     unsafe fn truncate_unchecked(&mut self, len: usize) {
-        debug_assert!(len <= self.capacity());
+        debug_assert!(len <= self.capacity(), "cannot exceed our array bounds");
         self.length = len as u16;
     }
 
@@ -487,16 +496,16 @@ impl<const SIZE: usize> StackVec<SIZE> {
     /// Safe as long as `len <= self.capacity()`.
     #[inline(always)]
     pub unsafe fn resize_unchecked(&mut self, len: usize, value: Limb) {
-        debug_assert!(len <= self.capacity());
+        debug_assert!(len <= self.capacity(), "cannot exceed our array bounds");
         let old_len = self.len();
         if len > old_len {
             // We have a trivial drop, so there's no worry here.
             // Just, don't set the length until all values have been written,
             // so we don't accidentally read uninitialized memory.
 
-            // SAFETY: safe if `len < self.capacity()`.
             let count = len - old_len;
             for index in 0..count {
+                // SAFETY: safe if `len < self.capacity()`.
                 unsafe {
                     let dst = self.as_mut_ptr().add(old_len + index);
                     ptr::write(dst, value);
@@ -581,33 +590,36 @@ impl<const SIZE: usize> StackVec<SIZE> {
 
     // FROM
 
-    /// Create StackVec from u16 value.
+    /// Create `StackVec` from u16 value.
+    #[must_use]
     #[inline(always)]
     pub fn from_u16(x: u16) -> Self {
         let mut vec = Self::new();
-        assert!(1 <= vec.capacity());
+        assert!(1 <= vec.capacity(), "cannot exceed our array bounds");
         _ = vec.try_push(x as Limb);
         vec.normalize();
         vec
     }
 
-    /// Create StackVec from u32 value.
+    /// Create `StackVec` from u32 value.
+    #[must_use]
     #[inline(always)]
     pub fn from_u32(x: u32) -> Self {
         let mut vec = Self::new();
-        debug_assert!(1 <= vec.capacity());
-        assert!(1 <= SIZE);
+        debug_assert!(1 <= vec.capacity(), "cannot exceed our array bounds");
+        assert!(1 <= SIZE, "cannot exceed our array bounds");
         _ = vec.try_push(x as Limb);
         vec.normalize();
         vec
     }
 
-    /// Create StackVec from u64 value.
+    /// Create `StackVec` from u64 value.
+    #[must_use]
     #[inline(always)]
     pub fn from_u64(x: u64) -> Self {
         let mut vec = Self::new();
-        debug_assert!(2 <= vec.capacity());
-        assert!(2 <= SIZE);
+        debug_assert!(2 <= vec.capacity(), "cannot exceed our array bounds");
+        assert!(2 <= SIZE, "cannot exceed our array bounds");
         if LIMB_BITS == 32 {
             _ = vec.try_push(x as Limb);
             _ = vec.try_push((x >> 32) as Limb);
@@ -621,6 +633,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
     // INDEX
 
     /// Create a reverse view of the vector for indexing.
+    #[must_use]
     #[inline(always)]
     pub fn rview(&self) -> ReverseView<Limb> {
         ReverseView {
@@ -644,14 +657,11 @@ impl<const SIZE: usize> StackVec<SIZE> {
     }
 
     /// Get if the big integer is normalized.
+    #[must_use]
     #[inline(always)]
-    #[allow(clippy::match_like_matches_macro)]
     pub fn is_normalized(&self) -> bool {
         // We don't care if this wraps: the index is bounds-checked.
-        match self.get(self.len().wrapping_sub(1)) {
-            Some(&0) => false,
-            _ => true,
-        }
+        self.get(self.len().wrapping_sub(1)) != Some(&0)
     }
 
     /// Calculate the fast quotient for a single limb-bit quotient.
@@ -668,13 +678,13 @@ impl<const SIZE: usize> StackVec<SIZE> {
         large_quorem(self, y)
     }
 
-    /// AddAssign small integer.
+    /// `AddAssign` small integer.
     #[inline(always)]
     pub fn add_small(&mut self, y: Limb) -> Option<()> {
         small_add(self, y)
     }
 
-    /// MulAssign small integer.
+    /// `MulAssign` small integer.
     #[inline(always)]
     pub fn mul_small(&mut self, y: Limb) -> Option<()> {
         small_mul(self, y)
@@ -683,7 +693,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
 
 impl<const SIZE: usize> PartialEq for StackVec<SIZE> {
     #[inline(always)]
-    #[allow(clippy::op_ref)]
+    #[allow(clippy::op_ref)] // reason="need to convert to slice for equality"
     fn eq(&self, other: &Self) -> bool {
         use core::ops::Deref;
         self.len() == other.len() && self.deref() == other.deref()
@@ -711,7 +721,7 @@ impl<const SIZE: usize> ops::Deref for StackVec<SIZE> {
     type Target = [Limb];
     #[inline(always)]
     fn deref(&self) -> &[Limb] {
-        debug_assert!(self.len() <= self.capacity());
+        debug_assert!(self.len() <= self.capacity(), "cannot exceed our array bounds");
         // SAFETY: safe since `self.data[..self.len()]` must be initialized
         // and `self.len() <= self.capacity()`.
         unsafe {
@@ -724,7 +734,7 @@ impl<const SIZE: usize> ops::Deref for StackVec<SIZE> {
 impl<const SIZE: usize> ops::DerefMut for StackVec<SIZE> {
     #[inline(always)]
     fn deref_mut(&mut self) -> &mut [Limb] {
-        debug_assert!(self.len() <= self.capacity());
+        debug_assert!(self.len() <= self.capacity(), "cannot exceed our array bounds");
         // SAFETY: safe since `self.data[..self.len()]` must be initialized
         // and `self.len() <= self.capacity()`.
         unsafe {
@@ -736,6 +746,7 @@ impl<const SIZE: usize> ops::DerefMut for StackVec<SIZE> {
 
 impl<const SIZE: usize> ops::MulAssign<&[Limb]> for StackVec<SIZE> {
     #[inline(always)]
+    #[allow(clippy::unwrap_used)] // reason="exceeding the bounds is a developper error"
     fn mul_assign(&mut self, rhs: &[Limb]) {
         large_mul(self, rhs).unwrap();
     }
@@ -763,7 +774,7 @@ impl<'a, T: 'a> ReverseView<'a, T> {
     /// or `index < self.inner.len()`.
     #[inline(always)]
     pub unsafe fn get_unchecked(&self, index: usize) -> &T {
-        debug_assert!(index < self.inner.len());
+        debug_assert!(index < self.inner.len(), "cannot exceed our array bounds");
         let len = self.inner.len();
         // SAFETY: Safe as long as the index < length, so len - index - 1 >= 0 and <=
         // len.
@@ -811,9 +822,10 @@ impl<'a, T> ops::Index<usize> for ReverseView<'a, T> {
 /// Safe as long as `rindex <= x.len()`. This is only called
 /// where the type size is directly from the caller, and removing
 /// it leads to a ~20% degradation in performance.
+#[must_use]
 #[inline(always)]
 pub unsafe fn nonzero(x: &[Limb], rindex: usize) -> bool {
-    debug_assert!(rindex <= x.len());
+    debug_assert!(rindex <= x.len(), "cannot exceed our array bounds");
     let len = x.len();
     // SAFETY: safe if `rindex < x.len()`, since then `x.len() - rindex < x.len()`.
     let slc = unsafe { &index_unchecked!(x[..len - rindex]) };
@@ -823,6 +835,7 @@ pub unsafe fn nonzero(x: &[Limb], rindex: usize) -> bool {
 // These return the high X bits and if the bits were truncated.
 
 /// Shift 32-bit integer to high 16-bits.
+#[must_use]
 #[inline(always)]
 pub const fn u32_to_hi16_1(r0: u32) -> (u16, bool) {
     let r0 = u32_to_hi32_1(r0).0;
@@ -830,6 +843,7 @@ pub const fn u32_to_hi16_1(r0: u32) -> (u16, bool) {
 }
 
 /// Shift 2 32-bit integers to high 16-bits.
+#[must_use]
 #[inline(always)]
 pub const fn u32_to_hi16_2(r0: u32, r1: u32) -> (u16, bool) {
     let (r0, n) = u32_to_hi32_2(r0, r1);
@@ -837,6 +851,7 @@ pub const fn u32_to_hi16_2(r0: u32, r1: u32) -> (u16, bool) {
 }
 
 /// Shift 32-bit integer to high 32-bits.
+#[must_use]
 #[inline(always)]
 pub const fn u32_to_hi32_1(r0: u32) -> (u32, bool) {
     let ls = r0.leading_zeros();
@@ -844,6 +859,7 @@ pub const fn u32_to_hi32_1(r0: u32) -> (u32, bool) {
 }
 
 /// Shift 2 32-bit integers to high 32-bits.
+#[must_use]
 #[inline(always)]
 pub const fn u32_to_hi32_2(r0: u32, r1: u32) -> (u32, bool) {
     let ls = r0.leading_zeros();
@@ -857,12 +873,14 @@ pub const fn u32_to_hi32_2(r0: u32, r1: u32) -> (u32, bool) {
 }
 
 /// Shift 32-bit integer to high 64-bits.
+#[must_use]
 #[inline(always)]
 pub const fn u32_to_hi64_1(r0: u32) -> (u64, bool) {
     u64_to_hi64_1(r0 as u64)
 }
 
 /// Shift 2 32-bit integers to high 64-bits.
+#[must_use]
 #[inline(always)]
 pub const fn u32_to_hi64_2(r0: u32, r1: u32) -> (u64, bool) {
     let r0 = (r0 as u64) << 32;
@@ -871,6 +889,7 @@ pub const fn u32_to_hi64_2(r0: u32, r1: u32) -> (u64, bool) {
 }
 
 /// Shift 3 32-bit integers to high 64-bits.
+#[must_use]
 #[inline(always)]
 pub const fn u32_to_hi64_3(r0: u32, r1: u32, r2: u32) -> (u64, bool) {
     let r0 = r0 as u64;
@@ -880,6 +899,7 @@ pub const fn u32_to_hi64_3(r0: u32, r1: u32, r2: u32) -> (u64, bool) {
 }
 
 /// Shift 64-bit integer to high 16-bits.
+#[must_use]
 #[inline(always)]
 pub const fn u64_to_hi16_1(r0: u64) -> (u16, bool) {
     let r0 = u64_to_hi64_1(r0).0;
@@ -887,6 +907,7 @@ pub const fn u64_to_hi16_1(r0: u64) -> (u16, bool) {
 }
 
 /// Shift 2 64-bit integers to high 16-bits.
+#[must_use]
 #[inline(always)]
 pub const fn u64_to_hi16_2(r0: u64, r1: u64) -> (u16, bool) {
     let (r0, n) = u64_to_hi64_2(r0, r1);
@@ -894,6 +915,7 @@ pub const fn u64_to_hi16_2(r0: u64, r1: u64) -> (u16, bool) {
 }
 
 /// Shift 64-bit integer to high 32-bits.
+#[must_use]
 #[inline(always)]
 pub const fn u64_to_hi32_1(r0: u64) -> (u32, bool) {
     let r0 = u64_to_hi64_1(r0).0;
@@ -901,6 +923,7 @@ pub const fn u64_to_hi32_1(r0: u64) -> (u32, bool) {
 }
 
 /// Shift 2 64-bit integers to high 32-bits.
+#[must_use]
 #[inline(always)]
 pub const fn u64_to_hi32_2(r0: u64, r1: u64) -> (u32, bool) {
     let (r0, n) = u64_to_hi64_2(r0, r1);
@@ -908,6 +931,7 @@ pub const fn u64_to_hi32_2(r0: u64, r1: u64) -> (u32, bool) {
 }
 
 /// Shift 64-bit integer to high 64-bits.
+#[must_use]
 #[inline(always)]
 pub const fn u64_to_hi64_1(r0: u64) -> (u64, bool) {
     let ls = r0.leading_zeros();
@@ -915,6 +939,7 @@ pub const fn u64_to_hi64_1(r0: u64) -> (u64, bool) {
 }
 
 /// Shift 2 64-bit integers to high 64-bits.
+#[must_use]
 #[inline(always)]
 pub const fn u64_to_hi64_2(r0: u64, r1: u64) -> (u64, bool) {
     let ls = r0.leading_zeros();
@@ -976,6 +1001,8 @@ pub const fn u64_to_hi64_2(r0: u64, r1: u64) -> (u64, bool) {
 /// Furthermore, using sufficiently big large powers is also crucial for
 /// performance. This is a tradeoff of binary size and performance, and
 /// using a single value at ~`5^(5 * max_exp)` seems optimal.
+#[allow(clippy::doc_markdown)] // reason="not attempted to be referencing items"
+#[allow(clippy::missing_inline_in_public_items)] // reason="only public for testing"
 pub fn pow<const SIZE: usize>(x: &mut StackVec<SIZE>, base: u32, mut exp: u32) -> Option<()> {
     // Minimize the number of iterations for large exponents: just
     // do a few steps with a large powers.
@@ -1011,8 +1038,9 @@ pub fn pow<const SIZE: usize>(x: &mut StackVec<SIZE>, base: u32, mut exp: u32) -
 
 /// Add two small integers and return the resulting value and if overflow
 /// happens.
+#[must_use]
 #[inline(always)]
-pub fn scalar_add(x: Limb, y: Limb) -> (Limb, bool) {
+pub const fn scalar_add(x: Limb, y: Limb) -> (Limb, bool) {
     x.overflowing_add(y)
 }
 
@@ -1020,8 +1048,9 @@ pub fn scalar_add(x: Limb, y: Limb) -> (Limb, bool) {
 /// contribution).
 ///
 /// Returns the (low, high) components.
+#[must_use]
 #[inline(always)]
-pub fn scalar_mul(x: Limb, y: Limb, carry: Limb) -> (Limb, Limb) {
+pub const fn scalar_mul(x: Limb, y: Limb, carry: Limb) -> (Limb, Limb) {
     // Cannot overflow, as long as wide is 2x as wide. This is because
     // the following is always true:
     // `Wide::MAX - (Narrow::MAX * Narrow::MAX) >= Narrow::MAX`
@@ -1081,6 +1110,7 @@ pub fn small_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb) -> Option<(
 // -----
 
 /// Add bigint to bigint starting from offset.
+#[allow(clippy::missing_inline_in_public_items)] // reason="only public for testing"
 pub fn large_add_from<const SIZE: usize>(
     x: &mut StackVec<SIZE>,
     y: &[Limb],
@@ -1190,7 +1220,9 @@ pub fn large_add<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Optio
 /// ```
 ///
 /// In short, Karatsuba multiplication is never worthwhile for out use-case.
-#[allow(clippy::needless_range_loop)]
+#[must_use]
+#[allow(clippy::needless_range_loop)] // reason="required for performance, see benches"
+#[allow(clippy::missing_inline_in_public_items)] // reason="only public for testing"
 pub fn long_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> Option<StackVec<SIZE>> {
     // Using the immutable value, multiply by all the scalars in y, using
     // the algorithm defined above. Use a single buffer to avoid
@@ -1245,7 +1277,7 @@ pub fn large_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Optio
 /// Adapted from David M. Gay's dtoa, and therefore under an MIT license:
 ///     www.netlib.org/fp/dtoa.c
 #[cfg(feature = "radix")]
-#[allow(clippy::many_single_char_names)]
+#[allow(clippy::many_single_char_names)] // reason = "mathematical names of variables"
 pub fn large_quorem<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Limb {
     // If we have an empty divisor, error out early.
     assert!(!y.is_empty(), "large_quorem:: division by zero error.");
@@ -1302,6 +1334,7 @@ pub fn large_quorem<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Li
 // -------
 
 /// Compare `x` to `y`, in little-endian order.
+#[must_use]
 #[inline(always)]
 pub fn compare(x: &[Limb], y: &[Limb]) -> cmp::Ordering {
     match x.len().cmp(&y.len()) {
@@ -1326,14 +1359,14 @@ pub fn compare(x: &[Limb], y: &[Limb]) -> cmp::Ordering {
 /// Shift-left `n` bits inside a buffer.
 #[inline(always)]
 pub fn shl_bits<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<()> {
-    debug_assert!(n != 0);
+    debug_assert!(n != 0, "cannot shift left by 0 bits");
 
     // Internally, for each item, we shift left by n, and add the previous
     // right shifted limb-bits.
     // For example, we transform (for u8) shifted left 2, to:
     //      b10100100 b01000010
     //      b10 b10010001 b00001000
-    debug_assert!(n < LIMB_BITS);
+    debug_assert!(n < LIMB_BITS, "cannot shift left more bits than in our limb");
     let rshift = LIMB_BITS - n;
     let lshift = n;
     let mut prev: Limb = 0;
@@ -1356,7 +1389,7 @@ pub fn shl_bits<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<(
 /// Shift-left `n` limbs inside a buffer.
 #[inline(always)]
 pub fn shl_limbs<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<()> {
-    debug_assert!(n != 0);
+    debug_assert!(n != 0, "cannot shift left by 0 bits");
     if n + x.len() > x.capacity() {
         None
     } else if !x.is_empty() {
@@ -1364,8 +1397,7 @@ pub fn shl_limbs<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<
         let x_len = x.len();
         let ptr = x.as_mut_ptr();
         let src = ptr;
-        // FIXME: Change to `split_at_mut` and `clone_from_slice`?
-        // SAFE: since x is not empty, and `x.len() + n <= x.capacity()`.
+        // SAFETY: since x is not empty, and `x.len() + n <= x.capacity()`.
         unsafe {
             // Move the elements.
             let dst = ptr.add(n);
@@ -1381,6 +1413,7 @@ pub fn shl_limbs<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<
 }
 
 /// Shift-left buffer by n bits.
+#[must_use]
 #[inline(always)]
 pub fn shl<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<()> {
     let rem = n % LIMB_BITS;
@@ -1395,6 +1428,7 @@ pub fn shl<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<()> {
 }
 
 /// Get number of leading zero bits in the storage.
+#[must_use]
 #[inline(always)]
 pub fn leading_zeros(x: &[Limb]) -> u32 {
     let length = x.len();
@@ -1407,6 +1441,7 @@ pub fn leading_zeros(x: &[Limb]) -> u32 {
 }
 
 /// Calculate the bit-length of the big-integer.
+#[must_use]
 #[inline(always)]
 pub fn bit_length(x: &[Limb]) -> u32 {
     let nlz = leading_zeros(x);
@@ -1417,6 +1452,7 @@ pub fn bit_length(x: &[Limb]) -> u32 {
 // -----
 
 /// Get the base, odd radix, and the power-of-two for the type.
+#[must_use]
 #[inline(always)]
 #[cfg(feature = "radix")]
 pub const fn split_radix(radix: u32) -> (u32, u32) {
@@ -1462,6 +1498,7 @@ pub const fn split_radix(radix: u32) -> (u32, u32) {
 }
 
 /// Get the base, odd radix, and the power-of-two for the type.
+#[must_use]
 #[inline(always)]
 #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
 pub const fn split_radix(radix: u32) -> (u32, u32) {
@@ -1481,6 +1518,7 @@ pub const fn split_radix(radix: u32) -> (u32, u32) {
 }
 
 /// Get the base, odd radix, and the power-of-two for the type.
+#[must_use]
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
 pub const fn split_radix(radix: u32) -> (u32, u32) {

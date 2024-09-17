@@ -26,13 +26,13 @@ impl OptionsBuilder {
         true
     }
 
-    /// Build the Options struct with bounds validation.
+    /// Build the `Options` struct with bounds validation.
     #[inline(always)]
     pub const fn build_unchecked(&self) -> Options {
         Options {}
     }
 
-    /// Build the Options struct.
+    /// Build the `Options` struct.
     #[inline(always)]
     pub const fn build(&self) -> Result<Options> {
         Ok(self.build_unchecked())
@@ -77,13 +77,13 @@ impl Options {
 
     // BUILDERS
 
-    /// Get OptionsBuilder as a static function.
+    /// Get `OptionsBuilder` as a static function.
     #[inline(always)]
     pub const fn builder() -> OptionsBuilder {
         OptionsBuilder::new()
     }
 
-    /// Create OptionsBuilder using existing values.
+    /// Create `OptionsBuilder` using existing values.
     #[inline(always)]
     pub const fn rebuild(&self) -> OptionsBuilder {
         OptionsBuilder {}
