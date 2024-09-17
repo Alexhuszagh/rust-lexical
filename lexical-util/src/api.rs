@@ -7,7 +7,7 @@
 
 // FROM LEXICAL
 
-/// Define FromLexical trait.
+/// Define `FromLexical` trait.
 #[macro_export]
 #[cfg(feature = "parse")]
 macro_rules! from_lexical {
@@ -39,7 +39,7 @@ macro_rules! from_lexical {
     };
 }
 
-/// Define FromLexicalWithOptions trait.
+/// Define `FromLexicalWithOptions` trait.
 #[macro_export]
 #[cfg(feature = "parse")]
 macro_rules! from_lexical_with_options {
@@ -107,7 +107,7 @@ macro_rules! from_lexical_with_options {
 
 // TO LEXICAL
 
-/// Define ToLexical trait.
+/// Define `ToLexical` trait.
 #[macro_export]
 #[cfg(feature = "write")]
 macro_rules! to_lexical {
@@ -145,7 +145,7 @@ macro_rules! to_lexical {
     };
 }
 
-/// Define ToLexicalWithOptions trait.
+/// Define `ToLexicalWithOptions` trait.
 #[macro_export]
 #[cfg(feature = "write")]
 macro_rules! to_lexical_with_options {

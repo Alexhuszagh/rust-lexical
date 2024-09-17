@@ -134,6 +134,7 @@ where
 ///         ret
 /// ```
 #[cfg_attr(not(feature = "compact"), inline(always))]
+#[allow(clippy::unwrap_used)] // reason="yi cannot be none due to previous check"
 pub fn starts_with_uncased<'a, 'b, Iter1, Iter2>(mut x: Iter1, mut y: Iter2) -> bool
 where
     Iter1: Iterator<Item = &'a u8>,
@@ -224,9 +225,9 @@ where
 /// Shift right N-bytes and round towards a direction.
 ///
 /// Callback should take the following parameters:
-///     1. is_odd
-///     1. is_halfway
-///     1. is_above
+///     1. `is_odd`
+///     1. `is_halfway`
+///     1. `is_above`
 #[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn round_nearest_tie_even<Cb>(fp: &mut ExtendedFloat80, shift: i32, cb: Cb)
 where

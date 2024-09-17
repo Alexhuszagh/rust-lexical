@@ -132,8 +132,8 @@ unsafe fn write_digits<T: UnsignedInteger + DigitCount>(
 
     // Decode last 2 digits.
     if value < radix {
-        // SAFETY: this is always safe, since value < radix, so it must be < 36.
         let r = u32::as_cast(value);
+        // SAFETY: this is always safe, since value < radix, so it must be < 36.
         write_digit!(buffer, index, r);
     } else {
         let r = usize::as_cast(T::TWO * value);
@@ -167,8 +167,8 @@ unsafe fn write_step_digits<T: UnsignedInteger + DigitCount>(
     // SAFETY: safe as long as the call to write_step_digits is safe.
     let index = unsafe { write_digits(value, radix, table, buffer, index) };
     // Write the remaining 0 bytes.
-    // SAFETY: this is always safe since `end < index && index < start`.
     let end = start.saturating_sub(step);
+    // SAFETY: this is always safe since `end < index && index < start`.
     let zeros = unsafe { &mut index_unchecked_mut!(buffer[end..index]) };
     zeros.fill(b'0');
 
@@ -181,12 +181,12 @@ unsafe fn write_step_digits<T: UnsignedInteger + DigitCount>(
 ///
 /// Safe as long as the buffer is large enough to hold as many digits
 /// that can be in the largest value of `T`, in radix `N`. For decimal
-/// values, it's supposed to be exactly [digit_count] to avoid copies,
+/// values, it's supposed to be exactly [`digit_count`] to avoid copies,
 /// since we write from the end to the front.
 ///
-/// See the crate [crate] documentation for more security considerations.
+/// See the crate [`crate`] documentation for more security considerations.
 ///
-/// [digit_count]: crate::decimal::DigitCount
+/// [`digit_count`]: `crate::decimal::DigitCount`
 #[inline(always)]
 pub fn algorithm<T>(value: T, radix: u32, table: &[u8], buffer: &mut [u8]) -> usize
 where
@@ -216,12 +216,12 @@ where
 ///
 /// Safe as long as the buffer is large enough to hold as many digits
 /// that can be in the largest value of `T`, in radix `N`. For decimal
-/// values, it's supposed to be exactly [digit_count] to avoid copies,
+/// values, it's supposed to be exactly [`digit_count`] to avoid copies,
 /// since we write from the end to the front.
 ///
-/// See the crate [crate] documentation for more security considerations.
+/// See the crate [`crate`] documentation for more security considerations.
 ///
-/// [digit_count]: crate::decimal::DigitCount
+/// [`digit_count`]: `crate::decimal::DigitCount`
 #[inline(always)]
 pub fn algorithm_u128<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
     value: u128,
@@ -242,12 +242,12 @@ pub fn algorithm_u128<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
     let radix = radix_from_flags(FORMAT, MASK, SHIFT);
     assert!(radix <= 36, "radix must be <= 36");
     assert!(table.len() >= (radix * radix * 2) as usize, "table must be 2 * radix^2 long");
-    if value <= u64::MAX as _ {
+    if value <= u64::MAX as u128 {
         // SAFETY: safe if the buffer is large enough to hold the significant digits.
         return unsafe { algorithm(value as u64, radix, table, buffer) };
     }
 
-    // SAFETY: Both forms of unchecked indexing cannot overflow.
+    // LOGIC: Both forms of unchecked indexing cannot overflow.
     // The table always has 2*radix^2 elements, so it must be a legal index.
     // The buffer is ensured to have at least `FORMATTED_SIZE` or
     // `FORMATTED_SIZE_DECIMAL` characters, which is the maximum number of
@@ -264,7 +264,7 @@ pub fn algorithm_u128<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
     let (value, low) = u128_divrem(value, radix_from_flags(FORMAT, MASK, SHIFT));
     let mut index = buffer.len();
     index = unsafe { write_step_digits(low, radix, table, buffer, index, step) };
-    if value <= u64::MAX as _ {
+    if value <= u64::MAX as u128 {
         unsafe { write_digits(value as u64, radix, table, buffer, index) };
         return count;
     }

@@ -1,6 +1,6 @@
 //! Fast lexical conversion routines.
 //!
-//! Fast lexical conversion routines for both std and no_std environments.
+//! Fast lexical conversion routines for both `std` and `no_std` environments.
 //! lexical provides routines to convert numbers to and from decimal
 //! strings. lexical also supports non-base 10 numbers, with the `radix`
 //! feature, for both integers and floats. lexical is customizable
@@ -178,8 +178,9 @@
 //!
 //! Many pre-defined constants therefore exist to simplify common use-cases,
 //! including:
-//! - JSON, XML, TOML, YAML, SQLite, and many more.
-//! - Rust, Python, C#, FORTRAN, COBOL literals and strings, and many more.
+//! - `JSON`, `XML`, `TOML`, `YAML`, `SQLite`, and many more.
+//! - `Rust`, `Python`, `C#`, `FORTRAN`, `COBOL` literals and strings, and many
+//!   more.
 //!
 //! ## Options API
 //!
@@ -275,6 +276,30 @@
 #![allow(unused_unsafe)]
 #![cfg_attr(feature = "lint", warn(unsafe_op_in_unsafe_fn))]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![deny(
+    clippy::doc_markdown,
+    clippy::unnecessary_safety_comment,
+    clippy::semicolon_if_nothing_returned,
+    clippy::unwrap_used,
+    clippy::as_underscore,
+    clippy::doc_markdown
+)]
+#![allow(
+    // used when concepts are logically separate
+    clippy::match_same_arms,
+    // loss of precision is intentional
+    clippy::integer_division,
+    // mathematical names use 1-character identifiers
+    clippy::min_ident_chars,
+    // these are not cryptographically secure contexts
+    clippy::integer_division_remainder_used,
+    // this can be intentional
+    clippy::module_name_repetitions,
+    // this is intentional: already passing a pointer and need performance
+    clippy::needless_pass_by_value,
+    // we use this for inline formatting for unsafe blocks
+    clippy::semicolon_inside_block,
+)]
 
 // Need an allocator for String/Vec.
 #[cfg(feature = "write")]

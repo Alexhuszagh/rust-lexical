@@ -52,15 +52,15 @@
 //! as an intermediate.
 //!
 //! The decimal writer relies on pre-computed tables and an exact calculation
-//! of the digit count ([digit_count]) to avoid any overhead. Avoid intermediary
-//! copies is **CRITICAL** for fast performance so the entire buffer must be
-//! known but assigned to use algorithms the compiler cannot easily verify. This
-//! is because we use multi-digit optimizations with our pre-computed tables,
-//! so we cannot just iterate over the slice and assign iteratively. Using
-//! checked indexing can lead to 30%+ decreases in performance. However, with
-//! careful analysis and factoring of the code, it's fairly easy to demonstrate
-//! the safety as long as the caller enusres at least the required number of
-//! digits are provided.
+//! of the digit count ([`digit_count`]) to avoid any overhead. Avoid
+//! intermediary copies is **CRITICAL** for fast performance so the entire
+//! buffer must be known but assigned to use algorithms the compiler cannot
+//! easily verify. This is because we use multi-digit optimizations with our
+//! pre-computed tables, so we cannot just iterate over the slice and assign
+//! iteratively. Using checked indexing can lead to 30%+ decreases in
+//! performance. However, with careful analysis and factoring of the code, it's
+//! fairly easy to demonstrate the safety as long as the caller enusres at least
+//! the required number of digits are provided.
 //!
 //! Our algorithms work like this, carving off the lower digits and writing them
 //! to the back of the buffer.
@@ -100,27 +100,51 @@
 //! We can efficiently determine at compile time if the pre-computed
 //! tables are large enough so there are no non-local safety considerations
 //! there. The current logic call stack is:
-//! 1. [to_lexical]
+//! 1. [`to_lexical`]
 //! 2. [decimal][dec], compact, or radix (gts the correct tables and calls
 //!    algorithm)
 //! 3. [algorithm]
 //!
 //! [decimal][dec], compact, and radix therefore **MUST** be safe and do type
 //! check of the bounds to avoid too much expoosure to unsafety. Only
-//! [algorithm] should have any unsafety associated with it. That is, as long as
-//! the direct caller has ensure the proper buffer is allocated, there are
+//! [`algorithm`] should have any unsafety associated with it. That is, as long
+//! as the direct caller has ensure the proper buffer is allocated, there are
 //! non-local safety invariants.
 //!
-//! [digit_count]: crate::decimal::DigitCount
-//! [to_lexical]: crate::ToLexical::to_lexical
+//! [`digit_count`]: crate::decimal::DigitCount
+//! [`to_lexical`]: crate::ToLexical::to_lexical
 //! [dec]: crate::decimal::Decimal::decimal
-//! [algorithm]: crate::algorithm::algorithm
+//! [`algorithm`]: crate::algorithm::algorithm
 
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
 #![allow(unused_unsafe)]
 #![cfg_attr(feature = "lint", warn(unsafe_op_in_unsafe_fn))]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![deny(
+    clippy::doc_markdown,
+    clippy::unnecessary_safety_comment,
+    clippy::semicolon_if_nothing_returned,
+    clippy::unwrap_used,
+    clippy::as_underscore,
+    clippy::doc_markdown
+)]
+#![allow(
+    // used when concepts are logically separate
+    clippy::match_same_arms,
+    // loss of precision is intentional
+    clippy::integer_division,
+    // mathematical names use 1-character identifiers
+    clippy::min_ident_chars,
+    // these are not cryptographically secure contexts
+    clippy::integer_division_remainder_used,
+    // this can be intentional
+    clippy::module_name_repetitions,
+    // this is intentional: already passing a pointer and need performance
+    clippy::needless_pass_by_value,
+    // we use this for inline formatting for unsafe blocks
+    clippy::semicolon_inside_block,
+)]
 
 #[macro_use]
 mod index;

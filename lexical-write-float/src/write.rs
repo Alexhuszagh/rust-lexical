@@ -122,7 +122,6 @@ pub trait WriteFloat: RawFloat + FormattedSize {
         if !self.is_special() {
             #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
             {
-                // SAFETY: safe if the buffer can hold the significant digits
                 let radix = format.radix();
                 let exponent_base = format.exponent_base();
                 count
@@ -137,7 +136,6 @@ pub trait WriteFloat: RawFloat + FormattedSize {
 
             #[cfg(feature = "radix")]
             {
-                // SAFETY: safe if the buffer can hold the significant digits
                 let radix = format.radix();
                 let exponent_base = format.exponent_base();
                 count
@@ -179,7 +177,6 @@ macro_rules! write_float_as_f32 {
             #[inline(always)]
             fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> usize
             {
-                // SAFETY: safe if `bytes` is large enough to hold the written bytes.
                 self.as_f32().write_float::<FORMAT>(bytes, options)
             }
         }

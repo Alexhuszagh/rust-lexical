@@ -47,82 +47,82 @@ macro_rules! as_primitive {
         impl AsPrimitive for $t {
             #[inline(always)]
             fn as_u8(self) -> u8 {
-                self as _
+                self as u8
             }
 
             #[inline(always)]
             fn as_u16(self) -> u16 {
-                self as _
+                self as u16
             }
 
             #[inline(always)]
             fn as_u32(self) -> u32 {
-                self as _
+                self as u32
             }
 
             #[inline(always)]
             fn as_u64(self) -> u64 {
-                self as _
+                self as u64
             }
 
             #[inline(always)]
             fn as_u128(self) -> u128 {
-                self as _
+                self as u128
             }
 
             #[inline(always)]
             fn as_usize(self) -> usize {
-                self as _
+                self as usize
             }
 
             #[inline(always)]
             fn as_i8(self) -> i8 {
-                self as _
+                self as i8
             }
 
             #[inline(always)]
             fn as_i16(self) -> i16 {
-                self as _
+                self as i16
             }
 
             #[inline(always)]
             fn as_i32(self) -> i32 {
-                self as _
+                self as i32
             }
 
             #[inline(always)]
             fn as_i64(self) -> i64 {
-                self as _
+                self as i64
             }
 
             #[inline(always)]
             fn as_i128(self) -> i128 {
-                self as _
+                self as i128
             }
 
             #[inline(always)]
             fn as_isize(self) -> isize {
-                self as _
+                self as isize
             }
 
             #[inline(always)]
             fn as_f32(self) -> f32 {
-                self as _
+                self as f32
             }
 
             #[inline(always)]
             fn as_f64(self) -> f64 {
-                self as _
+                self as f64
             }
 
             #[inline(always)]
             fn from_u32(value: u32) -> Self {
-                value as _
+                value as Self
             }
 
             #[inline(always)]
             fn from_u64(value: u64) -> Self {
-                value as _
+                value as Self
             }
 
             #[cfg(feature = "f16")]
@@ -148,75 +148,76 @@ macro_rules! half_as_primitive {
         impl AsPrimitive for $t {
             #[inline(always)]
             fn as_u8(self) -> u8 {
-                self.as_f32() as _
+                self.as_f32() as u8
             }
 
             #[inline(always)]
             fn as_u16(self) -> u16 {
-                self.as_f32() as _
+                self.as_f32() as u16
             }
 
             #[inline(always)]
             fn as_u32(self) -> u32 {
-                self.as_f32() as _
+                self.as_f32() as u32
             }
 
             #[inline(always)]
             fn as_u64(self) -> u64 {
-                self.as_f32() as _
+                self.as_f32() as u64
             }
 
             #[inline(always)]
             fn as_u128(self) -> u128 {
-                self.as_f32() as _
+                self.as_f32() as u128
             }
 
             #[inline(always)]
             fn as_usize(self) -> usize {
-                self.as_f32() as _
+                self.as_f32() as usize
             }
 
             #[inline(always)]
             fn as_i8(self) -> i8 {
-                self.as_f32() as _
+                self.as_f32() as i8
             }
 
             #[inline(always)]
             fn as_i16(self) -> i16 {
-                self.as_f32() as _
+                self.as_f32() as i16
             }
 
             #[inline(always)]
             fn as_i32(self) -> i32 {
-                self.as_f32() as _
+                self.as_f32() as i32
             }
 
             #[inline(always)]
             fn as_i64(self) -> i64 {
-                self.as_f32() as _
+                self.as_f32() as i64
             }
 
             #[inline(always)]
             fn as_i128(self) -> i128 {
-                self.as_f32() as _
+                self.as_f32() as i128
             }
 
             #[inline(always)]
             fn as_isize(self) -> isize {
-                self.as_f32() as _
+                self.as_f32() as isize
             }
 
             #[inline(always)]
             fn as_f32(self) -> f32 {
-                self.as_f32() as _
+                self.as_f32() as f32
             }
 
             #[inline(always)]
             fn as_f64(self) -> f64 {
-                self.as_f32() as _
+                self.as_f32() as f64
             }
 
             #[inline(always)]
+            #[allow(clippy::as_underscore)] // reason="intentionally used in a generic sense"
             fn from_u32(value: u32) -> Self {
                 Self::from_f32(value as _)
             }
@@ -263,6 +264,7 @@ macro_rules! as_cast {
     ($($t:ty, $meth:ident ; )*) => ($(
         impl AsCast for $t {
             #[inline(always)]
+            #[allow(clippy::as_underscore)] // reason="intentional due to generic API"
             fn as_cast<N: AsPrimitive>(n: N) -> $t {
                 n.$meth() as _
             }
@@ -1301,7 +1303,7 @@ fn floorf(x: f32) -> f32 {
  * to produce the hexadecimal values shown.
  */
 
-#[allow(clippy::eq_op, clippy::excessive_precision)]
+#[allow(clippy::eq_op, clippy::excessive_precision)] // reason="values need to be exact under all conditions"
 #[cfg(all(not(feature = "std"), feature = "floats"))]
 fn logd(mut x: f64) -> f64 {
     const LN2_HI: f64 = 6.93147180369123816490e-01; /* 3fe62e42 fee00000 */
@@ -1373,7 +1375,7 @@ fn logd(mut x: f64) -> f64 {
  * ====================================================
  */
 
-#[allow(clippy::eq_op, clippy::excessive_precision)]
+#[allow(clippy::eq_op, clippy::excessive_precision)] // reason="values need to be exact under all conditions"
 #[cfg(all(not(feature = "std"), feature = "floats"))]
 fn logf(mut x: f32) -> f32 {
     const LN2_HI: f32 = 6.9313812256e-01; /* 0x3f317180 */

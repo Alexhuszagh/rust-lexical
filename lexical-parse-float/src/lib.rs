@@ -92,11 +92,38 @@
 //! [longbits]: <https://github.com/Alexhuszagh/rust-lexical/blob/15d4c8c92d70b1fb9bd6d33f582ffe27e0e74f99/lexical-parse-float/src/bigint.rs#L550-L557>
 //! [push_unchecked]: <https://github.com/Alexhuszagh/rust-lexical/blob/15d4c8c92d70b1fb9bd6d33f582ffe27e0e74f99/lexical-parse-float/src/bigint.rs#L377-L386>
 
+// FIXME: Implement clippy/allow reasons once we drop support for 1.80.0 and below
+// Clippy reasons were stabilized in 1.81.0.
+
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
 #![allow(unused_unsafe)]
 #![cfg_attr(feature = "lint", warn(unsafe_op_in_unsafe_fn))]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![deny(
+    clippy::doc_markdown,
+    clippy::unnecessary_safety_comment,
+    clippy::semicolon_if_nothing_returned,
+    clippy::unwrap_used,
+    clippy::as_underscore,
+    clippy::doc_markdown
+)]
+#![allow(
+    // used when concepts are logically separate
+    clippy::match_same_arms,
+    // loss of precision is intentional
+    clippy::integer_division,
+    // mathematical names use 1-character identifiers
+    clippy::min_ident_chars,
+    // these are not cryptographically secure contexts
+    clippy::integer_division_remainder_used,
+    // this can be intentional
+    clippy::module_name_repetitions,
+    // this is intentional: already passing a pointer and need performance
+    clippy::needless_pass_by_value,
+    // we use this for inline formatting for unsafe blocks
+    clippy::semicolon_inside_block,
+)]
 
 #[macro_use]
 pub mod shared;

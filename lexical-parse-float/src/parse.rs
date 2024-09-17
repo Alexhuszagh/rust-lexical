@@ -195,7 +195,7 @@ pub fn parse_exponent_sign<const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> 
 /// Utility to extract the result and handle any errors from parsing a `Number`.
 ///
 /// - `format` - The numberical format as a packed integer
-/// - `byte` - The DigitsIter iterator
+/// - `byte` - The `DigitsIter` iterator
 /// - `is_negative` - If the final value is negative
 /// - `parse_normal` - The function to parse non-special numbers with
 /// - `parse_special` - The function to parse special numbers with
@@ -238,6 +238,7 @@ macro_rules! to_native {
 }
 
 /// Parse a float from bytes using a complete parser.
+#[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
 pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
     options: &Options,
@@ -261,7 +262,7 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     // Fallback to a slower, but always correct algorithm. If we have
     // lossy, we can't be here.
     if fp.exp < 0 {
-        debug_assert!(!options.lossy());
+        debug_assert!(!options.lossy(), "lossy algorithms never use slow algorithms");
         // Undo the invalid extended float biasing.
         fp.exp -= shared::INVALID_FP;
         fp = slow_path::<F, FORMAT>(num, fp);
@@ -272,6 +273,7 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
 }
 
 /// Parse a float using only the fast path as a complete parser.
+#[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
 pub fn fast_path_complete<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
     options: &Options,
@@ -288,6 +290,7 @@ pub fn fast_path_complete<F: LemireFloat, const FORMAT: u128>(
 }
 
 /// Parse a float from bytes using a partial parser.
+#[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
 pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
     options: &Options,
@@ -318,7 +321,7 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     // Fallback to a slower, but always correct algorithm. If we have
     // lossy, we can't be here.
     if fp.exp < 0 {
-        debug_assert!(!options.lossy());
+        debug_assert!(!options.lossy(), "lossy algorithms never use slow algorithms");
         // Undo the invalid extended float biasing.
         fp.exp -= shared::INVALID_FP;
         fp = slow_path::<F, FORMAT>(num, fp);
@@ -329,6 +332,7 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
 }
 
 /// Parse a float using only the fast path as a partial parser.
+#[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
 pub fn fast_path_partial<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
     options: &Options,
@@ -356,6 +360,7 @@ pub fn fast_path_partial<F: LemireFloat, const FORMAT: u128>(
 
 /// Wrapper for different moderate-path algorithms.
 /// A return exponent of `-1` indicates an invalid value.
+#[must_use]
 #[inline(always)]
 pub fn moderate_path<F: LemireFloat, const FORMAT: u128>(
     num: &Number,
@@ -418,6 +423,7 @@ pub fn moderate_path<F: LemireFloat, const FORMAT: u128>(
 
 /// Invoke the slow path.
 /// At this point, the float string has already been validated.
+#[must_use]
 #[inline(always)]
 pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
     num: Number,
@@ -447,7 +453,11 @@ pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
 /// This creates a representation of the float as the
 /// significant digits and the decimal exponent.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-#[allow(clippy::collapsible_if, unused_mut)]
+#[allow(unused_mut)] // reason = "used when format is enabled"
+#[allow(clippy::unwrap_used)] // reason = "developper error if we incorrectly assume an overflow"
+#[allow(clippy::collapsible_if)] // reason = "more readable uncollapsed"
+#[allow(clippy::cast_possible_wrap)] // reason = "no hardware supports buffers >= i64::MAX"
+#[allow(clippy::too_many_lines)] // reason = "function is one logical entity"
 pub fn parse_partial_number<'a, const FORMAT: u128>(
     mut byte: Bytes<'a, FORMAT>,
     is_negative: bool,
@@ -484,8 +494,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let format = NumberFormat::<{ FORMAT }> {};
     let decimal_point = options.decimal_point();
     let exponent_character = options.exponent();
-    debug_assert!(format.is_valid());
-    debug_assert!(!byte.is_buffer_empty());
+    debug_assert!(format.is_valid(), "should have already checked for an invalid number format");
+    debug_assert!(!byte.is_buffer_empty(), "should have previously checked for empty input");
     let bits_per_digit = shared::log2(format.mantissa_radix()) as i64;
     let bits_per_base = shared::log2(format.exponent_base()) as i64;
 
@@ -516,7 +526,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     #[cfg(not(feature = "compact"))]
     parse_8digits::<_, FORMAT>(byte.integer_iter(), &mut mantissa);
     parse_digits::<_, _, FORMAT>(byte.integer_iter(), |digit| {
-        mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
+        mantissa = mantissa.wrapping_mul(format.radix() as u64).wrapping_add(digit as u64);
     });
     let mut n_digits = byte.current_count() - start.current_count();
     #[cfg(feature = "format")]
@@ -525,6 +535,10 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     }
 
     // Store the integer digits for slow-path algorithms.
+    debug_assert!(
+        n_digits <= start.as_slice().len(),
+        "number of digits parsed must <= buffer length"
+    );
     // SAFETY: safe, since `n_digits <= start.as_slice().len()`.
     // This is since `byte.len() >= start.len()` but has to have
     // the same end bounds (that is, `start = byte.clone()`), so
@@ -534,7 +548,6 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     // NOTE: Removing this code leads to ~10% reduction in parsing
     // that triggers the Eisell-Lemire algorithm or the digit comp
     // algorithms, so don't remove the unsafe indexing.
-    debug_assert!(n_digits <= start.as_slice().len());
     let integer_digits = unsafe { start.as_slice().get_unchecked(..n_digits) };
 
     // Check if integer leading zeros are disabled.
@@ -560,13 +573,16 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         #[cfg(not(feature = "compact"))]
         parse_8digits::<_, FORMAT>(byte.fraction_iter(), &mut mantissa);
         parse_digits::<_, _, FORMAT>(byte.fraction_iter(), |digit| {
-            mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
+            mantissa = mantissa.wrapping_mul(format.radix() as u64).wrapping_add(digit as u64);
         });
         n_after_dot = byte.current_count() - before.current_count();
 
         // Store the fraction digits for slow-path algorithms.
+        debug_assert!(
+            n_after_dot <= before.as_slice().len(),
+            "digits after dot must be smaller than buffer"
+        );
         // SAFETY: safe, since `n_after_dot <= before.as_slice().len()`.
-        debug_assert!(n_after_dot <= before.as_slice().len());
         fraction_digits = Some(unsafe { before.as_slice().get_unchecked(..n_after_dot) });
 
         // Calculate the implicit exponent: the number of digits after the dot.
@@ -574,7 +590,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         if format.mantissa_radix() == format.exponent_base() {
             exponent = implicit_exponent;
         } else {
-            debug_assert!(bits_per_digit % bits_per_base == 0);
+            debug_assert!(bits_per_digit % bits_per_base == 0, "exponent must be a power of base");
             exponent = implicit_exponent * bits_per_digit / bits_per_base;
         };
         #[cfg(feature = "format")]
@@ -611,7 +627,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
             }
         }
 
-        let is_negative = parse_exponent_sign(&mut byte)?;
+        let is_negative_exponent = parse_exponent_sign(&mut byte)?;
         let before = byte.current_count();
         parse_digits::<_, _, FORMAT>(byte.exponent_iter(), |digit| {
             if explicit_exponent < 0x10000000 {
@@ -623,7 +639,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
             return Err(Error::EmptyExponent(byte.cursor()));
         }
         // Handle our sign, and get the explicit part of the exponent.
-        explicit_exponent = if is_negative {
+        explicit_exponent = if is_negative_exponent {
             -explicit_exponent
         } else {
             explicit_exponent
@@ -719,7 +735,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         if format.mantissa_radix() == format.exponent_base() {
             exponent = implicit_exponent;
         } else {
-            debug_assert!(bits_per_digit % bits_per_base == 0);
+            debug_assert!(bits_per_digit % bits_per_base == 0, "exponent must be a power of base");
             exponent = implicit_exponent * bits_per_digit / bits_per_base;
         };
         // Add back the explicit exponent.
@@ -789,7 +805,7 @@ where
     let format = NumberFormat::<{ FORMAT }> {};
     let radix: u64 = format.radix() as u64;
     if can_try_parse_multidigit!(iter, radix) {
-        debug_assert!(radix < 16);
+        debug_assert!(radix < 16, "radices over 16 will overflow with radix^8");
         let radix8 = format.radix8() as u64;
         // Can do up to 2 iterations without overflowing, however, for large
         // inputs, this is much faster than any other alternative.
@@ -818,7 +834,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     // Try to parse 8 digits at a time, if we can.
     #[cfg(not(feature = "compact"))]
     if can_try_parse_multidigit!(iter, radix) {
-        debug_assert!(radix < 16);
+        debug_assert!(radix < 16, "radices over 16 will overflow with radix^8");
         let radix8 = format.radix8() as u64;
         while *step > 8 {
             if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
@@ -849,6 +865,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
 
 /// Determine if the input data matches the special string.
 /// If there's no match, returns 0. Otherwise, returns the byte's cursor.
+#[must_use]
 #[inline(always)]
 pub fn is_special_eq<const FORMAT: u128>(mut byte: Bytes<FORMAT>, string: &'static [u8]) -> usize {
     let format = NumberFormat::<{ FORMAT }> {};
@@ -867,6 +884,7 @@ pub fn is_special_eq<const FORMAT: u128>(mut byte: Bytes<FORMAT>, string: &'stat
 }
 
 /// Parse a positive representation of a special, non-finite float.
+#[must_use]
 #[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn parse_positive_special<F, const FORMAT: u128>(
     byte: Bytes<FORMAT>,
@@ -911,6 +929,7 @@ where
 }
 
 /// Parse a partial representation of a special, non-finite float.
+#[must_use]
 #[inline(always)]
 pub fn parse_partial_special<F, const FORMAT: u128>(
     byte: Bytes<FORMAT>,
@@ -928,6 +947,7 @@ where
 }
 
 /// Try to parse a special, non-finite float.
+#[must_use]
 #[inline(always)]
 pub fn parse_special<F, const FORMAT: u128>(
     byte: Bytes<FORMAT>,

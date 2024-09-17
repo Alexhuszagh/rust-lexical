@@ -340,7 +340,7 @@ impl<'a> AsBytes<'a> for [u8] {
 /// `FORMAT` is required to tell us what the digit separator is, and where
 /// the digit separators are allowed, as well tell us the radix.
 /// The radix is required to allow us to differentiate digit from
-/// non-digit characters (see [DigitSeparators](/docs/DigitSeparators.md)
+/// non-digit characters (see [`DigitSeparators`](/docs/DigitSeparators.md)
 /// for a detailed explanation on why).
 #[derive(Clone)]
 pub struct Bytes<'a, const FORMAT: u128> {
@@ -367,7 +367,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// Initialize the slice from raw parts.
     ///
     /// # Safety
-    /// This is safe if and only if the index is <= slc.len().
+    /// This is safe if and only if the index is <= `slc.len()`.
     /// For this reason, since it's easy to get wrong, we only
     /// expose it to our `DigitsIterator`s and nothing else.
     ///
@@ -439,7 +439,7 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
     #[inline(always)]
     unsafe fn set_cursor(&mut self, index: usize) {
         debug_assert!(index <= self.buffer_length());
-        self.index = index
+        self.index = index;
     }
 
     /// Get the current number of values returned by the iterator.
@@ -541,7 +541,7 @@ macro_rules! skip_iterator_impl {
             /// the iterators state. It does not support non-contiguous iterators
             /// since we would lose information on the count.
             #[cfg_attr(not(feature = "compact"), inline(always))]
-            #[allow(clippy::assertions_on_constants)]
+            #[allow(clippy::assertions_on_constants)] // reason="ensuring safety invariants are valid"
             pub fn take_n(&mut self, n: usize) -> Option<Bytes<'a, FORMAT>> {
                 if Self::IS_CONTIGUOUS {
                     let end = self.byte.slc.len().min(n + self.cursor());
@@ -633,7 +633,7 @@ macro_rules! skip_iterator_iter_base {
     };
 }
 
-/// Create base methods for the DigitsIter block of a skip iterator.
+/// Create base methods for the `DigitsIter` block of a skip iterator.
 macro_rules! skip_iterator_digits_iter_base {
     () => {
         #[inline(always)]
@@ -643,7 +643,7 @@ macro_rules! skip_iterator_digits_iter_base {
     };
 }
 
-/// Create impl ByteIter block for skip iterator.
+/// Create impl `ByteIter` block for skip iterator.
 macro_rules! skip_iterator_bytesiter_impl {
     ($iterator:ident, $mask:ident, $i:ident, $l:ident, $t:ident, $c:ident) => {
         unsafe impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for $iterator<'a, 'b, FORMAT> {

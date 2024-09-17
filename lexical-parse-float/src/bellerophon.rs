@@ -39,8 +39,14 @@ use crate::table::bellerophon_powers;
 /// This has been modified to return a biased, rather than unbiased exponent.
 pub fn bellerophon<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> ExtendedFloat80 {
     let format = NumberFormat::<{ FORMAT }> {};
-    debug_assert!(!matches!(format.radix(), 2 | 4 | 8 | 16 | 32));
-    debug_assert!(format.mantissa_radix() == format.exponent_base());
+    debug_assert!(
+        !matches!(format.radix(), 2 | 4 | 8 | 16 | 32),
+        "performance slow for non-pow2 cases"
+    );
+    debug_assert!(
+        format.mantissa_radix() == format.exponent_base(),
+        "only works if digits and exponent have same base"
+    );
 
     let fp_zero = ExtendedFloat80 {
         mant: 0,
@@ -181,7 +187,7 @@ const fn error_halfscale() -> u32 {
 #[cfg_attr(not(feature = "compact"), inline(always))]
 fn error_is_accurate<F: RawFloat>(errors: u32, fp: &ExtendedFloat80) -> bool {
     // Check we can't have a literal 0 denormal float.
-    debug_assert!(fp.exp >= -64);
+    debug_assert!(fp.exp >= -64, "cannot have a literal 0 float");
 
     // Determine if extended-precision float is a good approximation.
     // If the error has affected too many units, the float will be
@@ -323,8 +329,8 @@ pub fn normalize(fp: &mut ExtendedFloat80) -> i32 {
 #[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn mul(x: &ExtendedFloat80, y: &ExtendedFloat80) -> ExtendedFloat80 {
     // Logic check, values must be decently normalized prior to multiplication.
-    debug_assert!(x.mant >> 32 != 0);
-    debug_assert!(y.mant >> 32 != 0);
+    debug_assert!(x.mant >> 32 != 0, "cannot have a literal 0 float");
+    debug_assert!(y.mant >> 32 != 0, "cannot have a literal 0 float");
 
     // Extract high-and-low masks.
     const LOMASK: u64 = u32::MAX as u64;

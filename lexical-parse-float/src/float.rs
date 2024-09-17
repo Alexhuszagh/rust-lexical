@@ -34,6 +34,7 @@ pub trait RawFloat: Float + ExactFloat + MaxDigits {
     /// Minimum exponent that for a fast path case, or
     /// `-⌊(MANTISSA_SIZE+1)/log2(r)⌋` where `r` is the radix with
     /// powers-of-two removed.
+    #[must_use]
     #[inline(always)]
     fn min_exponent_fast_path(radix: u32) -> i64 {
         Self::exponent_limit(radix).0
@@ -42,6 +43,7 @@ pub trait RawFloat: Float + ExactFloat + MaxDigits {
     /// Maximum exponent that for a fast path case, or
     /// `⌊(MANTISSA_SIZE+1)/log2(r)⌋` where `r` is the radix with
     /// powers-of-two removed.
+    #[must_use]
     #[inline(always)]
     fn max_exponent_fast_path(radix: u32) -> i64 {
         Self::exponent_limit(radix).1
@@ -49,6 +51,7 @@ pub trait RawFloat: Float + ExactFloat + MaxDigits {
 
     // Maximum exponent that can be represented for a disguised-fast path case.
     // This is `max_exponent_fast_path(radix) + ⌊(MANTISSA_SIZE+1)/log2(radix)⌋`
+    #[must_use]
     #[inline(always)]
     fn max_exponent_disguised_fast_path(radix: u32) -> i64 {
         Self::max_exponent_fast_path(radix) + Self::mantissa_limit(radix)
@@ -58,6 +61,7 @@ pub trait RawFloat: Float + ExactFloat + MaxDigits {
     fn pow_fast_path(exponent: usize, radix: u32) -> Self;
 
     /// Get a small, integral power-of-radix for fast-path multiplication.
+    #[must_use]
     #[inline(always)]
     fn int_pow_fast_path(exponent: usize, radix: u32) -> u64 {
         // SAFETY: safe as long as the exponent is smaller than the radix table.
@@ -190,6 +194,7 @@ pub fn powd(x: f64, y: f64) -> f64 {
 }
 
 /// Converts an `ExtendedFloat` to the closest machine float type.
+#[must_use]
 #[inline(always)]
 pub fn extended_to_float<F: Float>(x: ExtendedFloat80) -> F {
     let mut word = x.mant;

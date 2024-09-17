@@ -88,7 +88,7 @@ pub fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
 
     // Write the significant digits. Write at index 1, so we can shift 1
     // for the decimal point without intermediate buffers.
-    // SAFETY: safe, if we have enough bytes to write the significant digits.
+    // Won't panic if we have enough bytes to write the significant digits.
     let digits = &mut bytes[1..];
     let digit_count = F::write_digits(digits, fp.mant);
 
@@ -119,7 +119,7 @@ pub fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     }
 
     // Now, write our scientific notation.
-    // SAFETY: safe since bytes must be large enough to store all digits.
+    // Won't panic since bytes must be large enough to store all digits.
     shared::write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent());
 
     cursor
@@ -152,7 +152,7 @@ pub fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u128>(
     bytes[..cursor].fill(b'0');
 
     // Write out our significant digits.
-    // SAFETY: safe, if we have enough bytes to write the significant digits.
+    // Won't panic: we have enough bytes to write the significant digits.
     let digits = &mut bytes[cursor..];
     let digit_count = F::write_digits(digits, fp.mant);
 
@@ -439,7 +439,7 @@ pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
 /// Compute the interval I = [m−w,m+w] if even, otherwise, (m−w,m+w).
 /// This is the normal case for a finite number with non-zero significant
 /// digits.
-#[allow(clippy::comparison_chain)]
+#[allow(clippy::comparison_chain)] // reason="logical approach for algorithm"
 pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let mantissa = float.mantissa().as_u64();
     let exponent = float.exponent();
@@ -524,7 +524,7 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
         } else {
             let (xi_parity, x_is_integer) = F::compute_mul_parity(two_fl, &pow5, beta);
             if !xi_parity && !x_is_integer {
-                should_short_circuit = false
+                should_short_circuit = false;
             }
         }
     }
@@ -575,7 +575,7 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
 }
 
 /// Compute the interval I = [w,w+).
-#[allow(clippy::comparison_chain)]
+#[allow(clippy::comparison_chain)] // reason="logical approach for algorithm"
 pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let mantissa = float.mantissa().as_u64();
     let exponent = float.exponent();
@@ -664,7 +664,7 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
 }
 
 /// Compute the interval I = (w−,w]..
-#[allow(clippy::comparison_chain, clippy::if_same_then_else)]
+#[allow(clippy::comparison_chain, clippy::if_same_then_else)] // reason="logical approach for algorithm"
 pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> ExtendedFloat80 {
     // ensure our floats have a maximum exp in the range [-324, 308].
     assert!(F::BITS <= 64, "cannot guarantee safety invariants with 128-bit floats");
@@ -757,6 +757,7 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
 /// Returns the number of digits written. This assumes any trailing zeros have
 /// been removed.
 #[inline(always)]
+#[allow(clippy::branches_sharing_code)] // reason="could differentiate later"
 pub fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
     debug_assert!(bytes.len() >= 10);
     mantissa.write_mantissa::<u32, { STANDARD }>(bytes)
@@ -769,7 +770,7 @@ pub fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
 /// same as the number of digits in the mantissa, since trailing zeros will
 /// be removed. `log10(2**64-1) < 20`, so 20 digits is always enough.
 #[inline(always)]
-#[allow(clippy::branches_sharing_code)]
+#[allow(clippy::branches_sharing_code)] // reason="could differentiate later"
 pub fn write_digits_u64(bytes: &mut [u8], mantissa: u64) -> usize {
     debug_assert!(bytes.len() >= 20);
     mantissa.write_mantissa::<u64, { STANDARD }>(bytes)
@@ -1145,7 +1146,7 @@ pub trait DragonboxFloat: Float {
     /// Constant derived in Section 4.5 of the Dragonbox algorithm.
     const KAPPA: u32;
     /// Ceiling of the maximum number of float decimal digits + 1.
-    /// Or, ceil((MANTISSA_SIZE + 1) / log2(10)) + 1.
+    /// Or, `ceil((MANTISSA_SIZE + 1) / log2(10)) + 1`.
     const DECIMAL_DIGITS: usize;
     const FC_PM_HALF_LOWER: i32 = -(Self::KAPPA as i32) - floor_log5_pow2(Self::KAPPA as i32);
     const DIV_BY_5_THRESHOLD: i32 = floor_log2_pow10(Self::KAPPA as i32 + 1);
@@ -1186,7 +1187,7 @@ pub trait DragonboxFloat: Float {
     /// Remove trailing zeros from the float.
     fn remove_trailing_zeros(mantissa: u64) -> (u64, i32);
 
-    /// Determine if two_f is divisible by 2^exp.
+    /// Determine if `two_f` is divisible by 2^exp.
     #[inline(always)]
     fn divisible_by_pow2(x: u64, exp: u32) -> bool {
         // Preconditions: exp >= 1 && x != 0

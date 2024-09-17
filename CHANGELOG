@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] 2024-09-16
+### Fixed
 
-### Changed
+- Inlining inconsistency between public API methods (credit to @zheland)
 
-- Fixes a correctness regression
+## [1.0.1] 2024-09-16
+
+### Fixed
+
+- A correctness regression.
 
 ## [1.0.0] 2024-09-14
 

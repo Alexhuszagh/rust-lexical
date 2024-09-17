@@ -53,11 +53,11 @@ impl<'a, const __: u128> Bytes<'a, __> {
     ///
     /// # Safety
     ///
-    /// This is safe if and only if the index is <= slc.len().
+    /// This is safe if and only if the index is <= `slc.len()`.
     /// For this reason, since it's easy to get wrong, we only
     /// expose it to `DigitsIterator` and nothing else.
     #[inline(always)]
-    #[allow(clippy::assertions_on_constants)]
+    #[allow(clippy::assertions_on_constants)] // reason="ensuring safety invariants are valid"
     const unsafe fn from_parts(slc: &'a [u8], index: usize) -> Self {
         debug_assert!(index <= slc.len());
         debug_assert!(Self::IS_CONTIGUOUS);
@@ -122,7 +122,7 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
     #[inline(always)]
     unsafe fn set_cursor(&mut self, index: usize) {
         debug_assert!(index <= self.buffer_length());
-        self.index = index
+        self.index = index;
     }
 
     /// Get the current number of values returned by the iterator.
@@ -137,7 +137,7 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
     }
 
     #[inline(always)]
-    #[allow(clippy::assertions_on_constants)]
+    #[allow(clippy::assertions_on_constants)] // reason="ensuring safety invariants are valid"
     unsafe fn step_by_unchecked(&mut self, count: usize) {
         assert!(Self::IS_CONTIGUOUS);
         debug_assert!(self.as_slice().len() >= count);
@@ -145,7 +145,7 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
     }
 
     #[inline(always)]
-    #[allow(clippy::assertions_on_constants)]
+    #[allow(clippy::assertions_on_constants)] // reason="ensuring safety invariants are valid"
     unsafe fn peek_many_unchecked<V>(&self) -> V {
         debug_assert!(Self::IS_CONTIGUOUS);
         debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
@@ -173,15 +173,13 @@ impl<'a: 'b, 'b, const __: u128> DigitsIterator<'a, 'b, __> {
         }
     }
 
-    // TODO: Move as a trait
-
     /// Take the first N digits from the iterator.
     ///
     /// This only takes the digits if we have a contiguous iterator.
     /// It takes the digits, validating the bounds, and then advanced
     /// the iterators state.
     #[cfg_attr(not(feature = "compact"), inline(always))]
-    #[allow(clippy::assertions_on_constants)]
+    #[allow(clippy::assertions_on_constants)] // reason="ensuring safety invariants are valid"
     pub fn take_n(&mut self, n: usize) -> Option<Bytes<'a, __>> {
         debug_assert!(Self::IS_CONTIGUOUS);
         let end = self.byte.slc.len().min(n + self.cursor());

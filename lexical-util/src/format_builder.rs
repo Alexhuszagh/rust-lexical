@@ -12,7 +12,7 @@ pub type OptionU8 = Option<num::NonZeroU8>;
 // Ensure the sizes are identical.
 const_assert!(mem::size_of::<OptionU8>() == mem::size_of::<u8>());
 
-/// Add single flag to SyntaxFormat.
+/// Add single flag to `SyntaxFormat`.
 macro_rules! add_flag {
     ($format:ident, $bool:expr, $flag:ident) => {
         if $bool {
@@ -21,7 +21,7 @@ macro_rules! add_flag {
     };
 }
 
-/// Add multiple flags to SyntaxFormat.
+/// Add multiple flags to `SyntaxFormat`.
 macro_rules! add_flags {
     ($format:ident ; $($bool:expr, $flag:ident ;)*) => {{
         $(add_flag!($format, $bool, $flag);)*
@@ -236,7 +236,7 @@ pub struct NumberFormatBuilder {
 impl NumberFormatBuilder {
     // CONSTRUCTORS
 
-    /// Create new NumberFormatBuilder with default arguments.
+    /// Create new `NumberFormatBuilder` with default arguments.
     #[inline(always)]
     pub const fn new() -> Self {
         Self {

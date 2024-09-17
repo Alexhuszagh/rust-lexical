@@ -212,10 +212,10 @@ impl OptionsBuilder {
     ///
     /// Panics
     ///
-    /// Setting a value too large may cause a panic even if [FORMATTED_SIZE]
+    /// Setting a value too large may cause a panic even if [`FORMATTED_SIZE`]
     /// elements are provided.
     ///
-    /// [FORMATTED_SIZE]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
+    /// [`FORMATTED_SIZE`]: `lexical_util::constants::FormattedSize::FORMATTED_SIZE`
     #[inline(always)]
     pub const fn nan_string(mut self, nan_string: Option<&'static [u8]>) -> Self {
         self.nan_string = nan_string;
@@ -226,10 +226,10 @@ impl OptionsBuilder {
     ///
     /// Panics
     ///
-    /// Setting a value too large may cause a panic even if [FORMATTED_SIZE]
+    /// Setting a value too large may cause a panic even if [`FORMATTED_SIZE`]
     /// elements are provided.
     ///
-    /// [FORMATTED_SIZE]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
+    /// [`FORMATTED_SIZE`]: `lexical_util::constants::FormattedSize::FORMATTED_SIZE`
     #[inline(always)]
     pub const fn inf_string(mut self, inf_string: Option<&'static [u8]>) -> Self {
         self.inf_string = inf_string;
@@ -240,7 +240,7 @@ impl OptionsBuilder {
 
     /// Determine if `nan_str` is valid.
     #[inline(always)]
-    #[allow(clippy::if_same_then_else, clippy::needless_bool)]
+    #[allow(clippy::if_same_then_else, clippy::needless_bool)] // reason="more logical"
     pub const fn nan_str_is_valid(&self) -> bool {
         if self.nan_string.is_none() {
             return true;
@@ -261,7 +261,7 @@ impl OptionsBuilder {
 
     /// Determine if `inf_str` is valid.
     #[inline(always)]
-    #[allow(clippy::if_same_then_else, clippy::needless_bool)]
+    #[allow(clippy::if_same_then_else, clippy::needless_bool)] // reason="more logical"
     pub const fn inf_str_is_valid(&self) -> bool {
         if self.inf_string.is_none() {
             return true;
@@ -282,7 +282,7 @@ impl OptionsBuilder {
 
     /// Check if the builder state is valid.
     #[inline(always)]
-    #[allow(clippy::if_same_then_else, clippy::needless_bool)]
+    #[allow(clippy::if_same_then_else, clippy::needless_bool)] // reason="more logical"
     pub const fn is_valid(&self) -> bool {
         if !is_valid_ascii(self.exponent) {
             false
@@ -303,8 +303,8 @@ impl OptionsBuilder {
     ///
     /// This is completely safe, however, misusing this, especially
     /// the `nan_string` and `inf_string` representations could cause
-    /// panics at runtime. Always use [MAX_SPECIAL_STRING_LENGTH] and
-    /// check if [Self::is_valid] prior to using a created format string.
+    /// panics at runtime. Always use [`MAX_SPECIAL_STRING_LENGTH`] and
+    /// check if [`Self::is_valid`] prior to using a created format string.
     #[inline(always)]
     pub const fn build_unchecked(&self) -> Options {
         Options {
@@ -323,7 +323,7 @@ impl OptionsBuilder {
 
     /// Build the Options struct.
     #[inline(always)]
-    #[allow(clippy::if_same_then_else)]
+    #[allow(clippy::if_same_then_else)] // reason="more logical"
     pub const fn build(&self) -> Result<Options> {
         if self.nan_string.is_some() {
             let nan = unwrap_str(self.nan_string);
@@ -515,13 +515,13 @@ impl Options {
     /// Set the maximum number of significant digits to write.
     #[inline(always)]
     pub fn set_max_significant_digits(&mut self, max_significant_digits: OptionUsize) {
-        self.max_significant_digits = max_significant_digits
+        self.max_significant_digits = max_significant_digits;
     }
 
     /// Set the minimum number of significant digits to write.
     #[inline(always)]
     pub fn set_min_significant_digits(&mut self, min_significant_digits: OptionUsize) {
-        self.min_significant_digits = min_significant_digits
+        self.min_significant_digits = min_significant_digits;
     }
 
     /// Set the maximum exponent prior to using scientific notation.
@@ -574,37 +574,37 @@ impl Options {
     ///
     /// Panics
     ///
-    /// Setting a value too large may cause a panic even if [FORMATTED_SIZE]
+    /// Setting a value too large may cause a panic even if [`FORMATTED_SIZE`]
     /// elements are provided.
     ///
-    /// [FORMATTED_SIZE]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
+    /// [`FORMATTED_SIZE`]: `lexical_util::constants::FormattedSize::FORMATTED_SIZE`
     #[inline(always)]
     pub fn set_nan_string(&mut self, nan_string: Option<&'static [u8]>) {
-        self.nan_string = nan_string
+        self.nan_string = nan_string;
     }
 
     /// Set the short string representation for `Infinity`
     ///
     /// Panics
     ///
-    /// Setting a value too large may cause a panic even if [FORMATTED_SIZE]
+    /// Setting a value too large may cause a panic even if [`FORMATTED_SIZE`]
     /// elements are provided.
     ///
-    /// [FORMATTED_SIZE]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
+    /// [`FORMATTED_SIZE`]: `lexical_util::constants::FormattedSize::FORMATTED_SIZE`
     #[inline(always)]
     pub fn set_inf_string(&mut self, inf_string: Option<&'static [u8]>) {
-        self.inf_string = inf_string
+        self.inf_string = inf_string;
     }
 
     // BUILDERS
 
-    /// Get WriteFloatOptionsBuilder as a static function.
+    /// Get `WriteFloatOptionsBuilder` as a static function.
     #[inline(always)]
     pub const fn builder() -> OptionsBuilder {
         OptionsBuilder::new()
     }
 
-    /// Create OptionsBuilder using existing values.
+    /// Create `OptionsBuilder` using existing values.
     #[inline(always)]
     pub const fn rebuild(&self) -> OptionsBuilder {
         OptionsBuilder {
@@ -700,7 +700,7 @@ impl WriteOptions for Options {
     }
 }
 
-/// Define unwrap_or_zero for a custom type.
+/// Define `unwrap_or_zero` for a custom type.
 macro_rules! unwrap_or_zero {
     ($name:ident, $opt:ident, $t:ident) => {
         /// Unwrap `Option` as a const fn.
@@ -768,7 +768,7 @@ pub const CARAT_EXPONENT: Options = Options::builder()
         .build_unchecked();
 const_assert!(CARAT_EXPONENT.is_valid());
 
-/// Number format for a Rust literal floating-point number.
+/// Number format for a `Rust` literal floating-point number.
 #[rustfmt::skip]
 pub const RUST_LITERAL: Options = Options::builder()
         .nan_string(options::RUST_LITERAL)
@@ -776,7 +776,7 @@ pub const RUST_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(RUST_LITERAL.is_valid());
 
-/// Number format for a Python literal floating-point number.
+/// Number format for a `Python` literal floating-point number.
 #[rustfmt::skip]
 pub const PYTHON_LITERAL: Options = Options::builder()
         .nan_string(options::PYTHON_LITERAL)
@@ -784,7 +784,7 @@ pub const PYTHON_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(PYTHON_LITERAL.is_valid());
 
-/// Number format for a C++ literal floating-point number.
+/// Number format for a `C++` literal floating-point number.
 #[rustfmt::skip]
 pub const CXX_LITERAL: Options = Options::builder()
         .nan_string(options::CXX_LITERAL_NAN)
@@ -792,7 +792,7 @@ pub const CXX_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(CXX_LITERAL.is_valid());
 
-/// Number format for a C literal floating-point number.
+/// Number format for a `C` literal floating-point number.
 #[rustfmt::skip]
 pub const C_LITERAL: Options = Options::builder()
         .nan_string(options::C_LITERAL_NAN)
@@ -800,7 +800,7 @@ pub const C_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(CXX_LITERAL.is_valid());
 
-/// Number format for a Ruby literal floating-point number.
+/// Number format for a `Ruby` literal floating-point number.
 #[rustfmt::skip]
 pub const RUBY_LITERAL: Options = Options::builder()
         .positive_exponent_break(num::NonZeroI32::new(14))
@@ -810,7 +810,7 @@ pub const RUBY_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(RUBY_LITERAL.is_valid());
 
-/// Number format to parse a Ruby float from string.
+/// Number format to parse a `Ruby` float from string.
 #[rustfmt::skip]
 pub const RUBY_STRING: Options = Options::builder()
         .nan_string(options::RUBY_LITERAL_NAN)
@@ -818,7 +818,7 @@ pub const RUBY_STRING: Options = Options::builder()
         .build_unchecked();
 const_assert!(RUBY_STRING.is_valid());
 
-/// Number format for a Swift literal floating-point number.
+/// Number format for a `Swift` literal floating-point number.
 #[rustfmt::skip]
 pub const SWIFT_LITERAL: Options = Options::builder()
         .nan_string(options::SWIFT_LITERAL)
@@ -826,7 +826,7 @@ pub const SWIFT_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(SWIFT_LITERAL.is_valid());
 
-/// Number format for a Go literal floating-point number.
+/// Number format for a `Go` literal floating-point number.
 #[rustfmt::skip]
 pub const GO_LITERAL: Options = Options::builder()
         .nan_string(options::GO_LITERAL)
@@ -834,7 +834,7 @@ pub const GO_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(GO_LITERAL.is_valid());
 
-/// Number format for a Haskell literal floating-point number.
+/// Number format for a `Haskell` literal floating-point number.
 #[rustfmt::skip]
 pub const HASKELL_LITERAL: Options = Options::builder()
         .nan_string(options::HASKELL_LITERAL)
@@ -842,28 +842,28 @@ pub const HASKELL_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(HASKELL_LITERAL.is_valid());
 
-/// Number format to parse a Haskell float from string.
+/// Number format to parse a `Haskell` float from string.
 #[rustfmt::skip]
 pub const HASKELL_STRING: Options = Options::builder()
         .inf_string(options::HASKELL_STRING_INF)
         .build_unchecked();
 const_assert!(HASKELL_STRING.is_valid());
 
-/// Number format for a Javascript literal floating-point number.
+/// Number format for a `Javascript` literal floating-point number.
 #[rustfmt::skip]
 pub const JAVASCRIPT_LITERAL: Options = Options::builder()
         .inf_string(options::JAVASCRIPT_INF)
         .build_unchecked();
 const_assert!(JAVASCRIPT_LITERAL.is_valid());
 
-/// Number format to parse a Javascript float from string.
+/// Number format to parse a `Javascript` float from string.
 #[rustfmt::skip]
 pub const JAVASCRIPT_STRING: Options = Options::builder()
         .inf_string(options::JAVASCRIPT_INF)
         .build_unchecked();
 const_assert!(JAVASCRIPT_STRING.is_valid());
 
-/// Number format for a Perl literal floating-point number.
+/// Number format for a `Perl` literal floating-point number.
 #[rustfmt::skip]
 pub const PERL_LITERAL: Options = Options::builder()
         .nan_string(options::PERL_LITERAL)
@@ -871,7 +871,7 @@ pub const PERL_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(PERL_LITERAL.is_valid());
 
-/// Number format for a PHP literal floating-point number.
+/// Number format for a `PHP` literal floating-point number.
 #[rustfmt::skip]
 pub const PHP_LITERAL: Options = Options::builder()
         .nan_string(options::PHP_LITERAL_NAN)
@@ -879,7 +879,7 @@ pub const PHP_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(PHP_LITERAL.is_valid());
 
-/// Number format for a Java literal floating-point number.
+/// Number format for a `Java` literal floating-point number.
 #[rustfmt::skip]
 pub const JAVA_LITERAL: Options = Options::builder()
         .nan_string(options::JAVA_LITERAL)
@@ -887,21 +887,21 @@ pub const JAVA_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(JAVA_LITERAL.is_valid());
 
-/// Number format to parse a Java float from string.
+/// Number format to parse a `Java` float from string.
 #[rustfmt::skip]
 pub const JAVA_STRING: Options = Options::builder()
         .inf_string(options::JAVA_STRING_INF)
         .build_unchecked();
 const_assert!(JAVA_STRING.is_valid());
 
-/// Number format for an R literal floating-point number.
+/// Number format for an `R` literal floating-point number.
 #[rustfmt::skip]
 pub const R_LITERAL: Options = Options::builder()
         .inf_string(options::R_LITERAL_INF)
         .build_unchecked();
 const_assert!(R_LITERAL.is_valid());
 
-/// Number format for a Kotlin literal floating-point number.
+/// Number format for a `Kotlin` literal floating-point number.
 #[rustfmt::skip]
 pub const KOTLIN_LITERAL: Options = Options::builder()
         .nan_string(options::KOTLIN_LITERAL)
@@ -909,21 +909,21 @@ pub const KOTLIN_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(KOTLIN_LITERAL.is_valid());
 
-/// Number format to parse a Kotlin float from string.
+/// Number format to parse a `Kotlin` float from string.
 #[rustfmt::skip]
 pub const KOTLIN_STRING: Options = Options::builder()
         .inf_string(options::KOTLIN_STRING_INF)
         .build_unchecked();
 const_assert!(KOTLIN_STRING.is_valid());
 
-/// Number format for a Julia literal floating-point number.
+/// Number format for a `Julia` literal floating-point number.
 #[rustfmt::skip]
 pub const JULIA_LITERAL: Options = Options::builder()
         .inf_string(options::JULIA_LITERAL_INF)
         .build_unchecked();
 const_assert!(JULIA_LITERAL.is_valid());
 
-/// Number format for a C# literal floating-point number.
+/// Number format for a `C#` literal floating-point number.
 #[rustfmt::skip]
 pub const CSHARP_LITERAL: Options = Options::builder()
         .nan_string(options::CSHARP_LITERAL)
@@ -931,14 +931,14 @@ pub const CSHARP_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(CSHARP_LITERAL.is_valid());
 
-/// Number format to parse a C# float from string.
+/// Number format to parse a `C#` float from string.
 #[rustfmt::skip]
 pub const CSHARP_STRING: Options = Options::builder()
         .inf_string(options::CSHARP_STRING_INF)
         .build_unchecked();
 const_assert!(CSHARP_STRING.is_valid());
 
-/// Number format for a Kawa literal floating-point number.
+/// Number format for a `Kawa` literal floating-point number.
 #[rustfmt::skip]
 pub const KAWA_LITERAL: Options = Options::builder()
         .nan_string(options::KAWA)
@@ -946,7 +946,7 @@ pub const KAWA_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(KAWA_LITERAL.is_valid());
 
-/// Number format to parse a Kawa float from string.
+/// Number format to parse a `Kawa` float from string.
 #[rustfmt::skip]
 pub const KAWA_STRING: Options = Options::builder()
         .nan_string(options::KAWA)
@@ -954,7 +954,7 @@ pub const KAWA_STRING: Options = Options::builder()
         .build_unchecked();
 const_assert!(KAWA_STRING.is_valid());
 
-/// Number format for a Gambit-C literal floating-point number.
+/// Number format for a `Gambit-C` literal floating-point number.
 #[rustfmt::skip]
 pub const GAMBITC_LITERAL: Options = Options::builder()
         .nan_string(options::GAMBITC)
@@ -962,7 +962,7 @@ pub const GAMBITC_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(GAMBITC_LITERAL.is_valid());
 
-/// Number format to parse a Gambit-C float from string.
+/// Number format to parse a `Gambit-C` float from string.
 #[rustfmt::skip]
 pub const GAMBITC_STRING: Options = Options::builder()
         .nan_string(options::GAMBITC)
@@ -970,7 +970,7 @@ pub const GAMBITC_STRING: Options = Options::builder()
         .build_unchecked();
 const_assert!(GAMBITC_STRING.is_valid());
 
-/// Number format for a Guile literal floating-point number.
+/// Number format for a `Guile` literal floating-point number.
 #[rustfmt::skip]
 pub const GUILE_LITERAL: Options = Options::builder()
         .nan_string(options::GUILE)
@@ -978,7 +978,7 @@ pub const GUILE_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(GUILE_LITERAL.is_valid());
 
-/// Number format to parse a Guile float from string.
+/// Number format to parse a `Guile` float from string.
 #[rustfmt::skip]
 pub const GUILE_STRING: Options = Options::builder()
         .nan_string(options::GUILE)
@@ -986,7 +986,7 @@ pub const GUILE_STRING: Options = Options::builder()
         .build_unchecked();
 const_assert!(GUILE_STRING.is_valid());
 
-/// Number format for a Clojure literal floating-point number.
+/// Number format for a `Clojure` literal floating-point number.
 #[rustfmt::skip]
 pub const CLOJURE_LITERAL: Options = Options::builder()
         .nan_string(options::CLOJURE_LITERAL)
@@ -994,21 +994,21 @@ pub const CLOJURE_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(CLOJURE_LITERAL.is_valid());
 
-/// Number format to parse a Clojure float from string.
+/// Number format to parse a `Clojure` float from string.
 #[rustfmt::skip]
 pub const CLOJURE_STRING: Options = Options::builder()
         .inf_string(options::CLOJURE_STRING_INF)
         .build_unchecked();
 const_assert!(CLOJURE_STRING.is_valid());
 
-/// Number format for an Erlang literal floating-point number.
+/// Number format for an `Erlang` literal floating-point number.
 #[rustfmt::skip]
 pub const ERLANG_LITERAL: Options = Options::builder()
         .nan_string(options::ERLANG_LITERAL_NAN)
         .build_unchecked();
 const_assert!(ERLANG_LITERAL.is_valid());
 
-/// Number format to parse an Erlang float from string.
+/// Number format to parse an `Erlang` float from string.
 #[rustfmt::skip]
 pub const ERLANG_STRING: Options = Options::builder()
         .nan_string(options::ERLANG_STRING)
@@ -1016,7 +1016,7 @@ pub const ERLANG_STRING: Options = Options::builder()
         .build_unchecked();
 const_assert!(ERLANG_STRING.is_valid());
 
-/// Number format for an Elm literal floating-point number.
+/// Number format for an `Elm` literal floating-point number.
 #[rustfmt::skip]
 pub const ELM_LITERAL: Options = Options::builder()
         .nan_string(options::ELM_LITERAL)
@@ -1024,7 +1024,7 @@ pub const ELM_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(ELM_LITERAL.is_valid());
 
-/// Number format to parse an Elm float from string.
+/// Number format to parse an `Elm` float from string.
 #[rustfmt::skip]
 pub const ELM_STRING: Options = Options::builder()
         .nan_string(options::ELM_STRING_NAN)
@@ -1032,7 +1032,7 @@ pub const ELM_STRING: Options = Options::builder()
         .build_unchecked();
 const_assert!(ELM_STRING.is_valid());
 
-/// Number format for a Scala literal floating-point number.
+/// Number format for a `Scala` literal floating-point number.
 #[rustfmt::skip]
 pub const SCALA_LITERAL: Options = Options::builder()
         .nan_string(options::SCALA_LITERAL)
@@ -1040,14 +1040,14 @@ pub const SCALA_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(SCALA_LITERAL.is_valid());
 
-/// Number format to parse a Scala float from string.
+/// Number format to parse a `Scala` float from string.
 #[rustfmt::skip]
 pub const SCALA_STRING: Options = Options::builder()
         .inf_string(options::SCALA_STRING_INF)
         .build_unchecked();
 const_assert!(SCALA_STRING.is_valid());
 
-/// Number format for an Elixir literal floating-point number.
+/// Number format for an `Elixir` literal floating-point number.
 #[rustfmt::skip]
 pub const ELIXIR_LITERAL: Options = Options::builder()
         .nan_string(options::ELIXIR)
@@ -1055,7 +1055,7 @@ pub const ELIXIR_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(ELIXIR_LITERAL.is_valid());
 
-/// Number format to parse an Elixir float from string.
+/// Number format to parse an `Elixir` float from string.
 #[rustfmt::skip]
 pub const ELIXIR_STRING: Options = Options::builder()
         .nan_string(options::ELIXIR)
@@ -1063,7 +1063,7 @@ pub const ELIXIR_STRING: Options = Options::builder()
         .build_unchecked();
 const_assert!(ELIXIR_STRING.is_valid());
 
-/// Number format for a FORTRAN literal floating-point number.
+/// Number format for a `FORTRAN` literal floating-point number.
 #[rustfmt::skip]
 pub const FORTRAN_LITERAL: Options = Options::builder()
         .nan_string(options::FORTRAN_LITERAL)
@@ -1071,7 +1071,7 @@ pub const FORTRAN_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(FORTRAN_LITERAL.is_valid());
 
-/// Number format for a D literal floating-point number.
+/// Number format for a `D` literal floating-point number.
 #[rustfmt::skip]
 pub const D_LITERAL: Options = Options::builder()
         .nan_string(options::D_LITERAL)
@@ -1079,21 +1079,21 @@ pub const D_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(D_LITERAL.is_valid());
 
-/// Number format for a Coffeescript literal floating-point number.
+/// Number format for a `Coffeescript` literal floating-point number.
 #[rustfmt::skip]
 pub const COFFEESCRIPT_LITERAL: Options = Options::builder()
         .inf_string(options::COFFEESCRIPT_INF)
         .build_unchecked();
 const_assert!(COFFEESCRIPT_LITERAL.is_valid());
 
-/// Number format to parse a Coffeescript float from string.
+/// Number format to parse a `Coffeescript` float from string.
 #[rustfmt::skip]
 pub const COFFEESCRIPT_STRING: Options = Options::builder()
         .inf_string(options::COFFEESCRIPT_INF)
         .build_unchecked();
 const_assert!(COFFEESCRIPT_STRING.is_valid());
 
-/// Number format for a COBOL literal floating-point number.
+/// Number format for a `COBOL` literal floating-point number.
 #[rustfmt::skip]
 pub const COBOL_LITERAL: Options = Options::builder()
         .nan_string(options::COBOL)
@@ -1101,7 +1101,7 @@ pub const COBOL_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(COBOL_LITERAL.is_valid());
 
-/// Number format to parse a COBOL float from string.
+/// Number format to parse a `COBOL` float from string.
 #[rustfmt::skip]
 pub const COBOL_STRING: Options = Options::builder()
         .nan_string(options::COBOL)
@@ -1109,7 +1109,7 @@ pub const COBOL_STRING: Options = Options::builder()
         .build_unchecked();
 const_assert!(COBOL_STRING.is_valid());
 
-/// Number format for an F# literal floating-point number.
+/// Number format for an `F#` literal floating-point number.
 #[rustfmt::skip]
 pub const FSHARP_LITERAL: Options = Options::builder()
         .nan_string(options::FSHARP_LITERAL_NAN)
@@ -1117,7 +1117,7 @@ pub const FSHARP_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(FSHARP_LITERAL.is_valid());
 
-/// Number format for a Visual Basic literal floating-point number.
+/// Number format for a `Visual Basic` literal floating-point number.
 #[rustfmt::skip]
 pub const VB_LITERAL: Options = Options::builder()
         .nan_string(options::VB_LITERAL)
@@ -1125,14 +1125,14 @@ pub const VB_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(VB_LITERAL.is_valid());
 
-/// Number format to parse a Visual Basic float from string.
+/// Number format to parse a `Visual Basic` float from string.
 #[rustfmt::skip]
 pub const VB_STRING: Options = Options::builder()
         .inf_string(options::VB_STRING_INF)
         .build_unchecked();
 const_assert!(VB_STRING.is_valid());
 
-/// Number format for an OCaml literal floating-point number.
+/// Number format for an `OCaml` literal floating-point number.
 #[rustfmt::skip]
 pub const OCAML_LITERAL: Options = Options::builder()
         .nan_string(options::OCAML_LITERAL_NAN)
@@ -1140,7 +1140,7 @@ pub const OCAML_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(OCAML_LITERAL.is_valid());
 
-/// Number format for an Objective-C literal floating-point number.
+/// Number format for an `Objective-C` literal floating-point number.
 #[rustfmt::skip]
 pub const OBJECTIVEC_LITERAL: Options = Options::builder()
         .nan_string(options::OBJECTIVEC)
@@ -1148,7 +1148,7 @@ pub const OBJECTIVEC_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(OBJECTIVEC_LITERAL.is_valid());
 
-/// Number format to parse an Objective-C float from string.
+/// Number format to parse an `Objective-C` float from string.
 #[rustfmt::skip]
 pub const OBJECTIVEC_STRING: Options = Options::builder()
         .nan_string(options::OBJECTIVEC)
@@ -1156,7 +1156,7 @@ pub const OBJECTIVEC_STRING: Options = Options::builder()
         .build_unchecked();
 const_assert!(OBJECTIVEC_STRING.is_valid());
 
-/// Number format for an ReasonML literal floating-point number.
+/// Number format for an `ReasonML` literal floating-point number.
 #[rustfmt::skip]
 pub const REASONML_LITERAL: Options = Options::builder()
         .nan_string(options::REASONML_LITERAL_NAN)
@@ -1164,14 +1164,14 @@ pub const REASONML_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(REASONML_LITERAL.is_valid());
 
-/// Number format for a MATLAB literal floating-point number.
+/// Number format for a `MATLAB` literal floating-point number.
 #[rustfmt::skip]
 pub const MATLAB_LITERAL: Options = Options::builder()
         .inf_string(options::MATLAB_LITERAL_INF)
         .build_unchecked();
 const_assert!(MATLAB_LITERAL.is_valid());
 
-/// Number format for a Zig literal floating-point number.
+/// Number format for a `Zig` literal floating-point number.
 #[rustfmt::skip]
 pub const ZIG_LITERAL: Options = Options::builder()
         .nan_string(options::ZIG_LITERAL)
@@ -1179,14 +1179,14 @@ pub const ZIG_LITERAL: Options = Options::builder()
         .build_unchecked();
 const_assert!(ZIG_LITERAL.is_valid());
 
-/// Number format for a Safe literal floating-point number.
+/// Number format for a `Safe` literal floating-point number.
 #[rustfmt::skip]
 pub const SAGE_LITERAL: Options = Options::builder()
         .inf_string(options::SAGE_LITERAL_INF)
         .build_unchecked();
 const_assert!(SAGE_LITERAL.is_valid());
 
-/// Number format for a JSON literal floating-point number.
+/// Number format for a `JSON` literal floating-point number.
 #[rustfmt::skip]
 pub const JSON: Options = Options::builder()
         .nan_string(options::JSON)
@@ -1194,7 +1194,7 @@ pub const JSON: Options = Options::builder()
         .build_unchecked();
 const_assert!(JSON.is_valid());
 
-/// Number format for a TOML literal floating-point number.
+/// Number format for a `TOML` literal floating-point number.
 #[rustfmt::skip]
 pub const TOML: Options = Options::builder()
         .nan_string(options::TOML)
@@ -1202,18 +1202,18 @@ pub const TOML: Options = Options::builder()
         .build_unchecked();
 const_assert!(TOML.is_valid());
 
-/// Number format for a YAML literal floating-point number.
+/// Number format for a `YAML` literal floating-point number.
 #[rustfmt::skip]
 pub const YAML: Options = JSON;
 
-/// Number format for an XML literal floating-point number.
+/// Number format for an `XML` literal floating-point number.
 #[rustfmt::skip]
 pub const XML: Options = Options::builder()
         .inf_string(options::XML_INF)
         .build_unchecked();
 const_assert!(XML.is_valid());
 
-/// Number format for a SQLite literal floating-point number.
+/// Number format for a `SQLite` literal floating-point number.
 #[rustfmt::skip]
 pub const SQLITE: Options = Options::builder()
         .nan_string(options::SQLITE)
@@ -1221,7 +1221,7 @@ pub const SQLITE: Options = Options::builder()
         .build_unchecked();
 const_assert!(SQLITE.is_valid());
 
-/// Number format for a PostgreSQL literal floating-point number.
+/// Number format for a `PostgreSQL` literal floating-point number.
 #[rustfmt::skip]
 pub const POSTGRESQL: Options = Options::builder()
         .nan_string(options::POSTGRESQL)
@@ -1229,7 +1229,7 @@ pub const POSTGRESQL: Options = Options::builder()
         .build_unchecked();
 const_assert!(POSTGRESQL.is_valid());
 
-/// Number format for a MySQL literal floating-point number.
+/// Number format for a `MySQL` literal floating-point number.
 #[rustfmt::skip]
 pub const MYSQL: Options = Options::builder()
         .nan_string(options::MYSQL)
@@ -1237,7 +1237,7 @@ pub const MYSQL: Options = Options::builder()
         .build_unchecked();
 const_assert!(MYSQL.is_valid());
 
-/// Number format for a MongoDB literal floating-point number.
+/// Number format for a `MongoDB` literal floating-point number.
 #[rustfmt::skip]
 pub const MONGODB: Options = Options::builder()
         .inf_string(options::MONGODB_INF)

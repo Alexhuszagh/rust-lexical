@@ -13,6 +13,7 @@ use crate::table::{LARGEST_POWER_OF_FIVE, POWER_OF_FIVE_128, SMALLEST_POWER_OF_F
 
 /// Ensure truncation of digits doesn't affect our computation, by doing 2
 /// passes.
+#[must_use]
 #[inline(always)]
 pub fn lemire<F: LemireFloat>(num: &Number, lossy: bool) -> ExtendedFloat80 {
     // If significant digits were truncated, then we can have rounding error
@@ -50,6 +51,8 @@ pub fn lemire<F: LemireFloat>(num: &Number, lossy: bool) -> ExtendedFloat80 {
 /// at a Gigabyte per Second" in section 5, "Fast Algorithm", and
 /// section 6, "Exact Numbers And Ties", available online:
 /// <https://arxiv.org/abs/2101.11408.pdf>.
+#[must_use]
+#[allow(clippy::missing_inline_in_public_items)] // reason="public for testing only"
 pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> ExtendedFloat80 {
     let fp_zero = ExtendedFloat80 {
         mant: 0,
@@ -154,6 +157,7 @@ pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> Extende
 /// Fallback algorithm to calculate the non-rounded representation.
 /// This calculates the extended representation, and then normalizes
 /// the resulting representation, so the high bit is set.
+#[must_use]
 #[inline(always)]
 pub fn compute_error<F: LemireFloat>(q: i64, mut w: u64) -> ExtendedFloat80 {
     let lz = w.leading_zeros() as i32;
@@ -163,8 +167,9 @@ pub fn compute_error<F: LemireFloat>(q: i64, mut w: u64) -> ExtendedFloat80 {
 }
 
 /// Compute the error from a mantissa scaled to the exponent.
+#[must_use]
 #[inline(always)]
-pub fn compute_error_scaled<F: LemireFloat>(q: i64, mut w: u64, lz: i32) -> ExtendedFloat80 {
+pub const fn compute_error_scaled<F: LemireFloat>(q: i64, mut w: u64, lz: i32) -> ExtendedFloat80 {
     // Want to normalize the float, but this is faster than ctlz on most
     // architectures.
     let hilz = (w >> 63) as i32 ^ 1;
@@ -182,12 +187,12 @@ pub fn compute_error_scaled<F: LemireFloat>(q: i64, mut w: u64, lz: i32) -> Exte
 /// log2(10), where 217706 / 2^16 is accurate for the
 /// entire range of non-finite decimal exponents.
 #[inline(always)]
-fn power(q: i32) -> i32 {
+const fn power(q: i32) -> i32 {
     (q.wrapping_mul(152_170 + 65536) >> 16) + 63
 }
 
 #[inline(always)]
-fn full_multiplication(a: u64, b: u64) -> (u64, u64) {
+const fn full_multiplication(a: u64, b: u64) -> (u64, u64) {
     let r = (a as u128) * (b as u128);
     (r as u64, (r >> 64) as u64)
 }
@@ -197,9 +202,9 @@ fn full_multiplication(a: u64, b: u64) -> (u64, u64) {
 // most significant bits and the low part corresponding to the least significant
 // bits.
 fn compute_product_approx(q: i64, w: u64, precision: usize) -> (u64, u64) {
-    debug_assert!(q >= SMALLEST_POWER_OF_FIVE as i64);
-    debug_assert!(q <= LARGEST_POWER_OF_FIVE as i64);
-    debug_assert!(precision <= 64);
+    debug_assert!(q >= SMALLEST_POWER_OF_FIVE as i64, "must be within our required pow5 range");
+    debug_assert!(q <= LARGEST_POWER_OF_FIVE as i64, "must be within our required pow5 range");
+    debug_assert!(precision <= 64, "requires a 64-bit or smaller float");
 
     let mask = if precision < 64 {
         0xFFFF_FFFF_FFFF_FFFF_u64 >> precision

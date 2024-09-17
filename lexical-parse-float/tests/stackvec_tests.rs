@@ -431,29 +431,29 @@ fn shl_limbs_test() {
 fn shl_test() {
     // Pattern generated via `''.join(["1" +"0"*i for i in range(20)])`
     let mut x = VecType::from_u32(0xD2210408);
-    bigint::shl(&mut x, 5);
+    bigint::shl(&mut x, 5).unwrap();
     let expected: VecType = vec_from_u32(&[0x44208100, 0x1A]);
     assert_eq!(&*x, &*expected);
 
-    bigint::shl(&mut x, 32);
+    bigint::shl(&mut x, 32).unwrap();
     let expected: VecType = vec_from_u32(&[0, 0x44208100, 0x1A]);
     assert_eq!(&*x, &*expected);
 
-    bigint::shl(&mut x, 27);
+    bigint::shl(&mut x, 27).unwrap();
     let expected: VecType = vec_from_u32(&[0, 0, 0xD2210408]);
     assert_eq!(&*x, &*expected);
 
     // 96-bits of previous pattern
     let mut x: VecType = vec_from_u32(&[0x20020010, 0x8040100, 0xD2210408]);
-    bigint::shl(&mut x, 5);
+    bigint::shl(&mut x, 5).unwrap();
     let expected: VecType = vec_from_u32(&[0x400200, 0x802004, 0x44208101, 0x1A]);
     assert_eq!(&*x, &*expected);
 
-    bigint::shl(&mut x, 32);
+    bigint::shl(&mut x, 32).unwrap();
     let expected: VecType = vec_from_u32(&[0, 0x400200, 0x802004, 0x44208101, 0x1A]);
     assert_eq!(&*x, &*expected);
 
-    bigint::shl(&mut x, 27);
+    bigint::shl(&mut x, 27).unwrap();
     let expected: VecType = vec_from_u32(&[0, 0, 0x20020010, 0x8040100, 0xD2210408]);
     assert_eq!(&*x, &*expected);
 }

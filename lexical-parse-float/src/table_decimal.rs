@@ -13,6 +13,7 @@ use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit, 
 // -------
 
 /// Get lookup table for small int powers.
+#[must_use]
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
 pub const fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
@@ -25,48 +26,56 @@ pub const fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
 }
 
 /// Get lookup table for small f32 powers.
+#[must_use]
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
-pub fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
+pub const fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
     _ = radix;
     get_small_f32_power10(exponent)
 }
 
 /// Get lookup table for small f64 powers.
+#[must_use]
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
-pub fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
+pub const fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
     _ = radix;
     get_small_f64_power10(exponent)
 }
 
 /// Get pre-computed power for a large power of radix.
+#[must_use]
+#[inline(always)]
 #[cfg(not(feature = "radix"))]
 pub const fn get_large_int_power(_: u32) -> (&'static [Limb], u32) {
     (&LARGE_POW5, LARGE_POW5_STEP)
 }
 
 /// Get pre-computed int power of 5.
+#[must_use]
 #[inline(always)]
 pub const fn get_small_int_power5(exponent: usize) -> u64 {
     SMALL_INT_POW5[exponent]
 }
 
 /// Get pre-computed int power of 10.
+#[must_use]
 #[inline(always)]
 pub const fn get_small_int_power10(exponent: usize) -> u64 {
     SMALL_INT_POW10[exponent]
 }
 
 /// Get pre-computed f32 power of 10.
+#[must_use]
 #[inline(always)]
-pub fn get_small_f32_power10(exponent: usize) -> f32 {
+pub const fn get_small_f32_power10(exponent: usize) -> f32 {
     SMALL_F32_POW10[exponent]
 }
 
 /// Get pre-computed f64 power of 10.
+#[must_use]
 #[inline(always)]
-pub fn get_small_f64_power10(exponent: usize) -> f64 {
+pub const fn get_small_f64_power10(exponent: usize) -> f64 {
     SMALL_F64_POW10[exponent]
 }
 

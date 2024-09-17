@@ -34,7 +34,7 @@ use crate::shared;
 /// # Panics
 ///
 /// Panics if exponent notation is used.
-#[allow(clippy::collapsible_if)]
+#[allow(clippy::collapsible_if)] // reason="conditions are different logical concepts"
 pub fn write_float<F: Float, const FORMAT: u128>(
     float: F,
     bytes: &mut [u8],
@@ -84,7 +84,8 @@ where
     debug_assert!(delta > F::ZERO);
 
     // Write our fraction digits.
-    // SAFETY: we have 1100 digits, which is enough for any float f64 or smaller.
+    // Won't panic since we have 1100 digits, which is enough for any float f64 or
+    // smaller.
     if fraction > delta {
         loop {
             // Shift up by one digit.
@@ -129,8 +130,8 @@ where
     }
 
     // Compute integer digits. Fill unrepresented digits with zero.
-    // SAFETY: we have 1100 digits, which is enough for any float f64 or smaller.
-    // We do this first, so we can do extended precision control later.
+    // Won't panic we have 1100 digits, which is enough for any float f64 or
+    // smaller. We do this first, so we can do extended precision control later.
     while (integer / base).exponent() > 0 {
         integer /= base;
         integer_cursor -= 1;
@@ -232,7 +233,7 @@ pub fn write_float_scientific<const FORMAT: u128>(
     let exact_count = shared::min_exact_digits(digit_count, options);
 
     // Write any trailing digits to the output.
-    // SAFETY: bytes cannot be empty.
+    // Won't panic since bytes cannot be empty.
     if !format.no_exponent_without_fraction() && cursor == 2 && options.trim_floats() {
         // Need to trim floats from trailing zeros, and we have only a decimal.
         cursor -= 1;
@@ -309,7 +310,7 @@ pub fn write_float_nonscientific<const FORMAT: u128>(
     // Write the fraction component.
     // We've only consumed `integer_count` digits, since this input
     // may have been truncated.
-    // SAFETY: safe since `integer_count < digits.len()` since `digit_count <
+    // Won't panic since `integer_count < digits.len()` since `digit_count <
     // digits.len()`.
     let digits = &digits[integer_count..];
     let fraction_count = digit_count.saturating_sub(integer_length);
@@ -334,7 +335,7 @@ pub fn write_float_nonscientific<const FORMAT: u128>(
     let exact_count = shared::min_exact_digits(digit_count, options);
 
     // Write any trailing digits to the output.
-    // SAFETY: bytes cannot be empty.
+    // Won't panic since bytes cannot be empty.
     if (fraction_count > 0 || !options.trim_floats()) && exact_count > digit_count {
         // NOTE: Neither `exact_count >= digit_count >= 2`.
         // We need to write `exact_count - (cursor - 1)` digits, since
@@ -369,7 +370,7 @@ const MAX_DIGIT_LENGTH: usize = BUFFER_SIZE - MAX_NONDIGIT_LENGTH;
 /// of significant digits. Returns the number of digits of the mantissa,
 /// and if the rounding did a full carry.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-#[allow(clippy::comparison_chain)]
+#[allow(clippy::comparison_chain)] // reason="conditions are different logical concepts"
 pub fn truncate_and_round(
     buffer: &mut [u8],
     start: usize,

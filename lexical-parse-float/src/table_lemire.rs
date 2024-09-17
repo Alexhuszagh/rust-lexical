@@ -11,6 +11,7 @@
 
 #![doc(hidden)]
 #![cfg(not(feature = "compact"))]
+#![allow(clippy::unreadable_literal)] // reason="these are auto-generated"
 
 pub const SMALLEST_POWER_OF_FIVE: i32 = -342;
 pub const LARGEST_POWER_OF_FIVE: i32 = 308;

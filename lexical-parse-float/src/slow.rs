@@ -44,14 +44,16 @@ use crate::shared;
 /// any value before or equal to `16777217.0` must be rounded down
 /// to `16777216.0`. These near-halfway conversions therefore may require
 /// a large number of digits to unambiguously determine how to round.
+#[must_use]
 #[inline(always)]
+#[allow(clippy::unwrap_used)] // reason = "none is a developper error"
 pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
     num: Number,
     fp: ExtendedFloat80,
 ) -> ExtendedFloat80 {
     // Ensure our preconditions are valid:
     //  1. The significant digits are not shifted into place.
-    debug_assert!(fp.mant & (1 << 63) != 0);
+    debug_assert!(fp.mant & (1 << 63) != 0, "number must be normalized");
 
     let format = NumberFormat::<{ FORMAT }> {};
 
@@ -95,7 +97,9 @@ pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
 /// exponent relative to the significant digits, we scale the real
 /// digits to the theoretical digits for `b` and determine if we
 /// need to round-up.
+#[must_use]
 #[inline(always)]
+#[allow(clippy::cast_possible_wrap)] // reason = "the value range is [-324, 308]"
 pub fn digit_comp<F: RawFloat, const FORMAT: u128>(
     num: Number,
     fp: ExtendedFloat80,
@@ -114,6 +118,10 @@ pub fn digit_comp<F: RawFloat, const FORMAT: u128>(
 
 /// Generate the significant digits with a positive exponent relative to
 /// mantissa.
+#[must_use]
+#[allow(clippy::unwrap_used)] // reason = "none is a developper error"
+#[allow(clippy::cast_possible_wrap)] // reason = "can't wrap in practice: max is ~1000 limbs"
+#[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
 pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
     mut bigmant: Bigint,
     exponent: i32,
@@ -166,7 +174,10 @@ pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
 ///
 /// This allows us to compare both floats using integers efficiently
 /// without any loss of precision.
-#[allow(clippy::comparison_chain)]
+#[allow(clippy::match_bool)] // reason = "simplifies documentation"
+#[allow(clippy::unwrap_used)] // reason = "unwrap panics if a developer error"
+#[allow(clippy::comparison_chain)] // reason = "logically different conditions for algorithm"
+#[allow(clippy::missing_inline_in_public_items)] // reason = "only exposed for unittesting"
 pub fn negative_digit_comp<F: RawFloat, const FORMAT: u128>(
     bigmant: Bigint,
     mut fp: ExtendedFloat80,
@@ -174,7 +185,7 @@ pub fn negative_digit_comp<F: RawFloat, const FORMAT: u128>(
 ) -> ExtendedFloat80 {
     // Ensure our preconditions are valid:
     //  1. The significant digits are not shifted into place.
-    debug_assert!(fp.mant & (1 << 63) != 0);
+    debug_assert!(fp.mant & (1 << 63) != 0, "the significant digits must be normalized");
 
     let format = NumberFormat::<FORMAT> {};
     let radix = format.radix();
@@ -182,7 +193,7 @@ pub fn negative_digit_comp<F: RawFloat, const FORMAT: u128>(
     // Get the significant digits and radix exponent for the real digits.
     let mut real_digits = bigmant;
     let real_exp = exponent;
-    debug_assert!(real_exp < 0);
+    debug_assert!(real_exp < 0, "algorithm only works with negative numbers");
 
     // Round down our extended-precision float and calculate `b`.
     let mut b = fp;
@@ -320,7 +331,6 @@ macro_rules! add_temporary {
     // Add a temporary where we won't read the counter results internally.
     (@end $format:ident, $result:ident, $counter:ident, $value:ident) => {
         if $counter != 0 {
-            // SAFETY: safe, since `counter <= step`, or smaller than the table size.
             let small_power = f64::int_pow_fast_path($counter, $format.radix());
             add_temporary!(@mul $result, small_power as Limb, $value);
         }
@@ -386,6 +396,9 @@ macro_rules! round_up_nonzero {
 ///
 /// Returns the parsed mantissa and the number of digits in the mantissa.
 /// The max digits is the maximum number of digits plus one.
+#[must_use]
+#[allow(clippy::cognitive_complexity)] // reason = "complexity broken into macros"
+#[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
 pub fn parse_mantissa<const FORMAT: u128>(num: Number, max_digits: usize) -> (Bigint, usize) {
     let format = NumberFormat::<FORMAT> {};
     let radix = format.radix();
@@ -432,7 +445,7 @@ pub fn parse_mantissa<const FORMAT: u128>(num: Number, max_digits: usize) -> (Bi
             round_up_nonzero!(format, integer_iter, result, count);
             if let Some(fraction) = num.fraction {
                 let mut fraction = fraction.bytes::<FORMAT>();
-                round_up_nonzero!(format, fraction.fraction_iter(), result, count)
+                round_up_nonzero!(format, fraction.fraction_iter(), result, count);
             }
             return (result, count);
         } else {
@@ -574,7 +587,8 @@ macro_rules! fraction_compare {
 /// Adapted from "Bigcomp: Deciding Truncated, Near Halfway Conversions",
 /// available [here](https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/).
 #[cfg(feature = "radix")]
-#[allow(clippy::comparison_chain)]
+#[allow(clippy::unwrap_used)] // reason = "none is a developper error due to shl overflow"
+#[allow(clippy::comparison_chain)] // reason = "logically different conditions for algorithm"
 pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
     number: Number,
     mut fp: ExtendedFloat80,
@@ -672,6 +686,7 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
 /// - `den` - The theoretical digits created by `b+h` to determine if `b` or
 ///   `b+1`
 #[cfg(feature = "radix")]
+#[allow(clippy::unwrap_used)] // reason = "none is a developper error due to a missing fraction"
 pub fn compare_bytes<const FORMAT: u128>(
     number: Number,
     mut num: Bigfloat,
@@ -712,6 +727,7 @@ pub fn compare_bytes<const FORMAT: u128>(
 
 /// Calculate the scientific exponent from a `Number` value.
 /// Any other attempts would require slowdowns for faster algorithms.
+#[must_use]
 #[inline(always)]
 pub fn scientific_exponent<const FORMAT: u128>(num: &Number) -> i32 {
     // This has the significant digits and exponent relative to those
@@ -744,6 +760,7 @@ pub fn scientific_exponent<const FORMAT: u128>(num: &Number) -> i32 {
 }
 
 /// Calculate `b` from a a representation of `b` as a float.
+#[must_use]
 #[inline(always)]
 pub fn b<F: RawFloat>(float: F) -> ExtendedFloat80 {
     ExtendedFloat80 {
@@ -753,6 +770,7 @@ pub fn b<F: RawFloat>(float: F) -> ExtendedFloat80 {
 }
 
 /// Calculate `b+h` from a a representation of `b` as a float.
+#[must_use]
 #[inline(always)]
 pub fn bh<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let fp = b(float);
@@ -765,6 +783,7 @@ pub fn bh<F: RawFloat>(float: F) -> ExtendedFloat80 {
 // NOTE: There will never be binary factors here.
 
 /// Calculate the integral ceiling of the binary factor from a basen number.
+#[must_use]
 #[inline(always)]
 #[cfg(feature = "radix")]
 pub const fn integral_binary_factor(radix: u32) -> u32 {
@@ -805,6 +824,7 @@ pub const fn integral_binary_factor(radix: u32) -> u32 {
 }
 
 /// Calculate the integral ceiling of the binary factor from a basen number.
+#[must_use]
 #[inline(always)]
 #[cfg(not(feature = "radix"))]
 pub const fn integral_binary_factor(radix: u32) -> u32 {

@@ -219,7 +219,7 @@ where
     let shl = calculate_shl(exp, bits_per_digit);
     let value = mantissa << shl;
 
-    // SAFETY: both are safe, if the buffer is large enough to hold the significant
+    // Won't panic, if the buffer is large enough to hold the significant
     // digits.
     let count = value.write_mantissa::<M, FORMAT>(&mut bytes[cursor..]);
     let zeros = rtrim_char_count(&bytes[cursor..cursor + count], b'0');
@@ -697,7 +697,7 @@ pub fn calculate_shl(exp: i32, bits_per_digit: i32) -> i32 {
 /// If we have a negative exp, then when scaling that,
 /// we need to consider that an exp of -1 with 5 bits
 /// per base is still <0, IE, the sci exp we write has
-/// to be: ⌊sci_exp / bits_per_base⌋, where ceil is
+/// to be: `⌊sci_exp / bits_per_base⌋`, where ceil is
 /// wrapping towards greatest magnitude.
 ///
 /// If we have a positive exp, we just need the floor of the
