@@ -15,16 +15,14 @@ use crate::parse::ParseInteger;
 /// can actually be evaluated at compile-time, which causes major branching
 /// issues.
 macro_rules! integer_from_lexical {
-    ($($t:ident $unsigned:ident $(, #[$meta:meta])? ; )*) => ($(
+    ($($t:ident $unsigned:ident ; )*) => ($(
         impl FromLexical for $t {
-            $(#[$meta:meta])?
             #[cfg_attr(not(feature = "compact"), inline)]
             fn from_lexical(bytes: &[u8]) -> lexical_util::result::Result<Self>
             {
                 Self::parse_complete::<STANDARD>(bytes, &DEFAULT_OPTIONS)
             }
 
-            $(#[$meta:meta])?
             #[cfg_attr(not(feature = "compact"), inline)]
             fn from_lexical_partial(
                 bytes: &[u8],
@@ -37,7 +35,6 @@ macro_rules! integer_from_lexical {
         impl FromLexicalWithOptions for $t {
             type Options = Options;
 
-            $(#[$meta:meta])?
             #[cfg_attr(not(feature = "compact"), inline)]
             fn from_lexical_with_options<const FORMAT: u128>(
                 bytes: &[u8],
@@ -51,7 +48,6 @@ macro_rules! integer_from_lexical {
                 Self::parse_complete::<FORMAT>(bytes, options)
             }
 
-            $(#[$meta:meta])?
             #[cfg_attr(not(feature = "compact"), inline)]
             fn from_lexical_partial_with_options<const FORMAT: u128>(
                 bytes: &[u8],
