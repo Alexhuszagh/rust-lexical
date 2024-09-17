@@ -74,9 +74,9 @@ where
 
 // Implement ToLexical for numeric type.
 macro_rules! unsigned_to_lexical {
-    ($($narrow:tt $wide:tt $(, #[$meta:meta])? ; )*) => ($(
+    ($($narrow:tt $wide:tt ; )*) => ($(
         impl ToLexical for $narrow {
-            $(#[$meta:meta])?
+            #[cfg_attr(not(feature = "compact"), inline)]
             fn to_lexical(self, bytes: &mut [u8])
                 -> &mut [u8]
             {
@@ -88,7 +88,7 @@ macro_rules! unsigned_to_lexical {
         impl ToLexicalWithOptions for $narrow {
             type Options = Options;
 
-            $(#[$meta:meta])?
+            #[cfg_attr(not(feature = "compact"), inline)]
             fn to_lexical_with_options<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],
@@ -122,11 +122,9 @@ unsigned_to_lexical! { usize u64 ; }
 
 // Implement ToLexical for numeric type.
 macro_rules! signed_to_lexical {
-    ($($narrow:tt $wide:tt $unsigned:tt $(, #[$meta:meta])? ; )*) => ($(
+    ($($narrow:tt $wide:tt $unsigned:tt ; )*) => ($(
         impl ToLexical for $narrow {
-            $(#[$meta:meta])?
-            $(#[$meta:meta])?
-            #[inline]
+            #[cfg_attr(not(feature = "compact"), inline)]
             fn to_lexical(self, bytes: &mut [u8])
                 -> &mut [u8]
             {
@@ -137,8 +135,7 @@ macro_rules! signed_to_lexical {
 
         impl ToLexicalWithOptions for $narrow {
             type Options = Options;
-            $(#[$meta:meta])?
-            #[inline]
+            #[cfg_attr(not(feature = "compact"), inline)]
             fn to_lexical_with_options<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],

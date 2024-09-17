@@ -18,9 +18,9 @@ const DEFAULT_OPTIONS: Options = Options::new();
 
 // Implement ToLexical for numeric type.
 macro_rules! float_to_lexical {
-    ($($t:tt $(, #[$meta:meta])? ; )*) => ($(
+    ($($t:tt ; )*) => ($(
         impl ToLexical for $t {
-            $(#[$meta:meta])?
+            #[cfg_attr(not(feature = "compact"), inline)]
             fn to_lexical(self, bytes: &mut [u8])
                 -> &mut [u8]
             {
@@ -31,7 +31,7 @@ macro_rules! float_to_lexical {
 
         impl ToLexicalWithOptions for $t {
             type Options = Options;
-            $(#[$meta:meta])?
+            #[cfg_attr(not(feature = "compact"), inline)]
             fn to_lexical_with_options<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],
