@@ -4,7 +4,9 @@ High-performance numeric conversion routines for use in a `no_std` environment. 
 
 **Similar Projects**
 
-If you want a minimal, stable, and compile-time friendly version of lexical's float-parsing algorithm, see [minimal-lexical](https://github.com/Alexhuszagh/minimal-lexical). If you want a minimal, performant float parser, recent versions of the Rust standard library should be [sufficient](https://github.com/rust-lang/rust/pull/86761). For high-performance integer formatters, look at [itoa](https://docs.rs/itoa/latest/itoa/).
+If you want a minimal, stable, and compile-time friendly version of lexical's float-parsing algorithm, see [minimal-lexical](https://github.com/Alexhuszagh/minimal-lexical).
+
+If you want a minimal, performant float parser, recent versions of the Rust standard library should be [sufficient](https://github.com/rust-lang/rust/pull/86761). For high-performance integer formatters, look at [itoa](https://docs.rs/itoa/latest/itoa/). The [metrics](#metrics) section contains a detailed comparison of various crates and their performance in comparison to lexical.
 
 **Table of Contents**
 
@@ -263,7 +265,7 @@ Lexical is extensively used in production, the same float parsing algorithm has 
 
 ## Metrics
 
-Various benchmarks, binary sizes, and compile times are shown here:
+Various benchmarks, binary sizes, and compile times are shown here. All the benchmarks can be found on [lexical-benchmarks](https://github.com/Alexhuszagh/lexical-benchmarks?tab=readme-ov-file#latest-results). All benchmarks used a black box to avoid optimizing out the result and leading to misleading metrics.
 
 **Build Timings**
 
@@ -278,29 +280,76 @@ The binary sizes of stripped binaries compiled at optimization level "2". For a 
 ![Parse Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/size_parse_stripped_opt2_posix.svg)
 ![Write Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/size_write_stripped_opt2_posix.svg)
 
-**Benchmarks -- Parse Integer**
+### Benchmarks — Parse Integer
 
-A benchmark on randomly-generated integers uniformly distributed over the entire range. For a more fine-tuned breakdown, see [benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-integer/docs/Benchmarks.md).
+**Random**
 
-![Uniform Random Data](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/lexical-parse-integer/assets/random_uniform.svg)
+A benchmark on randomly-generated integers uniformly distributed over the entire range.
 
-**Benchmarks -- Parse Float**
+![Uniform Random Data](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/json_random%20-%20parse%20int%20-%20core,lexical.png)
 
-A benchmark on parsing floats from various real-world data sets. For a more fine-tuned breakdown, see [benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/Benchmarks.md).
+**Simple**
 
-![Real Data](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/lexical-parse-float/assets/real.svg)
+A benchmark on randomly-generated integers from 1-1000.
 
-**Benchmarks -- Write Integer**
+![Simple Random Data](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/json_simple%20-%20parse%20int%20-%20core,lexical.png)
 
-A benchmark on writing random integers uniformly distributed over the entire range. For a more fine-tuned breakdown, see [benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-integer/docs/Benchmarks.md).
+### Benchmarks — Parse Float
 
-![Uniform Random Data](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/lexical-write-integer/assets/random_uniform.svg)
+**Real-World Datasets**
 
-**Benchmarks -- Write Float**
+A benchmark on parsing floats from various real-world data sets, including Canada, Mesh, and astronomical data (earth).
 
-A benchmark on writing floats generated via a random-number generator and parsed from a JSON document. For a more fine-tuned breakdown, see [benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-float/docs/Benchmarks.md).
+![Canada](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/canada%20-%20parse%20float%20-%20core,lexical.png)
 
-![Random Data](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/lexical-write-float/assets/json.svg)
+![Earth](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/earth%20-%20parse%20float%20-%20core,lexical.png)
+
+![Mesh](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/mesh%20-%20parse%20float%20-%20core,lexical.png)
+
+**Random**
+
+A benchmark on randomly-generated integers uniformly distributed over the entire range.
+
+![Random Big Integer](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/random_big_ints%20-%20parse%20float%20-%20core,lexical.png)
+
+**Simple**
+
+A benchmark on randomly-generated integers from 1-1000.
+
+![Random Simple](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/random_simple_int64%20-%20parse%20float%20-%20core,lexical.png)
+
+### Benchmarks — Write Integer
+
+**Random**
+
+A benchmark on randomly-generated integers uniformly distributed over the entire range.
+
+![Random Uniform](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/json_chain_random%20-%20write%20int%20-%20fmt,itoa,lexical.png)
+
+**Simple**
+
+![Random Simple](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/json_simple%20-%20write%20int%20-%20fmt,itoa,lexical.png)
+
+**Large**
+
+![Random Large](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/random_large%20-%20write%20int%20-%20fmt,itoa,lexical.png)
+
+### Benchmarks — Write Float
+
+**Big Integer**
+
+A benchmarks for values with a large integers.
+
+![Big Integers](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/random_big_ints%20-%20write%20float%20-%20dtoa,fmt,lexical,ryu.png)
+
+**Simple 64-Bit Inteers**
+
+![Simple Int64](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/random_simple_int64%20-%20write%20float%20-%20dtoa,fmt,lexical,ryu.png)
+
+
+**Random**
+
+![Random](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/json%20-%20write%20float%20-%20dtoa,fmt,lexical,ryu.png)
 
 ## Safety
 
