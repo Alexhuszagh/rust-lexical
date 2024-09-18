@@ -13,7 +13,8 @@ fn canada(criterion: &mut Criterion) {
     group.measurement_time(Duration::from_secs(5));
 
     let data = input::read_lines("canada.txt");
-    parse_float_generator!(group, "canada", data.iter(), f64);
+    parse_float_generator!(group, "f32", data.iter(), f32);
+    parse_float_generator!(group, "f64", data.iter(), f64);
 }
 
 criterion_group!(canada_benches, canada);

@@ -449,16 +449,11 @@ macro_rules! ryu_generator {
 
 macro_rules! itoa_generator {
     ($group:ident, $name:expr, $iter:expr) => {{
-        use lexical_util::constants::BUFFER_SIZE;
-        let mut buffer = vec![b'0'; BUFFER_SIZE];
+        let mut buffer = itoa::Buffer::new();
         $group.bench_function($name, |bench| {
             bench.iter(|| {
                 $iter.for_each(|&x| {
-                    itoa::write(&mut buffer, x).unwrap();
-                    black_box(&buffer);
-                    unsafe {
-                        buffer.set_len(0);
-                    }
+                    black_box(buffer.format(x));
                 })
             })
         });
