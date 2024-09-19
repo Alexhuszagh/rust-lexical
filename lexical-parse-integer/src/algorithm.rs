@@ -65,7 +65,7 @@ macro_rules! into_ok_partial {
 
 /// Return an error for a complete parser upon an invalid digit.
 macro_rules! invalid_digit_complete {
-    ($value:ident, $index:expr) => {
+    ($value:expr, $index:expr) => {
         // Don't do any overflow checking here: we don't need it.
         into_error!(InvalidDigit, $index - 1)
     };
@@ -74,7 +74,7 @@ macro_rules! invalid_digit_complete {
 /// Return a value for a partial parser upon an invalid digit.
 /// This checks for numeric overflow, and returns the appropriate error.
 macro_rules! invalid_digit_partial {
-    ($value:ident, $index:expr) => {
+    ($value:expr, $index:expr) => {
         // NOTE: The value is already positive/negative
         into_ok_partial!($value, $index - 1)
     };
@@ -548,6 +548,7 @@ macro_rules! parse_digits_checked {
 /// * `into_ok` - Behavior when returning a valid value.
 /// * `invalid_digit` - Behavior when an invalid digit is found.
 /// * `no_multi_digit` - If to disable multi-digit optimizations.
+/// * `is_partial` - If the parser is a partial parser.
 #[rustfmt::skip]
 macro_rules! algorithm {
 ($bytes:ident, $into_ok:ident, $invalid_digit:ident, $no_multi_digit:expr) => {{
@@ -618,11 +619,14 @@ macro_rules! algorithm {
             if zeros > 1 {
                 return into_error!(InvalidLeadingZeros, index);
             }
+            // NOTE: Zeros has to be 0 here, so our index == 1 or 2 (depending on sign)
             match iter.peek().map(|&c| char_to_digit_const(c, format.radix())) {
                 // Valid digit, we have an invalid value.
                 Some(Some(_)) => return into_error!(InvalidLeadingZeros, index),
-                // Either not a digit that follows, or nothing follows.
-                _ => return $into_ok!(<T>::ZERO, index),
+                // Have a non-digit character that follows.
+                Some(None) => return $invalid_digit!(<T>::ZERO, iter.cursor() + 1),
+                // No digits following, has to be ok
+                None => return $into_ok!(<T>::ZERO, index),
             };
         }
     }
