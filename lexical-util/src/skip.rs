@@ -141,21 +141,24 @@ macro_rules! is_ilt {
 /// Peeks the next token that's not a digit separator.
 macro_rules! peek_1 {
     ($self:ident, $is_skip:ident) => {{
-        // This will consume consecutive digit separators.
-        let value = $self.byte.slc.get($self.byte.index)?;
+        // This will consume a single, non-consecutive digit separators.
+        let mut index = $self.cursor();
+        let buffer = $self.get_buffer();
+        let value = buffer.get(index)?;
         let is_digit_separator = $self.is_digit_separator(*value);
         if is_digit_separator && $is_skip!($self) {
             // Have a skippable digit separator: keep incrementing until we find
             // a non-digit separator character. Don't need any complex checks
             // here, since we've already done them above.
-            let mut index = $self.byte.index + 1;
-            while index < $self.buffer_length()
-                && $self.byte.slc.get(index).map_or(false, |&x| $self.is_digit_separator(x))
+            index += 1;
+            while index < buffer.len()
+                && buffer.get(index).map_or(false, |&x| $self.is_digit_separator(x))
             {
                 index += 1;
             }
-            $self.byte.index = index;
-            $self.byte.slc.get($self.byte.index)
+            // SAFETY: Safe since `index < buffer.len()`.
+            unsafe { $self.set_cursor(index) };
+            buffer.get(index)
         } else {
             // Have 1 of 2 conditions:
             //  1. A non-digit separator character.
@@ -170,20 +173,23 @@ macro_rules! peek_1 {
 macro_rules! peek_n {
     ($self:ident, $is_skip:ident) => {{
         // This will consume consecutive digit separators.
-        let value = $self.byte.slc.get($self.byte.index)?;
+        let mut index = $self.cursor();
+        let buffer = $self.get_buffer();
+        let value = buffer.get(index)?;
         let is_digit_separator = $self.is_digit_separator(*value);
         if is_digit_separator && $is_skip!($self) {
             // Have a skippable digit separator: keep incrementing until we find
             // a non-digit separator character. Don't need any complex checks
             // here, since we've already done them above.
-            let mut index = $self.byte.index + 1;
-            while index < $self.byte.slc.len()
-                && $self.byte.slc.get(index).map_or(false, |&x| $self.is_digit_separator(x))
+            index += 1;
+            while index < buffer.len()
+                && buffer.get(index).map_or(false, |&x| $self.is_digit_separator(x))
             {
                 index += 1;
             }
-            $self.byte.index = index;
-            $self.byte.slc.get($self.byte.index)
+            // SAFETY: Safe since `index < buffer.len()`.
+            unsafe { $self.set_cursor(index) };
+            buffer.get(index)
         } else {
             // Have 1 of 2 conditions:
             //  1. A non-digit separator character.
@@ -371,11 +377,12 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// For this reason, since it's easy to get wrong, we only
     /// expose it to our `DigitsIterator`s and nothing else.
     ///
-    /// This is only ever used for contiguous arrays.
+    /// This is only ever used for contiguous iterators. However,
+    /// it's not guaranteed to only valid for our contiguous
+    /// iterators.
     #[inline(always)]
     const unsafe fn from_parts(slc: &'a [u8], index: usize) -> Self {
         debug_assert!(index <= slc.len());
-        debug_assert!(Self::IS_CONTIGUOUS);
         Self {
             slc,
             index,
@@ -413,6 +420,58 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         SpecialDigitsIterator {
             byte: self,
         }
+    }
+
+    /// Internal implementation that handles if it's contiguous.
+    ///
+    /// # Safety
+    ///
+    /// Safe if the buffer has at least `N` elements.
+    #[inline(always)]
+    unsafe fn step_by_unchecked_impl(&mut self, count: usize, is_contiguous: bool) {
+        // NOTE: THIS IS NOT a duplicate calling `step_by_unchecked` from a digits
+        // iterator on the byte, since they can have different contiguousness.
+        if is_contiguous {
+            // Contiguous, can skip most of these checks.
+            debug_assert!(self.as_slice().len() >= count);
+        } else {
+            // Since this isn't contiguous, it only works
+            // if the value is in the range `[0, 1]`.
+            // We also need to make sure the **current** value
+            // isn't a digit separator.
+            let format = NumberFormat::<{ FORMAT }> {};
+            debug_assert!(self.as_slice().len() >= count);
+            debug_assert!(count == 0 || count == 1);
+            debug_assert!(
+                count == 0 || self.slc.get(self.index) != Some(&format.digit_separator())
+            );
+        }
+        self.index += count;
+        if !is_contiguous {
+            // Only increment the count if it's not contiguous, otherwise,
+            // this is an unnecessary performance penalty.
+            self.count += count;
+        }
+    }
+
+    /// Internal implementation that handles if it's contiguous.
+    ///
+    /// If it's contiguous or not does not affect the safety guarantees,
+    /// however, it can affect correctness.
+    ///
+    /// # Safety
+    ///
+    /// Safe if the buffer has at least `size_of::<V>` elements.
+    #[inline(always)]
+    unsafe fn peek_many_unchecked_impl<V>(&self, is_contiguous: bool) -> V {
+        // NOTE: THIS IS NOT a duplicate calling `peek_many_unchecked` from a digits
+        // iterator on the byte, since they can have different contiguousness.
+        debug_assert!(is_contiguous);
+        debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
+
+        let slc = self.as_slice();
+        // SAFETY: safe as long as the slice has at least count elements.
+        unsafe { ptr::read_unaligned::<V>(slc.as_ptr() as *const _) }
     }
 }
 
@@ -456,37 +515,14 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
 
     #[inline(always)]
     unsafe fn step_by_unchecked(&mut self, count: usize) {
-        if Self::IS_CONTIGUOUS {
-            // Contiguous, can skip most of these checks.
-            debug_assert!(self.as_slice().len() >= count);
-        } else {
-            // Since this isn't contiguous, it only works
-            // if the value is in the range `[0, 1]`.
-            // We also need to make sure the **current** value
-            // isn't a digit separator.
-            let format = NumberFormat::<{ FORMAT }> {};
-            debug_assert!(self.as_slice().len() >= count);
-            debug_assert!(count == 0 || count == 1);
-            debug_assert!(
-                count == 0 || self.slc.get(self.index) != Some(&format.digit_separator())
-            );
-        }
-        self.index += count;
-        if !Self::IS_CONTIGUOUS {
-            // Only increment the count if it's not contiguous, otherwise,
-            // this is an unnecessary performance penalty.
-            self.count += count;
-        }
+        // SAFETY: Safe if the buffer has at least `N` elements.
+        unsafe { self.step_by_unchecked_impl(count, Self::IS_CONTIGUOUS) }
     }
 
     #[inline(always)]
     unsafe fn peek_many_unchecked<V>(&self) -> V {
-        debug_assert!(Self::IS_CONTIGUOUS);
-        debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
-
-        let slc = self.as_slice();
-        // SAFETY: safe as long as the slice has at least count elements.
-        unsafe { ptr::read_unaligned::<V>(slc.as_ptr() as *const _) }
+        // SAFETY: Safe if the buffer has at least `size_of::<V>` elements.
+        unsafe { self.peek_many_unchecked_impl(Self::IS_CONTIGUOUS) }
     }
 }
 
@@ -619,16 +655,14 @@ macro_rules! skip_iterator_iter_base {
 
         #[inline(always)]
         unsafe fn step_by_unchecked(&mut self, count: usize) {
-            debug_assert!(self.as_slice().len() >= count);
-            // SAFETY: safe as long as `slc.len() >= count`.
-            unsafe { self.byte.step_by_unchecked(count) }
+            // SAFETY: Safe if the buffer has at least `N` elements.
+            unsafe { self.byte.step_by_unchecked_impl(count, Self::IS_CONTIGUOUS) }
         }
 
         #[inline(always)]
         unsafe fn peek_many_unchecked<V>(&self) -> V {
-            debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
-            // SAFETY: safe as long as the slice has at least count elements.
-            unsafe { self.byte.peek_many_unchecked() }
+            // SAFETY: Safe if the buffer has at least `size_of::<V>` elements.
+            unsafe { self.byte.peek_many_unchecked_impl(Self::IS_CONTIGUOUS) }
         }
     };
 }
@@ -657,23 +691,27 @@ macro_rules! skip_iterator_bytesiter_impl {
             #[inline(always)]
             fn peek(&mut self) -> Option<<Self as Iterator>::Item> {
                 let format = NumberFormat::<{ FORMAT }> {};
-                const IL: u128 = flags::$i | flags::$l;
-                const IT: u128 = flags::$i | flags::$t;
-                const LT: u128 = flags::$l | flags::$t;
-                const ILT: u128 = flags::$i | flags::$l | flags::$t;
-                const IC: u128 = flags::$i | flags::$c;
-                const LC: u128 = flags::$l | flags::$c;
-                const TC: u128 = flags::$t | flags::$c;
-                const ILC: u128 = IL | flags::$c;
-                const ITC: u128 = IT | flags::$c;
-                const LTC: u128 = LT | flags::$c;
-                const ILTC: u128 = ILT | flags::$c;
+                const I: u128 = flags::$i;
+                const L: u128 = flags::$l;
+                const T: u128 = flags::$t;
+                const C: u128 = flags::$c;
+                const IL: u128 = I | L;
+                const IT: u128 = I | T;
+                const LT: u128 = L | T;
+                const ILT: u128 = I | L | T;
+                const IC: u128 = I | C;
+                const LC: u128 = L | C;
+                const TC: u128 = T | C;
+                const ILC: u128 = IL | C;
+                const ITC: u128 = IT | C;
+                const LTC: u128 = LT | C;
+                const ILTC: u128 = ILT | C;
 
                 match format.digit_separator_flags() & flags::$mask {
                     0 => peek_noskip!(self),
-                    flags::$i => peek_i!(self),
-                    flags::$l => peek_l!(self),
-                    flags::$t => peek_t!(self),
+                    I => peek_i!(self),
+                    L => peek_l!(self),
+                    T => peek_t!(self),
                     IL => peek_il!(self),
                     IT => peek_it!(self),
                     LT => peek_lt!(self),

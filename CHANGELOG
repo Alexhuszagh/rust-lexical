@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - A correctness regression.
+- Regressions where parsing digit separators without the `compact` panicked.
 
 ## [1.0.0] 2024-09-14
 
