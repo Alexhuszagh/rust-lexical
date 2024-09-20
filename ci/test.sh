@@ -80,6 +80,8 @@ test() {
     cargo test $test_features $DOCTESTS
     cargo test $test_features $DOCTESTS --release
     cargo test --features=radix,format,compact $DOCTESTS --release
+    # NOTE: This tests a regressions, related to #96.
+    cargo test --features=format $DOCTESTS
 }
 
 # Dry-run bench target
