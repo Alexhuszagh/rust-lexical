@@ -346,7 +346,6 @@ A benchmarks for values with a large integers.
 
 ![Simple Int64](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/random_simple_int64%20-%20write%20float%20-%20dtoa,fmt,lexical,ryu.png)
 
-
 **Random**
 
 ![Random](https://github.com/Alexhuszagh/lexical-benchmarks/raw/main/results/da4728e/plot/json%20-%20write%20float%20-%20dtoa,fmt,lexical,ryu.png)

@@ -566,7 +566,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let mut implicit_exponent: i64;
     let int_end = n_digits as i64;
     let mut fraction_digits = None;
-    if byte.first_is_cased(decimal_point) {
+    let has_decimal = byte.first_is_cased(decimal_point);
+    if has_decimal {
         // SAFETY: byte cannot be empty due to first_is
         unsafe { byte.step_unchecked() };
         let before = byte.clone();
@@ -599,19 +600,33 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         }
     }
 
+    // NOTE: Check if we have our exponent **BEFORE** checking if the
+    // mantissa is empty, so we can ensure
+    let has_exponent = byte
+        .first_is(exponent_character, format.case_sensitive_exponent() && cfg!(feature = "format"));
+
+    // check to see if we have any inval;id leading zeros
     n_digits += n_after_dot;
     if format.required_mantissa_digits() && n_digits == 0 {
-        return Err(Error::EmptyMantissa(byte.cursor()));
+        let any_digits = start.clone().integer_iter().peek().is_some();
+        // NOTE: This is because numbers like `_12.34` have significant digits,
+        // they just don't have a valid digit (#97).
+        if has_decimal || has_exponent || !any_digits {
+            return Err(Error::EmptyMantissa(byte.cursor()));
+        } else {
+            return Err(Error::InvalidDigit(start.cursor()));
+        }
     }
 
     // EXPONENT
 
     // Handle scientific notation.
     let mut explicit_exponent = 0_i64;
-    let is_exponent = byte
-        .first_is(exponent_character, format.case_sensitive_exponent() && cfg!(feature = "format"));
-    if is_exponent {
-        // SAFETY: byte cannot be empty due to `first_is` from `is_exponent`.`
+    if has_exponent {
+        // NOTE: See above for the safety invariant above `required_mantissa_digits`.
+        // This is separated for correctness concerns, and therefore the two cannot
+        // be on the same line.
+        // SAFETY: byte cannot be empty due to `first_is` from `has_exponent`.`
         unsafe { byte.step_unchecked() };
 
         // Check float format syntax checks.
