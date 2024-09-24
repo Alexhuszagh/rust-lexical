@@ -18,6 +18,7 @@ run_tests() {
     cd "${home}"
     cd lexical-parse-float/etc/correctness
     cargo run "${@}" --release --bin test-parse-golang
+    cargo run "${@}" --release --bin test-parse-golang --features digit-separator
     cargo run "${@}" --release --bin test-parse-unittests
 
     # Test the write-float correctness tests.

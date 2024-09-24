@@ -16,10 +16,10 @@ use rand_isaac::Isaac64Rng;
 use std::mem::transmute;
 
 fn main() {
-    let mut rnd = Isaac64Rng::from_seed(ISAAC_SEED);
+    let mut rng = Isaac64Rng::from_seed(ISAAC_SEED);
     let mut i = 0;
     while i < 10_000_000 {
-        let bits = rnd.next_u64();
+        let bits = rng.next_u64();
         let x: f64 = unsafe { transmute(bits) };
         if x.is_finite() {
             validate(&format!("{:e}", x));

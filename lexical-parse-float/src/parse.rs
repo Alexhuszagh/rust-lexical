@@ -246,11 +246,18 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     let mut byte = bytes.bytes::<{ FORMAT }>();
     let is_negative = parse_mantissa_sign(&mut byte)?;
     if byte.integer_iter().is_consumed() {
-        return Err(Error::Empty(byte.cursor()));
+        if NumberFormat::<FORMAT>::REQUIRED_INTEGER_DIGITS
+            || NumberFormat::<FORMAT>::REQUIRED_MANTISSA_DIGITS
+        {
+            return Err(Error::Empty(byte.cursor()));
+        } else {
+            return Ok(F::ZERO);
+        }
     }
 
     // Parse our a small representation of our number.
-    let num = parse_number!(FORMAT, byte, is_negative, options, parse_number, parse_special);
+    let num: Number<'_> =
+        parse_number!(FORMAT, byte, is_negative, options, parse_complete_number, parse_special);
     // Try the fast-path algorithm.
     if let Some(value) = num.try_fast_path::<_, FORMAT>() {
         return Ok(value);
@@ -281,11 +288,18 @@ pub fn fast_path_complete<F: LemireFloat, const FORMAT: u128>(
     let mut byte = bytes.bytes::<{ FORMAT }>();
     let is_negative = parse_mantissa_sign(&mut byte)?;
     if byte.integer_iter().is_consumed() {
-        return Err(Error::Empty(byte.cursor()));
+        if NumberFormat::<FORMAT>::REQUIRED_INTEGER_DIGITS
+            || NumberFormat::<FORMAT>::REQUIRED_MANTISSA_DIGITS
+        {
+            return Err(Error::Empty(byte.cursor()));
+        } else {
+            return Ok(F::ZERO);
+        }
     }
 
     // Parse our a small representation of our number.
-    let num = parse_number!(FORMAT, byte, is_negative, options, parse_number, parse_special);
+    let num =
+        parse_number!(FORMAT, byte, is_negative, options, parse_complete_number, parse_special);
     Ok(num.force_fast_path::<_, FORMAT>())
 }
 
@@ -298,7 +312,13 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     let mut byte = bytes.bytes::<{ FORMAT }>();
     let is_negative = parse_mantissa_sign(&mut byte)?;
     if byte.integer_iter().is_consumed() {
-        return Err(Error::Empty(byte.cursor()));
+        if NumberFormat::<FORMAT>::REQUIRED_INTEGER_DIGITS
+            || NumberFormat::<FORMAT>::REQUIRED_MANTISSA_DIGITS
+        {
+            return Err(Error::Empty(byte.cursor()));
+        } else {
+            return Ok((F::ZERO, byte.cursor()));
+        }
     }
 
     // Parse our a small representation of our number.
@@ -340,7 +360,13 @@ pub fn fast_path_partial<F: LemireFloat, const FORMAT: u128>(
     let mut byte = bytes.bytes::<{ FORMAT }>();
     let is_negative = parse_mantissa_sign(&mut byte)?;
     if byte.integer_iter().is_consumed() {
-        return Err(Error::Empty(byte.cursor()));
+        if NumberFormat::<FORMAT>::REQUIRED_INTEGER_DIGITS
+            || NumberFormat::<FORMAT>::REQUIRED_MANTISSA_DIGITS
+        {
+            return Err(Error::Empty(byte.cursor()));
+        } else {
+            return Ok((F::ZERO, byte.cursor()));
+        }
     }
 
     // Parse our a small representation of our number.
@@ -458,7 +484,7 @@ pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
 #[allow(clippy::collapsible_if)] // reason = "more readable uncollapsed"
 #[allow(clippy::cast_possible_wrap)] // reason = "no hardware supports buffers >= i64::MAX"
 #[allow(clippy::too_many_lines)] // reason = "function is one logical entity"
-pub fn parse_partial_number<'a, const FORMAT: u128>(
+pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     mut byte: Bytes<'a, FORMAT>,
     is_negative: bool,
     options: &Options,
@@ -510,12 +536,15 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         let mut iter = byte.integer_iter();
         if base_prefix != 0 && iter.read_if_value_cased(b'0').is_some() {
             // Check to see if the next character is the base prefix.
-            // We must have a format like `0x`, `0d`, `0o`. Note:
+            // We must have a format like `0x`, `0d`, `0o`.
+            // NOTE: The check for empty integer digits happens below so
+            // we don't need a redunant check here.
             is_prefix = true;
             if iter.read_if_value(base_prefix, format.case_sensitive_base_prefix()).is_some()
                 && iter.is_buffer_empty()
+                && format.required_integer_digits()
             {
-                return Err(Error::Empty(iter.cursor()));
+                return Err(Error::EmptyInteger(iter.cursor()));
             }
         }
     }
@@ -535,8 +564,17 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     }
 
     // Store the integer digits for slow-path algorithms.
+    // NOTE: We can't use the number of digits to extract the slice for
+    // non-contiguous iterators, but we also need to the number of digits
+    // for our value calculation. We store both, and let the compiler know
+    // to optimize it out when not needed.
+    let b_digits = if cfg!(feature = "format") && !byte.integer_iter().is_contiguous() {
+        byte.cursor() - start.cursor()
+    } else {
+        n_digits
+    };
     debug_assert!(
-        n_digits <= start.as_slice().len(),
+        b_digits <= start.as_slice().len(),
         "number of digits parsed must <= buffer length"
     );
     // SAFETY: safe, since `n_digits <= start.as_slice().len()`.
@@ -548,7 +586,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     // NOTE: Removing this code leads to ~10% reduction in parsing
     // that triggers the Eisell-Lemire algorithm or the digit comp
     // algorithms, so don't remove the unsafe indexing.
-    let integer_digits = unsafe { start.as_slice().get_unchecked(..n_digits) };
+    let integer_digits = unsafe { start.as_slice().get_unchecked(..b_digits) };
 
     // Check if integer leading zeros are disabled.
     #[cfg(feature = "format")]
@@ -577,14 +615,23 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
             mantissa = mantissa.wrapping_mul(format.radix() as u64).wrapping_add(digit as u64);
         });
         n_after_dot = byte.current_count() - before.current_count();
+        // NOTE: We can't use the number of digits to extract the slice for
+        // non-contiguous iterators, but we also need to the number of digits
+        // for our value calculation. We store both, and let the compiler know
+        // to optimize it out when not needed.
+        let b_after_dot = if cfg!(feature = "format") && !byte.fraction_iter().is_contiguous() {
+            byte.cursor() - before.cursor()
+        } else {
+            n_after_dot
+        };
 
         // Store the fraction digits for slow-path algorithms.
         debug_assert!(
-            n_after_dot <= before.as_slice().len(),
+            b_after_dot <= before.as_slice().len(),
             "digits after dot must be smaller than buffer"
         );
-        // SAFETY: safe, since `n_after_dot <= before.as_slice().len()`.
-        fraction_digits = Some(unsafe { before.as_slice().get_unchecked(..n_after_dot) });
+        // SAFETY: safe, since `idx_after_dot <= before.as_slice().len()`.
+        fraction_digits = Some(unsafe { before.as_slice().get_unchecked(..b_after_dot) });
 
         // Calculate the implicit exponent: the number of digits after the dot.
         implicit_exponent = -(n_after_dot as i64);
@@ -607,11 +654,13 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 
     // check to see if we have any inval;id leading zeros
     n_digits += n_after_dot;
-    if format.required_mantissa_digits() && n_digits == 0 {
+    if format.required_mantissa_digits()
+        && (n_digits == 0 || (cfg!(feature = "format") && byte.current_count() == 0))
+    {
         let any_digits = start.clone().integer_iter().peek().is_some();
         // NOTE: This is because numbers like `_12.34` have significant digits,
         // they just don't have a valid digit (#97).
-        if has_decimal || has_exponent || !any_digits {
+        if has_decimal || has_exponent || !any_digits || IS_PARTIAL {
             return Err(Error::EmptyMantissa(byte.cursor()));
         } else {
             return Err(Error::InvalidDigit(start.cursor()));
@@ -705,17 +754,13 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     n_digits -= step;
     let mut zeros = start.clone();
     let mut zeros_integer = zeros.integer_iter();
-    while zeros_integer.read_if_value_cased(b'0').is_some() {
-        n_digits = n_digits.saturating_sub(1);
-    }
+    n_digits = n_digits.saturating_sub(zeros_integer.skip_zeros());
     if zeros.first_is_cased(decimal_point) {
         // SAFETY: safe since zeros cannot be empty due to first_is
         unsafe { zeros.step_unchecked() };
     }
     let mut zeros_fraction = zeros.fraction_iter();
-    while zeros_fraction.read_if_value_cased(b'0').is_some() {
-        n_digits = n_digits.saturating_sub(1);
-    }
+    n_digits = n_digits.saturating_sub(zeros_fraction.skip_zeros());
 
     // OVERFLOW
 
@@ -729,7 +774,17 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         let mut integer_iter = integer.integer_iter();
         integer_iter.skip_zeros();
         parse_u64_digits::<_, FORMAT>(integer_iter, &mut mantissa, &mut step);
-        implicit_exponent = if step == 0 {
+        // NOTE: With the format feature enabled and non-contiguous iterators, we can
+        // have null fraction digits even if step was not 0. We want to make the
+        // none check as late in there as possible: any of them should
+        // short-circuit and should be determined at compile time. So, the
+        // conditions are either:
+        // 1. Step == 0
+        // 2. cfg!(feature = "format") && !byte.is_contiguous() &&
+        //    fraction_digits.is_none()
+        implicit_exponent = if step == 0
+            || (cfg!(feature = "format") && !byte.is_contiguous() && fraction_digits.is_none())
+        {
             // Filled our mantissa with just the integer.
             int_end - integer.current_count() as i64
         } else {
@@ -770,15 +825,24 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     ))
 }
 
+pub fn parse_partial_number<'a, const FORMAT: u128>(
+    byte: Bytes<'a, FORMAT>,
+    is_negative: bool,
+    options: &Options,
+) -> Result<(Number<'a>, usize)> {
+    parse_number::<FORMAT, true>(byte, is_negative, options)
+}
+
 /// Try to parse a non-special floating point number.
 #[inline(always)]
-pub fn parse_number<'a, const FORMAT: u128>(
+pub fn parse_complete_number<'a, const FORMAT: u128>(
     byte: Bytes<'a, FORMAT>,
     is_negative: bool,
     options: &Options,
 ) -> Result<Number<'a>> {
+    // Then have a const `IsPartial` as well
     let length = byte.buffer_length();
-    let (float, count) = parse_partial_number::<FORMAT>(byte, is_negative, options)?;
+    let (float, count) = parse_number::<FORMAT, false>(byte, is_negative, options)?;
     if count == length {
         Ok(float)
     } else {
@@ -807,6 +871,7 @@ where
         // NOTE: Because of the match statement, this would optimize poorly with
         // read_if.
         unsafe { iter.step_unchecked() };
+        iter.increment_count();
     }
 }
 
@@ -869,6 +934,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
             *step -= 1;
             // SAFETY: safe, since `iter` cannot be empty due to `iter.peek()`.
             unsafe { iter.step_unchecked() };
+            iter.increment_count();
         } else {
             break;
         }

@@ -125,15 +125,15 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
         self.index = index;
     }
 
-    /// Get the current number of values returned by the iterator.
+    /// Get the current number of digits returned by the iterator.
+    ///
+    /// For contiguous iterators, this can include the sign character, decimal
+    /// point, and the exponent sign (that is, it is always the cursor). For
+    /// non-contiguous iterators, this must always be the only the number of
+    /// digits returned.
     #[inline(always)]
     fn current_count(&self) -> usize {
         self.index
-    }
-
-    #[inline(always)]
-    fn first(&self) -> Option<&'a u8> {
-        self.slc.get(self.index)
     }
 
     #[inline(always)]
@@ -241,6 +241,11 @@ impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for DigitsIterator<'a, 'b, F
     #[inline(always)]
     fn is_consumed(&mut self) -> bool {
         self.is_buffer_empty()
+    }
+
+    // Always a no-op
+    #[inline(always)]
+    fn increment_count(&mut self) {
     }
 
     #[inline(always)]

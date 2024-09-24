@@ -78,7 +78,7 @@ fn parse_number_test() {
     let options = Options::new();
     let string = b"1.2345e10";
     let byte = string.bytes::<{ FORMAT }>();
-    let result = parse::parse_number(byte, false, &options);
+    let result = parse::parse_complete_number(byte, false, &options);
     assert!(result.is_ok());
     let num = result.unwrap();
     assert_eq!(num.mantissa, 12345);
@@ -87,12 +87,12 @@ fn parse_number_test() {
 
     let string = b"1.2345e";
     let byte = string.bytes::<{ FORMAT }>();
-    let result = parse::parse_number(byte, false, &options);
+    let result = parse::parse_complete_number(byte, false, &options);
     assert!(result.is_err());
 
     let string = b"1.2345 ";
     let byte = string.bytes::<{ FORMAT }>();
-    let result = parse::parse_number(byte, false, &options);
+    let result = parse::parse_complete_number(byte, false, &options);
     assert!(result.is_err());
 }
 

@@ -464,54 +464,84 @@ impl NumberFormatBuilder {
     }
 
     /// Get if digit separators are allowed between integer digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     #[inline(always)]
     pub const fn get_integer_internal_digit_separator(&self) -> bool {
         self.integer_internal_digit_separator
     }
 
     /// Get if digit separators are allowed between fraction digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     #[inline(always)]
     pub const fn get_fraction_internal_digit_separator(&self) -> bool {
         self.fraction_internal_digit_separator
     }
 
     /// Get if digit separators are allowed between exponent digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     #[inline(always)]
     pub const fn get_exponent_internal_digit_separator(&self) -> bool {
         self.exponent_internal_digit_separator
     }
 
     /// Get if a digit separator is allowed before any integer digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn get_integer_leading_digit_separator(&self) -> bool {
         self.integer_leading_digit_separator
     }
 
     /// Get if a digit separator is allowed before any fraction digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn get_fraction_leading_digit_separator(&self) -> bool {
         self.fraction_leading_digit_separator
     }
 
     /// Get if a digit separator is allowed before any exponent digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn get_exponent_leading_digit_separator(&self) -> bool {
         self.exponent_leading_digit_separator
     }
 
     /// Get if a digit separator is allowed after any integer digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn get_integer_trailing_digit_separator(&self) -> bool {
         self.integer_trailing_digit_separator
     }
 
     /// Get if a digit separator is allowed after any fraction digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn get_fraction_trailing_digit_separator(&self) -> bool {
         self.fraction_trailing_digit_separator
     }
 
     /// Get if a digit separator is allowed after any exponent digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn get_exponent_trailing_digit_separator(&self) -> bool {
         self.exponent_trailing_digit_separator
@@ -754,6 +784,10 @@ impl NumberFormatBuilder {
     }
 
     /// Set if digit separators are allowed between integer digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn integer_internal_digit_separator(mut self, flag: bool) -> Self {
@@ -762,6 +796,10 @@ impl NumberFormatBuilder {
     }
 
     /// Set if digit separators are allowed between fraction digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn fraction_internal_digit_separator(mut self, flag: bool) -> Self {
@@ -770,6 +808,10 @@ impl NumberFormatBuilder {
     }
 
     /// Set if digit separators are allowed between exponent digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn exponent_internal_digit_separator(mut self, flag: bool) -> Self {
@@ -778,6 +820,10 @@ impl NumberFormatBuilder {
     }
 
     /// Set all internal digit separator flags.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn internal_digit_separator(mut self, flag: bool) -> Self {
@@ -788,6 +834,9 @@ impl NumberFormatBuilder {
     }
 
     /// Set if a digit separator is allowed before any integer digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn integer_leading_digit_separator(mut self, flag: bool) -> Self {
@@ -796,6 +845,9 @@ impl NumberFormatBuilder {
     }
 
     /// Set if a digit separator is allowed before any fraction digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn fraction_leading_digit_separator(mut self, flag: bool) -> Self {
@@ -804,6 +856,9 @@ impl NumberFormatBuilder {
     }
 
     /// Set if a digit separator is allowed before any exponent digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn exponent_leading_digit_separator(mut self, flag: bool) -> Self {
@@ -812,6 +867,9 @@ impl NumberFormatBuilder {
     }
 
     /// Set all leading digit separator flags.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn leading_digit_separator(mut self, flag: bool) -> Self {
@@ -822,6 +880,9 @@ impl NumberFormatBuilder {
     }
 
     /// Set if a digit separator is allowed after any integer digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn integer_trailing_digit_separator(mut self, flag: bool) -> Self {
@@ -830,6 +891,9 @@ impl NumberFormatBuilder {
     }
 
     /// Set if a digit separator is allowed after any fraction digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn fraction_trailing_digit_separator(mut self, flag: bool) -> Self {
@@ -838,6 +902,9 @@ impl NumberFormatBuilder {
     }
 
     /// Set if a digit separator is allowed after any exponent digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn exponent_trailing_digit_separator(mut self, flag: bool) -> Self {
@@ -846,6 +913,9 @@ impl NumberFormatBuilder {
     }
 
     /// Set all trailing digit separator flags.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn trailing_digit_separator(mut self, flag: bool) -> Self {

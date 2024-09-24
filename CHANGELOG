@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Higher performance when parsing floats with digit separators.
+
 ### Fixed
 
 - Inlining inconsistency between public API methods (credit to @zheland)
 - Incorrectly accepting leading zeros when `no_integer_leading_zeros` was enabled.
 - Have consistent errors when an invalid leading digit is found for floating point numbers to always be `Error::InvalidDigit`.
+- Incorrect parsing of consecutive digit separators.
+- Inaccuracies when parsing digit separators at various positions leading to incorect errors being returned.
 
 ## [1.0.1] 2024-09-16
 

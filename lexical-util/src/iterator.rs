@@ -98,10 +98,14 @@ pub unsafe trait Iter<'a> {
     /// pass if the cursor was set between the two.
     unsafe fn set_cursor(&mut self, index: usize);
 
-    /// Get the current number of values returned by the iterator.
+    /// Get the current number of digits returned by the iterator.
     ///
-    /// For contiguous iterators, this is always the cursor, for
-    /// non-contiguous iterators this can be smaller.
+    /// For contiguous iterators, this can include the sign character, decimal
+    /// point, and the exponent sign (that is, it is always the cursor). For
+    /// non-contiguous iterators, this must always be the only the number of
+    /// digits returned.
+    ///
+    /// This is never used for indexing but will be used for API detection.
     fn current_count(&self) -> usize;
 
     // PROPERTIES
@@ -140,7 +144,7 @@ pub unsafe trait Iter<'a> {
     /// Check if the next item in buffer is a given value with optional case
     /// sensitivity.
     #[inline(always)]
-    fn first_is(&mut self, value: u8, is_cased: bool) -> bool {
+    fn first_is(&self, value: u8, is_cased: bool) -> bool {
         if is_cased {
             self.first_is_cased(value)
         } else {
@@ -158,6 +162,14 @@ pub unsafe trait Iter<'a> {
     /// underlying buffer. This is useful for multi-digit optimizations
     /// for contiguous iterators.
     ///
+    /// This does not increment the count of items: returns: this only
+    /// increments the index, not the total digits returned. You must use
+    /// this carefully: if stepping over a digit, you must then call
+    /// [`increment_count`] afterwards or else the internal count will
+    /// be incorrect.
+    ///
+    /// [`increment_count`]: DigitsIter::increment_count
+    ///
     /// # Panics
     ///
     /// This will panic if the buffer advances for non-contiguous
@@ -171,6 +183,15 @@ pub unsafe trait Iter<'a> {
     unsafe fn step_by_unchecked(&mut self, count: usize);
 
     /// Advance the internal slice by 1 element.
+    ///
+    ///
+    /// This does not increment the count of items: returns: this only
+    /// increments the index, not the total digits returned. You must
+    /// use this carefully: if stepping over a digit, you must then call
+    /// [`increment_count`] afterwards or else the internal count will
+    /// be incorrect.
+    ///
+    /// [`increment_count`]: DigitsIter::increment_count
     ///
     /// # Panics
     ///
@@ -277,10 +298,18 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         self.peek().is_none()
     }
 
+    /// Increment the number of digits that have been returned by the iterator.
+    ///
+    /// For contiguous iterators, this is a no-op. For non-contiguous iterators,
+    /// this increments the count by 1.
+    fn increment_count(&mut self);
+
     /// Peek the next value of the iterator, without consuming it.
     ///
     /// Note that this can modify the internal state, by skipping digits
-    /// for iterators that find the first non-zero value, etc.
+    /// for iterators that find the first non-zero value, etc. We optimize
+    /// this for the case where we have contiguous iterators, since
+    /// non-contiguous iterators already have a major performance penalty.
     fn peek(&mut self) -> Option<Self::Item>;
 
     /// Peek the next value of the iterator, and step only if it exists.
@@ -374,9 +403,11 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     /// Skip zeros from the start of the iterator
     #[inline(always)]
     fn skip_zeros(&mut self) -> usize {
-        let start = self.cursor();
-        while self.read_if_value_cased(b'0').is_some() {}
-        self.cursor() - start
+        let start = self.current_count();
+        while self.read_if_value_cased(b'0').is_some() {
+            self.increment_count();
+        }
+        self.current_count() - start
     }
 
     /// Determine if the character is a digit.
