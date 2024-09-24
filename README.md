@@ -150,7 +150,9 @@ Lexical also places a heavy focus on code bloat: with algorithms both optimized 
 
 ## Customization
 
-> ⚠ **WARNING:** If changing the number of significant digits written, disabling the use of exponent notation, or changing exponent notation thresholds, `BUFFER_SIZE` may be insufficient to hold the resulting output. `WriteOptions::buffer_size` will provide a correct upper bound on the number of bytes written. If a buffer of insufficient length is provided, lexical-core will panic.
+Lexical is extensively customizable to support parsing numbers from a wide variety of programming languages, such as `1_2_3`. However, lexical takes the concept of "you don't pay for what you don't use" seriously: enabling the `format` feature does not affect the performance of parsing regular numbers: only those with digit separators.
+
+> ⚠ **WARNING:** When changing the number of significant digits written, disabling the use of exponent notation, or changing exponent notation thresholds, `BUFFER_SIZE` may be insufficient to hold the resulting output. `WriteOptions::buffer_size` will provide a correct upper bound on the number of bytes written. If a buffer of insufficient length is provided, lexical-core will panic.
 
 Every language has competing specifications for valid numerical input, meaning a number parser for Rust will incorrectly accept or reject input for different programming or data languages. For example:
 
