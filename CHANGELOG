@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Have consistent errors when an invalid leading digit is found for floating point numbers to always be `Error::InvalidDigit`.
 - Incorrect parsing of consecutive digit separators.
 - Inaccuracies when parsing digit separators at various positions leading to incorect errors being returned.
+- Selecting only a subset of parse and/or write features would cause compilation errors.
+- Fixed bug with writing integers with custom radices.
 
 ## [1.0.1] 2024-09-16
 

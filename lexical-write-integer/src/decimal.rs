@@ -259,7 +259,9 @@ macro_rules! decimal_impl {
         impl Decimal for $t {
             #[inline(always)]
             fn decimal(self, buffer: &mut [u8]) -> usize {
-                algorithm(self, 10, &DIGIT_TO_BASE10_SQUARED, buffer)
+                let count = self.digit_count();
+                let _ = algorithm(self, 10, &DIGIT_TO_BASE10_SQUARED, buffer, count);
+                count
             }
         }
     )*);
@@ -270,10 +272,13 @@ decimal_impl! { u32 u64 }
 impl Decimal for u128 {
     #[inline(always)]
     fn decimal(self, buffer: &mut [u8]) -> usize {
-        algorithm_u128::<{ STANDARD }, { RADIX }, { RADIX_SHIFT }>(
+        let count = self.digit_count();
+        let _ = algorithm_u128::<{ STANDARD }, { RADIX }, { RADIX_SHIFT }>(
             self,
             &DIGIT_TO_BASE10_SQUARED,
             buffer,
-        )
+            count,
+        );
+        count
     }
 }

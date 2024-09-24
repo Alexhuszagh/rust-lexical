@@ -55,6 +55,8 @@ parse-integers = ["parse", "integers"]
 parse-floats = ["parse", "floats"]
 # Reduce code size at the cost of performance.
 compact = []
+# Add support for the `f16` and `b16` half-point floating point numbers.
+f16 = ["parse-floats", "write-floats"]
 
 # Internal only features.
 # Enable the lint checks.
@@ -68,11 +70,14 @@ integers = []
 # Add support for conversions to or from floats.
 floats = []
 
-# Currently unsupported.
+# UNSUPPORTED
+# -----------
+# Currently unsupported features.
+# Enable support for 128-bit floats. Unsupported and unlikely to ever be.
+#   https://github.com/Alexhuszagh/rust-lexical/issues/46
 # Enable support for 16-bit floats.
-f16 = ["floats"]
 # Enable support for 128-bit floats.
-f128 = ["floats"]
+f128 = ["parse-floats", "write-floats"]
 
 [package.metadata.docs.rs]
 features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats"]
