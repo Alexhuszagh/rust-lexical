@@ -31,27 +31,27 @@ fn test_skip_iter_i() {
     skip_iter_eq::<{ FORMAT }>(b"_.45", b"_.45");
     skip_iter_eq::<{ FORMAT }>(b"__.45", b"__.45");
     skip_iter_eq::<{ FORMAT }>(b"4_5", b"45");
-    skip_iter_eq::<{ FORMAT }>(b"4__5", b"4_5");
+    skip_iter_eq::<{ FORMAT }>(b"4__5", b"4__5");
     skip_iter_eq::<{ FORMAT }>(b"4_", b"4_");
     skip_iter_eq::<{ FORMAT }>(b"4__", b"4__");
     skip_iter_eq::<{ FORMAT }>(b"4_.", b"4_.");
     skip_iter_eq::<{ FORMAT }>(b"4__.", b"4__.");
     skip_iter_eq::<{ FORMAT }>(b"_45_5", b"_455");
-    skip_iter_eq::<{ FORMAT }>(b"__45__5", b"__45_5");
+    skip_iter_eq::<{ FORMAT }>(b"__45__5", b"__45__5");
     skip_iter_eq::<{ FORMAT }>(b"_.45_5", b"_.455");
-    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"__.45_5");
+    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"__.45__5");
     skip_iter_eq::<{ FORMAT }>(b"4_5_", b"45_");
-    skip_iter_eq::<{ FORMAT }>(b"4__5__", b"4_5__");
+    skip_iter_eq::<{ FORMAT }>(b"4__5__", b"4__5__");
     skip_iter_eq::<{ FORMAT }>(b"4_5_.5", b"45_.5");
-    skip_iter_eq::<{ FORMAT }>(b"4__5__.5", b"4_5__.5");
+    skip_iter_eq::<{ FORMAT }>(b"4__5__.5", b"4__5__.5");
     skip_iter_eq::<{ FORMAT }>(b"_45_", b"_45_");
     skip_iter_eq::<{ FORMAT }>(b"__45__", b"__45__");
     skip_iter_eq::<{ FORMAT }>(b"_45_.56", b"_45_.56");
     skip_iter_eq::<{ FORMAT }>(b"__45__.56", b"__45__.56");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_", b"_45_");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"__4_5__");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"__4__5__");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_.56", b"_45_.56");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"__4_5__.56");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"__4__5__.56");
 }
 
 #[test]
@@ -68,9 +68,9 @@ fn test_skip_iter_l() {
     skip_iter_eq::<{ FORMAT }>(b"1e", b"1e");
     skip_iter_eq::<{ FORMAT }>(b"1", b"1");
     skip_iter_eq::<{ FORMAT }>(b"_45", b"45");
-    skip_iter_eq::<{ FORMAT }>(b"__45", b"_45");
+    skip_iter_eq::<{ FORMAT }>(b"__45", b"__45");
     skip_iter_eq::<{ FORMAT }>(b"_.45", b".45");
-    skip_iter_eq::<{ FORMAT }>(b"__.45", b"_.45");
+    skip_iter_eq::<{ FORMAT }>(b"__.45", b"__.45");
     skip_iter_eq::<{ FORMAT }>(b"4_5", b"4_5");
     skip_iter_eq::<{ FORMAT }>(b"4__5", b"4__5");
     skip_iter_eq::<{ FORMAT }>(b"4_", b"4_");
@@ -78,21 +78,21 @@ fn test_skip_iter_l() {
     skip_iter_eq::<{ FORMAT }>(b"4_.", b"4_.");
     skip_iter_eq::<{ FORMAT }>(b"4__.", b"4__.");
     skip_iter_eq::<{ FORMAT }>(b"_45_5", b"45_5");
-    skip_iter_eq::<{ FORMAT }>(b"__45__5", b"_45__5");
+    skip_iter_eq::<{ FORMAT }>(b"__45__5", b"__45__5");
     skip_iter_eq::<{ FORMAT }>(b"_.45_5", b".45_5");
-    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"_.45__5");
+    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"__.45__5");
     skip_iter_eq::<{ FORMAT }>(b"4_5_", b"4_5_");
     skip_iter_eq::<{ FORMAT }>(b"4__5__", b"4__5__");
     skip_iter_eq::<{ FORMAT }>(b"4_5_.5", b"4_5_.5");
     skip_iter_eq::<{ FORMAT }>(b"4__5__.5", b"4__5__.5");
     skip_iter_eq::<{ FORMAT }>(b"_45_", b"45_");
-    skip_iter_eq::<{ FORMAT }>(b"__45__", b"_45__");
+    skip_iter_eq::<{ FORMAT }>(b"__45__", b"__45__");
     skip_iter_eq::<{ FORMAT }>(b"_45_.56", b"45_.56");
-    skip_iter_eq::<{ FORMAT }>(b"__45__.56", b"_45__.56");
+    skip_iter_eq::<{ FORMAT }>(b"__45__.56", b"__45__.56");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_", b"4_5_");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"_4__5__");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"__4__5__");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_.56", b"4_5_.56");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"_4__5__.56");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"__4__5__.56");
 }
 
 #[test]
@@ -111,29 +111,29 @@ fn test_skip_iter_t() {
     skip_iter_eq::<{ FORMAT }>(b"_45", b"_45");
     skip_iter_eq::<{ FORMAT }>(b"__45", b"__45");
     skip_iter_eq::<{ FORMAT }>(b"_.45", b".45");
-    skip_iter_eq::<{ FORMAT }>(b"__.45", b"_.45");
+    skip_iter_eq::<{ FORMAT }>(b"__.45", b"__.45");
     skip_iter_eq::<{ FORMAT }>(b"4_5", b"4_5");
     skip_iter_eq::<{ FORMAT }>(b"4__5", b"4__5");
     skip_iter_eq::<{ FORMAT }>(b"4_", b"4");
-    skip_iter_eq::<{ FORMAT }>(b"4__", b"4_");
+    skip_iter_eq::<{ FORMAT }>(b"4__", b"4__");
     skip_iter_eq::<{ FORMAT }>(b"4_.", b"4.");
-    skip_iter_eq::<{ FORMAT }>(b"4__.", b"4_.");
+    skip_iter_eq::<{ FORMAT }>(b"4__.", b"4__.");
     skip_iter_eq::<{ FORMAT }>(b"_45_5", b"_45_5");
     skip_iter_eq::<{ FORMAT }>(b"__45__5", b"__45__5");
     skip_iter_eq::<{ FORMAT }>(b"_.45_5", b".45_5");
-    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"_.45__5");
+    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"__.45__5");
     skip_iter_eq::<{ FORMAT }>(b"4_5_", b"4_5");
-    skip_iter_eq::<{ FORMAT }>(b"4__5__", b"4__5_");
+    skip_iter_eq::<{ FORMAT }>(b"4__5__", b"4__5__");
     skip_iter_eq::<{ FORMAT }>(b"4_5_.5", b"4_5.5");
-    skip_iter_eq::<{ FORMAT }>(b"4__5__.5", b"4__5_.5");
+    skip_iter_eq::<{ FORMAT }>(b"4__5__.5", b"4__5__.5");
     skip_iter_eq::<{ FORMAT }>(b"_45_", b"_45");
-    skip_iter_eq::<{ FORMAT }>(b"__45__", b"__45_");
+    skip_iter_eq::<{ FORMAT }>(b"__45__", b"__45__");
     skip_iter_eq::<{ FORMAT }>(b"_45_.56", b"_45.56");
-    skip_iter_eq::<{ FORMAT }>(b"__45__.56", b"__45_.56");
+    skip_iter_eq::<{ FORMAT }>(b"__45__.56", b"__45__.56");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_", b"_4_5");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"__4__5_");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"__4__5__");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_.56", b"_4_5.56");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"__4__5_.56");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"__4__5__.56");
 }
 
 #[test]
@@ -151,31 +151,31 @@ fn test_skip_iter_il() {
     skip_iter_eq::<{ FORMAT }>(b"1e", b"1e");
     skip_iter_eq::<{ FORMAT }>(b"1", b"1");
     skip_iter_eq::<{ FORMAT }>(b"_45", b"45");
-    skip_iter_eq::<{ FORMAT }>(b"__45", b"_45");
+    skip_iter_eq::<{ FORMAT }>(b"__45", b"__45");
     skip_iter_eq::<{ FORMAT }>(b"_.45", b".45");
-    skip_iter_eq::<{ FORMAT }>(b"__.45", b"_.45");
+    skip_iter_eq::<{ FORMAT }>(b"__.45", b"__.45");
     skip_iter_eq::<{ FORMAT }>(b"4_5", b"45");
-    skip_iter_eq::<{ FORMAT }>(b"4__5", b"4_5");
+    skip_iter_eq::<{ FORMAT }>(b"4__5", b"4__5");
     skip_iter_eq::<{ FORMAT }>(b"4_", b"4_");
     skip_iter_eq::<{ FORMAT }>(b"4__", b"4__");
     skip_iter_eq::<{ FORMAT }>(b"4_.", b"4_.");
     skip_iter_eq::<{ FORMAT }>(b"4__.", b"4__.");
     skip_iter_eq::<{ FORMAT }>(b"_45_5", b"455");
-    skip_iter_eq::<{ FORMAT }>(b"__45__5", b"_45_5");
+    skip_iter_eq::<{ FORMAT }>(b"__45__5", b"__45__5");
     skip_iter_eq::<{ FORMAT }>(b"_.45_5", b".455");
-    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"_.45_5");
+    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"__.45__5");
     skip_iter_eq::<{ FORMAT }>(b"4_5_", b"45_");
-    skip_iter_eq::<{ FORMAT }>(b"4__5__", b"4_5__");
+    skip_iter_eq::<{ FORMAT }>(b"4__5__", b"4__5__");
     skip_iter_eq::<{ FORMAT }>(b"4_5_.5", b"45_.5");
-    skip_iter_eq::<{ FORMAT }>(b"4__5__.5", b"4_5__.5");
+    skip_iter_eq::<{ FORMAT }>(b"4__5__.5", b"4__5__.5");
     skip_iter_eq::<{ FORMAT }>(b"_45_", b"45_");
-    skip_iter_eq::<{ FORMAT }>(b"__45__", b"_45__");
+    skip_iter_eq::<{ FORMAT }>(b"__45__", b"__45__");
     skip_iter_eq::<{ FORMAT }>(b"_45_.56", b"45_.56");
-    skip_iter_eq::<{ FORMAT }>(b"__45__.56", b"_45__.56");
+    skip_iter_eq::<{ FORMAT }>(b"__45__.56", b"__45__.56");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_", b"45_");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"_4_5__");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"__4__5__");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_.56", b"45_.56");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"_4_5__.56");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"__4__5__.56");
 }
 
 #[test]
@@ -195,29 +195,29 @@ fn test_skip_iter_it() {
     skip_iter_eq::<{ FORMAT }>(b"_45", b"_45");
     skip_iter_eq::<{ FORMAT }>(b"__45", b"__45");
     skip_iter_eq::<{ FORMAT }>(b"_.45", b".45");
-    skip_iter_eq::<{ FORMAT }>(b"__.45", b"_.45");
+    skip_iter_eq::<{ FORMAT }>(b"__.45", b"__.45");
     skip_iter_eq::<{ FORMAT }>(b"4_5", b"45");
-    skip_iter_eq::<{ FORMAT }>(b"4__5", b"4_5");
+    skip_iter_eq::<{ FORMAT }>(b"4__5", b"4__5");
     skip_iter_eq::<{ FORMAT }>(b"4_", b"4");
-    skip_iter_eq::<{ FORMAT }>(b"4__", b"4_");
+    skip_iter_eq::<{ FORMAT }>(b"4__", b"4__");
     skip_iter_eq::<{ FORMAT }>(b"4_.", b"4.");
-    skip_iter_eq::<{ FORMAT }>(b"4__.", b"4_.");
+    skip_iter_eq::<{ FORMAT }>(b"4__.", b"4__.");
     skip_iter_eq::<{ FORMAT }>(b"_45_5", b"_455");
-    skip_iter_eq::<{ FORMAT }>(b"__45__5", b"__45_5");
+    skip_iter_eq::<{ FORMAT }>(b"__45__5", b"__45__5");
     skip_iter_eq::<{ FORMAT }>(b"_.45_5", b".455");
-    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"_.45_5");
+    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"__.45__5");
     skip_iter_eq::<{ FORMAT }>(b"4_5_", b"45");
-    skip_iter_eq::<{ FORMAT }>(b"4__5__", b"4_5_");
+    skip_iter_eq::<{ FORMAT }>(b"4__5__", b"4__5__");
     skip_iter_eq::<{ FORMAT }>(b"4_5_.5", b"45.5");
-    skip_iter_eq::<{ FORMAT }>(b"4__5__.5", b"4_5_.5");
+    skip_iter_eq::<{ FORMAT }>(b"4__5__.5", b"4__5__.5");
     skip_iter_eq::<{ FORMAT }>(b"_45_", b"_45");
-    skip_iter_eq::<{ FORMAT }>(b"__45__", b"__45_");
+    skip_iter_eq::<{ FORMAT }>(b"__45__", b"__45__");
     skip_iter_eq::<{ FORMAT }>(b"_45_.56", b"_45.56");
-    skip_iter_eq::<{ FORMAT }>(b"__45__.56", b"__45_.56");
+    skip_iter_eq::<{ FORMAT }>(b"__45__.56", b"__45__.56");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_", b"_45");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"__4_5_");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"__4__5__");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_.56", b"_45.56");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"__4_5_.56");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"__4__5__.56");
 }
 
 #[test]
@@ -235,31 +235,31 @@ fn test_skip_iter_lt() {
     skip_iter_eq::<{ FORMAT }>(b"1e", b"1e");
     skip_iter_eq::<{ FORMAT }>(b"1", b"1");
     skip_iter_eq::<{ FORMAT }>(b"_45", b"45");
-    skip_iter_eq::<{ FORMAT }>(b"__45", b"_45");
+    skip_iter_eq::<{ FORMAT }>(b"__45", b"__45");
     skip_iter_eq::<{ FORMAT }>(b"_.45", b".45");
-    skip_iter_eq::<{ FORMAT }>(b"__.45", b"_.45");
+    skip_iter_eq::<{ FORMAT }>(b"__.45", b"__.45");
     skip_iter_eq::<{ FORMAT }>(b"4_5", b"4_5");
     skip_iter_eq::<{ FORMAT }>(b"4__5", b"4__5");
     skip_iter_eq::<{ FORMAT }>(b"4_", b"4");
-    skip_iter_eq::<{ FORMAT }>(b"4__", b"4_");
+    skip_iter_eq::<{ FORMAT }>(b"4__", b"4__");
     skip_iter_eq::<{ FORMAT }>(b"4_.", b"4.");
-    skip_iter_eq::<{ FORMAT }>(b"4__.", b"4_.");
+    skip_iter_eq::<{ FORMAT }>(b"4__.", b"4__.");
     skip_iter_eq::<{ FORMAT }>(b"_45_5", b"45_5");
-    skip_iter_eq::<{ FORMAT }>(b"__45__5", b"_45__5");
+    skip_iter_eq::<{ FORMAT }>(b"__45__5", b"__45__5");
     skip_iter_eq::<{ FORMAT }>(b"_.45_5", b".45_5");
-    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"_.45__5");
+    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"__.45__5");
     skip_iter_eq::<{ FORMAT }>(b"4_5_", b"4_5");
-    skip_iter_eq::<{ FORMAT }>(b"4__5__", b"4__5_");
+    skip_iter_eq::<{ FORMAT }>(b"4__5__", b"4__5__");
     skip_iter_eq::<{ FORMAT }>(b"4_5_.5", b"4_5.5");
-    skip_iter_eq::<{ FORMAT }>(b"4__5__.5", b"4__5_.5");
+    skip_iter_eq::<{ FORMAT }>(b"4__5__.5", b"4__5__.5");
     skip_iter_eq::<{ FORMAT }>(b"_45_", b"45");
-    skip_iter_eq::<{ FORMAT }>(b"__45__", b"_45_");
+    skip_iter_eq::<{ FORMAT }>(b"__45__", b"__45__");
     skip_iter_eq::<{ FORMAT }>(b"_45_.56", b"45.56");
-    skip_iter_eq::<{ FORMAT }>(b"__45__.56", b"_45_.56");
+    skip_iter_eq::<{ FORMAT }>(b"__45__.56", b"__45__.56");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_", b"4_5");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"_4__5_");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"__4__5__");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_.56", b"4_5.56");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"_4__5_.56");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"__4__5__.56");
 }
 
 #[test]
@@ -278,31 +278,31 @@ fn test_skip_iter_ilt() {
     skip_iter_eq::<{ FORMAT }>(b"1e", b"1e");
     skip_iter_eq::<{ FORMAT }>(b"1", b"1");
     skip_iter_eq::<{ FORMAT }>(b"_45", b"45");
-    skip_iter_eq::<{ FORMAT }>(b"__45", b"_45");
+    skip_iter_eq::<{ FORMAT }>(b"__45", b"__45");
     skip_iter_eq::<{ FORMAT }>(b"_.45", b".45");
-    skip_iter_eq::<{ FORMAT }>(b"__.45", b"_.45");
+    skip_iter_eq::<{ FORMAT }>(b"__.45", b"__.45");
     skip_iter_eq::<{ FORMAT }>(b"4_5", b"45");
-    skip_iter_eq::<{ FORMAT }>(b"4__5", b"4_5");
+    skip_iter_eq::<{ FORMAT }>(b"4__5", b"4__5");
     skip_iter_eq::<{ FORMAT }>(b"4_", b"4");
-    skip_iter_eq::<{ FORMAT }>(b"4__", b"4_");
+    skip_iter_eq::<{ FORMAT }>(b"4__", b"4__");
     skip_iter_eq::<{ FORMAT }>(b"4_.", b"4.");
-    skip_iter_eq::<{ FORMAT }>(b"4__.", b"4_.");
+    skip_iter_eq::<{ FORMAT }>(b"4__.", b"4__.");
     skip_iter_eq::<{ FORMAT }>(b"_45_5", b"455");
-    skip_iter_eq::<{ FORMAT }>(b"__45__5", b"_45_5");
+    skip_iter_eq::<{ FORMAT }>(b"__45__5", b"__45__5");
     skip_iter_eq::<{ FORMAT }>(b"_.45_5", b".455");
-    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"_.45_5");
+    skip_iter_eq::<{ FORMAT }>(b"__.45__5", b"__.45__5");
     skip_iter_eq::<{ FORMAT }>(b"4_5_", b"45");
-    skip_iter_eq::<{ FORMAT }>(b"4__5__", b"4_5_");
+    skip_iter_eq::<{ FORMAT }>(b"4__5__", b"4__5__");
     skip_iter_eq::<{ FORMAT }>(b"4_5_.5", b"45.5");
-    skip_iter_eq::<{ FORMAT }>(b"4__5__.5", b"4_5_.5");
+    skip_iter_eq::<{ FORMAT }>(b"4__5__.5", b"4__5__.5");
     skip_iter_eq::<{ FORMAT }>(b"_45_", b"45");
-    skip_iter_eq::<{ FORMAT }>(b"__45__", b"_45_");
+    skip_iter_eq::<{ FORMAT }>(b"__45__", b"__45__");
     skip_iter_eq::<{ FORMAT }>(b"_45_.56", b"45.56");
-    skip_iter_eq::<{ FORMAT }>(b"__45__.56", b"_45_.56");
+    skip_iter_eq::<{ FORMAT }>(b"__45__.56", b"__45__.56");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_", b"45");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"_4_5_");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__", b"__4__5__");
     skip_iter_eq::<{ FORMAT }>(b"_4_5_.56", b"45.56");
-    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"_4_5_.56");
+    skip_iter_eq::<{ FORMAT }>(b"__4__5__.56", b"__4__5__.56");
 }
 
 #[test]

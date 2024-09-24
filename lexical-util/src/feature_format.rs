@@ -947,108 +947,188 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     // DIGIT SEPARATOR FLAGS & MASKS
 
     // If digit separators are allowed between integer digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     pub const INTEGER_INTERNAL_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, INTEGER_INTERNAL_DIGIT_SEPARATOR);
 
     /// Get if digit separators are allowed between integer digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     #[inline(always)]
     pub const fn integer_internal_digit_separator(&self) -> bool {
         Self::INTEGER_INTERNAL_DIGIT_SEPARATOR
     }
 
     /// If digit separators are allowed between fraction digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     pub const FRACTION_INTERNAL_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, FRACTION_INTERNAL_DIGIT_SEPARATOR);
 
     /// Get if digit separators are allowed between fraction digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     #[inline(always)]
     pub const fn fraction_internal_digit_separator(&self) -> bool {
         Self::FRACTION_INTERNAL_DIGIT_SEPARATOR
     }
 
     /// If digit separators are allowed between exponent digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     pub const EXPONENT_INTERNAL_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, EXPONENT_INTERNAL_DIGIT_SEPARATOR);
 
     /// Get if digit separators are allowed between exponent digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     #[inline(always)]
     pub const fn exponent_internal_digit_separator(&self) -> bool {
         Self::EXPONENT_INTERNAL_DIGIT_SEPARATOR
     }
 
     /// If digit separators are allowed between digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     pub const INTERNAL_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, INTERNAL_DIGIT_SEPARATOR);
 
     /// Get if digit separators are allowed between digits.
+    ///
+    /// This will not consider an input of only the digit separator
+    /// to be a valid separator: the digit separator must be surrounded by
+    /// digits.
     #[inline(always)]
     pub const fn internal_digit_separator(&self) -> bool {
         Self::INTERNAL_DIGIT_SEPARATOR
     }
 
     /// If a digit separator is allowed before any integer digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     pub const INTEGER_LEADING_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, INTEGER_LEADING_DIGIT_SEPARATOR);
 
     /// Get if a digit separator is allowed before any integer digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn integer_leading_digit_separator(&self) -> bool {
         Self::INTEGER_LEADING_DIGIT_SEPARATOR
     }
 
     /// If a digit separator is allowed before any integer digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     pub const FRACTION_LEADING_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, FRACTION_LEADING_DIGIT_SEPARATOR);
 
     /// Get if a digit separator is allowed before any fraction digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn fraction_leading_digit_separator(&self) -> bool {
         Self::FRACTION_LEADING_DIGIT_SEPARATOR
     }
 
     /// If a digit separator is allowed before any exponent digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     pub const EXPONENT_LEADING_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, EXPONENT_LEADING_DIGIT_SEPARATOR);
 
     /// Get if a digit separator is allowed before any exponent digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn exponent_leading_digit_separator(&self) -> bool {
         Self::EXPONENT_LEADING_DIGIT_SEPARATOR
     }
 
     /// If a digit separator is allowed before any digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     pub const LEADING_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, LEADING_DIGIT_SEPARATOR);
 
     /// Get if a digit separator is allowed before any digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn leading_digit_separator(&self) -> bool {
         Self::LEADING_DIGIT_SEPARATOR
     }
 
     /// If a digit separator is allowed after any integer digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     pub const INTEGER_TRAILING_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, INTEGER_TRAILING_DIGIT_SEPARATOR);
 
     /// Get if a digit separator is allowed after any integer digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn integer_trailing_digit_separator(&self) -> bool {
         Self::INTEGER_TRAILING_DIGIT_SEPARATOR
     }
 
     /// If a digit separator is allowed after any fraction digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     pub const FRACTION_TRAILING_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, FRACTION_TRAILING_DIGIT_SEPARATOR);
 
     /// Get if a digit separator is allowed after any fraction digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn fraction_trailing_digit_separator(&self) -> bool {
         Self::FRACTION_TRAILING_DIGIT_SEPARATOR
     }
 
     /// If a digit separator is allowed after any exponent digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     pub const EXPONENT_TRAILING_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, EXPONENT_TRAILING_DIGIT_SEPARATOR);
 
     /// Get if a digit separator is allowed after any exponent digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn exponent_trailing_digit_separator(&self) -> bool {
         Self::EXPONENT_TRAILING_DIGIT_SEPARATOR
     }
 
     /// If a digit separator is allowed after any digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     pub const TRAILING_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, TRAILING_DIGIT_SEPARATOR);
 
     /// Get if a digit separator is allowed after any digits.
+    ///
+    /// This will consider an input of only the digit separator
+    /// to be a identical to empty input.
     #[inline(always)]
     pub const fn trailing_digit_separator(&self) -> bool {
         Self::TRAILING_DIGIT_SEPARATOR
@@ -1126,6 +1206,12 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
         Self::BASE_PREFIX
     }
 
+    /// Get if the format has a base suffix.
+    #[inline(always)]
+    pub const fn has_base_prefix(&self) -> bool {
+        self.base_prefix() != 0
+    }
+
     /// The base suffix character in the packed struct.
     pub const BASE_SUFFIX: u8 = flags::base_suffix(FORMAT);
 
@@ -1138,6 +1224,12 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     #[inline(always)]
     pub const fn base_suffix(&self) -> u8 {
         Self::BASE_SUFFIX
+    }
+
+    /// Get if the format has a base suffix.
+    #[inline(always)]
+    pub const fn has_base_suffix(&self) -> bool {
+        self.base_suffix() != 0
     }
 
     // RADIX

@@ -48,117 +48,806 @@ use crate::format::NumberFormat;
 use crate::format_flags as flags;
 use crate::iterator::{DigitsIter, Iter};
 
-// PEEK
-// ----
+// IS_ILTC
+// -------
 
-/// Determine if the digit separator is internal.
+// NOTE:  The compiler optimizes all these methods pretty well: it's as
+// efficient or almost as efficient as optimized assembly without unsafe
+// code, especially since we have to do bounds checking
+// before and the compiler can determine all cases correctly.
+
+/// Helpers to get the next or previous elements for checks.
 ///
-/// Preconditions: Assumes `slc[index]` is a digit separator.
-/// The compiler optimizes this pretty well: it's almost as efficient as
-/// optimized assembly without bounds checking.
+/// This has the non-consecutive iterator variants as well
+/// as the consecutive ones. The consecutive ones will iteratively
+/// process all digits.
+macro_rules! indexing {
+    (@next $self:ident, $index:expr) => {
+        $index.wrapping_add(1)
+    };
+
+    (@nextc $self:ident, $index:expr) => {{
+        let mut index = $index;
+        let slc = $self.byte.slc;
+        while slc.get(index.wrapping_add(1)).map_or(false, |&x| $self.is_digit_separator(x)) {
+            index = index.wrapping_add(1);
+        }
+        index.wrapping_add(1)
+    }};
+
+    (@prev $self:ident, $index:expr) => {
+        $index.wrapping_sub(1)
+    };
+
+    (@prevc $self:ident, $index:expr) => {{
+        let mut index = $index;
+        let slc = $self.byte.slc;
+        while slc.get(index.wrapping_sub(1)).map_or(false, |&x| $self.is_digit_separator(x)) {
+            index = index.wrapping_sub(1);
+        }
+        index.wrapping_sub(1)
+    }};
+}
+
+/// Determine if a single digit separator is internal.
+///
+/// # Examples
+///
+/// - `1__1_23`- invalid
+/// - `1_1__23`- invalid
+/// - `1_1_23`- valid
+/// - `11_x23`- invalid
+/// - `_1123`- invalid
+/// - `+_1123`- invalid
+/// - `_+1123`- invalid
+/// - `1123_`- invalid
+/// - `1123_.`- invalid
+/// - `112_3.`- valid
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
 macro_rules! is_i {
-    ($self:ident) => {
-        !is_l!($self) && !is_t!($self)
+    (@first $self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that:
+        // - `index - 1` is a digit
+        // - `index + 1` is a digit
+
+        let prev = indexing!(@prev $self, $index);
+        let next = indexing!(@next $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(prev).map_or(false, |&x| $self.is_digit(x)) &&
+            slc.get(next).map_or(false, |&x| $self.is_digit(x))
+    }};
+
+    (@first $self:ident) => {
+        is_i!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {{
+        // NOTE: We must have validated `prev`, so this just checks `next`.
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is a digit
+
+        let next = indexing!(@next $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(next).map_or(false, |&x| $self.is_digit(x))
+    }};
+
+    (@internal $self:ident) => {
+        is_i!(@internal $self, $self.byte.index)
     };
 }
 
-/// Determine if the digit separator is leading.
+/// Determine if consecutive digit separators are internal.
 ///
-/// Preconditions: Assumes `slc[index]` is a digit separator.
-/// The compiler optimizes this pretty well: it's almost as efficient as
-/// optimized assembly without bounds checking.
-macro_rules! is_l {
-    ($self:ident) => {{
-        // Consume any digit separators before the current one.
-        let mut index = $self.byte.index;
-        while index > 0
-            && $self.byte.slc.get(index - 1).map_or(false, |&x| $self.is_digit_separator(x))
-        {
-            index -= 1;
-        }
+/// # Examples
+///
+/// - `1__1_23`- valid
+/// - `1_1__23`- valid
+/// - `1_1_23`- valid
+/// - `11_x23`- invalid
+/// - `_1123`- invalid
+/// - `+_1123`- invalid
+/// - `_+1123`- invalid
+/// - `1123_`- invalid
+/// - `1123_.`- invalid
+/// - `112_3.`- valid
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
+macro_rules! is_ic {
+    (@first $self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that:
+        // - `index - 1` is a digit after consuming digit separators
+        // - `index + 1` is a digit after consuming digit separators
 
-        // True if there are no items before the digit separator, or character
-        // before the digit separators is not a digit.
-        index == 0 || !$self.byte.slc.get(index - 1).map_or(false, |&x| $self.is_digit(x))
+        let prev = indexing!(@prevc $self, $index);
+        let next = indexing!(@nextc $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(prev).map_or(false, |&x| $self.is_digit(x)) &&
+            slc.get(next).map_or(false, |&x| $self.is_digit(x))
     }};
+
+    (@first $self:ident) => {
+        is_ic!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {{
+        // NOTE: We must have validated `prev`, so this just checks `next`.
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is a digit after consuming digit separators
+
+        let next = indexing!(@nextc $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(next).map_or(false, |&x| $self.is_digit(x))
+    }};
+
+    (@internal $self:ident) => {
+        is_ic!(@internal $self, $self.byte.index)
+    };
 }
 
-/// Determine if the digit separator is trailing.
+/// Determine if a single digit separator is leading.
 ///
-/// Preconditions: Assumes `slc[index]` is a digit separator.
-/// The compiler optimizes this pretty well: it's almost as efficient as
-/// optimized assembly without bounds checking.
-macro_rules! is_t {
-    ($self:ident) => {{
-        // Consume any digit separators after the current one.
-        let mut index = $self.byte.index;
-        while index < $self.byte.slc.len()
-            && $self.byte.slc.get(index + 1).map_or(false, |&x| $self.is_digit_separator(x))
-        {
-            index += 1;
-        }
+/// # Examples
+///
+/// - `__123`- invalid
+/// - `+__123`- invalid
+/// - `._123`- valid
+/// - `_+123`- valid
+/// - `_123`- valid
+/// - `+_123`- valid
+///
+/// Having a subsequent sign character is fine since it might
+/// be part of a partial parser.
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
+macro_rules! is_l {
+    (@first $self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that:
+        // - `index - 1` is not a digit
+        // - `index - 1` is not a digit separator
+        // - `index + 1` is not a digit separator
 
-        index == $self.byte.slc.len()
-            || !$self.byte.slc.get(index + 1).map_or(false, |&x| $self.is_digit(x))
+        let prev = indexing!(@prev $self, $index);
+        let next = indexing!(@next $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(prev).map_or(true, |&x| !$self.is_digit(x) && !$self.is_digit_separator(x)) &&
+            slc.get(next).map_or(true, |&x| !$self.is_digit_separator(x))
     }};
+
+    (@first $self:ident) => {
+        is_l!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {{
+        // NOTE: Previous must have been a digit so this cannot be valid.
+        false
+    }};
+
+    (@internal $self:ident) => {
+        is_l!(@internal $self, $self.byte.index)
+    };
+}
+
+/// Determine if one or more digit separators are leading.
+///
+/// # Examples
+///
+/// - `__123`- valid
+/// - `+__123`- valid
+/// - `+__+123`- valid
+/// - `+__.123`- valid
+/// - `._123`- valid
+/// - `_+123`- invalid
+/// - `_123`- valid
+/// - `+_123`- valid
+///
+/// Having a subsequent sign character is fine since it might
+/// be part of a partial parser.
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
+macro_rules! is_lc {
+    (@first $self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that:
+        // - `index - 1` is not a digit after removing digit separators
+
+        let prev = indexing!(@prevc $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(prev).map_or(true, |&x| !$self.is_digit(x))
+    }};
+
+    (@first $self:ident) => {
+        is_lc!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {{
+        // NOTE: Previous must have been a digit so this cannot be valid.
+        false
+    }};
+
+    (@internal $self:ident) => {
+        is_lc!(@internal $self, $self.byte.index)
+    };
+}
+
+/// Determine if a single digit separator is trailing.
+///
+/// # Examples
+///
+/// - `123_`- valid
+/// - `123__`- invalid
+/// - `123_.`- valid
+/// - `123__.`- invalid
+/// - `123_1`- invalid
+/// - `123__1`- invalid
+/// - _: valid
+/// - _+: valid
+/// - 1_+: valid
+///
+/// Having a subsequent sign character is fine since it might
+/// be part of a partial parser.
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
+macro_rules! is_t {
+    (@first $self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is not a digit
+        // - `index + 1` is not a digit separator
+        // - `index - 1` is not a digit separator
+
+        let prev = indexing!(@prev $self, $index);
+        let next = indexing!(@next $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(next).map_or(true, |&x| !$self.is_digit(x) && !$self.is_digit_separator(x)) &&
+            slc.get(prev).map_or(true, |&x| !$self.is_digit_separator(x))
+    }};
+
+    (@first $self:ident) => {
+        is_t!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {{
+        // NOTE: We must have validated `prev`, so this just checks `next`.
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is not a digit
+        // - `index + 1` is not a digit separator
+        let next = indexing!(@next $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(next).map_or(true, |&x| !$self.is_digit(x) && !$self.is_digit_separator(x))
+    }};
+
+    (@internal $self:ident) => {
+        is_t!(@internal $self, $self.byte.index)
+    };
+}
+
+/// Determine if one or more digit separators are trailing.
+///
+/// # Examples
+///
+/// - `123_`- valid
+/// - `123__`- valid
+/// - `123_.`- valid
+/// - `123__.`- valid
+/// - `123_1`- invalid
+/// - `123__1`- invalid
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
+macro_rules! is_tc {
+    (@first $self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is not a digit
+
+        let next = indexing!(@nextc $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(next).map_or(true, |&x| !$self.is_digit(x))
+    }};
+
+    (@first $self:ident) => {
+        is_tc!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {
+        // NOTE: This is already optimized for the first case.
+        is_tc!(@first $self, $index)
+    };
+
+    (@internal $self:ident) => {
+        is_tc!(@internal $self, $self.byte.index)
+    };
 }
 
 /// Determine if the digit separator is leading or internal.
 ///
-/// Preconditions: Assumes `slc[index]` is a digit separator.
+/// # Examples
+///
+/// - `__123`- invalid
+/// - `+__123`- invalid
+/// - `._123`- valid
+/// - `_+123`- valid
+/// - `_123`- valid
+/// - `+_123`- valid
+/// - `+1_23`- valid
+/// - `+1__23`- invalid
+/// - `+123_`- invalid
+/// - `+123__`- invalid
+/// - _: valid
+/// - _+: valid
+/// - 1_+: invalid
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
 macro_rules! is_il {
-    ($self:ident) => {
-        is_l!($self) || !is_t!($self)
+    (@first $self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is a digit
+        // - `index + 1` is not a digit separator
+        // - `index - 1` is not a digit separator
+        //
+        // # Logic
+        //
+        // If the previous character is a digit, then the
+        // next character must be a digit. If the previous
+        // character is not a digit, then the subsequent character can
+        // be anything besides a digit separator
+
+        let prev = indexing!(@prev $self, $index);
+        let next = indexing!(@next $self, $index);
+        let slc = $self.byte.slc;
+
+        if slc.get(prev).map_or(false, |&x| $self.is_digit(x)) {
+            slc.get(next).map_or(false, |&x| $self.is_digit(x))
+        } else {
+            slc.get(prev).map_or(true, |&x| !$self.is_digit_separator(x))
+        }
+    }};
+
+    (@first $self:ident) => {
+        is_il!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {{
+        // NOTE: We must have validated `prev`, so this just checks `next`.
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is a digit
+
+        let next = indexing!(@next $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(next).map_or(false, |&x| $self.is_digit(x))
+    }};
+
+    (@internal $self:ident) => {
+        is_il!(@internal $self, $self.byte.index)
+    };
+}
+
+/// Determine if consecutive digit separators are leading or internal.
+///
+/// # Examples
+///
+/// - `__123`- valid
+/// - `+__123`- valid
+/// - `._123`- valid
+/// - `_+123`- valid
+/// - `_123`- valid
+/// - `+_123`- valid
+/// - `+1_23`- valid
+/// - `+1__23`- valid
+/// - `+123_`- invalid
+/// - `+123__`- invalid
+/// - _: valid
+/// - _+: valid
+/// - 1_+: invalid
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
+macro_rules! is_ilc {
+    (@first $self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is a digit after consuming digit separators
+        //
+        // # Logic
+        //
+        // We also need to consider the case where it's empty,
+        // that is, the previous one wasn't a digit if we don't
+        // have a digit.
+
+        let prev = indexing!(@prevc $self, $index);
+        let next = indexing!(@nextc $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(next).map_or(false, |&x| $self.is_digit(x)) ||
+            slc.get(prev).map_or(true, |&x| !$self.is_digit(x))
+    }};
+
+    (@first $self:ident) => {
+        is_ilc!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is a digit after consuming digit separators
+
+        let next = indexing!(@nextc $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(next).map_or(true, |&x| $self.is_digit(x))
+    }};
+
+    (@internal $self:ident) => {
+        is_ilc!(@internal $self, $self.byte.index)
     };
 }
 
 /// Determine if the digit separator is internal or trailing.
 ///
-/// Preconditions: Assumes `slc[index]` is a digit separator.
+/// # Examples
+///
+/// - `__123`- valid
+/// - `+__123`- valid
+/// - `._123`- valid
+/// - `_+123`- valid
+/// - `_123`- valid
+/// - `+_123`- valid
+/// - `+1_23`- valid
+/// - `+1__23`- valid
+/// - `+123_`- invalid
+/// - `+123__`- invalid
+/// - _: valid
+/// - _+: valid
+/// - 1_+: invalid
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
 macro_rules! is_it {
-    ($self:ident) => {
-        is_t!($self) || !is_l!($self)
+    (@first$self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that:
+        // - `index - 1` is a digit
+        // - `index - 1` is not a digit separator
+        // - `index + 1` is not a digit separator
+        //
+        // # Logic
+        //
+        // If the previous character is not a digit, there cannot
+        // be a digit for a following character. If the previous
+        // character is a digit, then the following one must be
+        // a digit as well.
+
+        let prev = indexing!(@prev $self, $index);
+        let next = indexing!(@next $self, $index);
+        let slc = $self.byte.slc;
+        if slc.get(prev).map_or(false, |&x| $self.is_digit(x)) {
+            // Have a digit, any character besides a digit separator is valid
+            slc.get(next).map_or(true, |&x| !$self.is_digit_separator(x))
+        } else {
+            // Not a digit, so we cannot have a digit or a digit separator
+            slc.get(next).map_or(true, |&x| !$self.is_digit(x) && !$self.is_digit_separator(x))
+        }
+    }};
+
+    (@first$self:ident) => {
+        is_it!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {{
+        // NOTE: We must have validated `prev`, so this just checks `next`.
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is not a digit separator
+        // Since we've previously had a digit, this is guaranteed to
+        // be internal or trailing.
+
+        let next = indexing!(@next $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(next).map_or(true, |&x| !$self.is_digit_separator(x))
+    }};
+
+    (@internal $self:ident) => {
+        is_it!(@internal $self, $self.byte.index)
+    };
+}
+
+/// Determine if consecutive digit separators are internal or trailing.
+///
+/// # Examples
+///
+/// - `__123`- invalid
+/// - `+__123`- invalid
+/// - `._123`- invalid
+/// - `_+123`- invalid
+/// - `_123`- invalid
+/// - `+_123`- invalid
+/// - `+1_23`- valid
+/// - `+1__23`- valid
+/// - `+123_`- valid
+/// - `+123__`- valid
+/// - _: valid
+/// - _+: valid
+/// - 1_+: valid
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
+macro_rules! is_itc {
+    (@first $self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that:
+        // - `index - 1` is not a digit after consuming digit separators
+        //
+        // # Logic
+        //
+        // We also need to consider the case where it's empty,
+        // that is, the previous one wasn't a digit if we don't
+        // have a digit.
+
+        let prev = indexing!(@prevc $self, $index);
+        let next = indexing!(@nextc $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(prev).map_or(false, |&x| !$self.is_digit(x)) ||
+            slc.get(next).map_or(true, |&x| !$self.is_digit(x))
+    }};
+
+    (@first $self:ident) => {
+        is_itc!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {
+        // NOTE: Previous must have been a digit so this must be valid.
+        true
+    };
+
+    (@internal $self:ident) => {
+        is_itc!(@internal $self, $self.byte.index)
     };
 }
 
 /// Determine if the digit separator is leading or trailing.
 ///
-/// Preconditions: Assumes `slc[index]` is a digit separator.
+/// # Examples
+///
+/// - `__123`- invalid
+/// - `+__123`- invalid
+/// - `._123`- valid
+/// - `_+123`- valid
+/// - `_123`- valid
+/// - `+_123`- valid
+/// - `+1_23`- invalid
+/// - `+1__23`- invalid
+/// - `+123_`- valid
+/// - `+123__`- invalid
+/// - _: valid
+/// - _+: valid
+/// - 1_+: valid
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
 macro_rules! is_lt {
-    ($self:ident) => {
-        is_l!($self) || is_t!($self)
+    (@first $self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that:
+        // - not (`index - 1` is a digit and `index + 1` is a digit)
+        // - `index - 1` is not a digit separator
+        // - `index + 1` is not a digit separator
+
+        let prev = indexing!(@prev $self, $index);
+        let next = indexing!(@next $self, $index);
+        let slc = $self.byte.slc;
+        let prev_value = slc.get(prev);
+        let next_value = slc.get(next);
+
+        let is_prev_sep = prev_value.map_or(false, |&x| $self.is_digit_separator(x));
+        let is_prev_dig = prev_value.map_or(false, |&x| $self.is_digit(x));
+        let is_next_sep = next_value.map_or(false, |&x| $self.is_digit_separator(x));
+        let is_next_dig = next_value.map_or(false, |&x| $self.is_digit(x));
+
+        !is_prev_sep && !is_next_sep && !(is_prev_dig && is_next_dig)
+    }};
+
+    (@first $self:ident) => {
+        is_lt!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {{
+        // NOTE: We must have validated `prev`, so this just checks `next`.
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is not a digit
+        // - `index + 1` is not a digit separator
+
+        let next = indexing!(@next $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(next).map_or(true, |&x| !$self.is_digit(x) && !$self.is_digit_separator(x))
+    }};
+
+    (@internal $self:ident) => {
+        is_lt!(@internal $self, $self.byte.index)
     };
 }
 
-/// Determine if the digit separator is internal, leading, or trailing.
-macro_rules! is_ilt {
-    ($self:ident) => {
-        true
+/// Determine if consecutive digit separators are leading or trailing.
+///
+/// # Examples
+///
+/// - `__123`- valid
+/// - `+__123`- valid
+/// - `._123`- valid
+/// - `_+123`- valid
+/// - `_123`- valid
+/// - `+_123`- valid
+/// - `+1_23`- invalid
+/// - `+1__23`- invalid
+/// - `+123_`- valid
+/// - `+123__`- valid
+/// - _: valid
+/// - _+: valid
+/// - 1_+: valid
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
+macro_rules! is_ltc {
+    (@first $self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that (after consuming separators):
+        // - not (`index - 1` is a digit and `index + 1` is a digit)
+
+        let prev = indexing!(@prevc $self, $index);
+        let next = indexing!(@nextc $self, $index);
+        let slc = $self.byte.slc;
+        !(slc.get(prev).map_or(false, |&x| $self.is_digit(x)) && slc.get(next).map_or(false, |&x| $self.is_digit(x)))
+    }};
+
+    (@first $self:ident) => {
+        is_ltc!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {{
+        // NOTE: We must have validated `prev`, so this just checks `next`.
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is not a digit
+
+        let next = indexing!(@nextc $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(next).map_or(true, |&x| !$self.is_digit(x))
+    }};
+
+    (@internal $self:ident) => {
+        is_ltc!(@internal $self, $self.byte.index)
     };
 }
+
+/// Determine if a single digit separator is internal, leading, or trailing.
+///
+/// # Examples
+///
+/// - `__123`- invalid
+/// - `+__123`- invalid
+/// - `._123`- valid
+/// - `_+123`- valid
+/// - `_123`- valid
+/// - `+_123`- valid
+/// - `+1_23`- valid
+/// - `+1__23`- invalid
+/// - `+123_`- valid
+/// - `+123__`- invalid
+/// - _: valid
+/// - _+: valid
+/// - 1_+: valid
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
+macro_rules! is_ilt {
+    (@first $self:ident, $index:expr) => {{
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is not a digit separator
+        // - `index - 1` is not a digit separator
+
+        let prev = indexing!(@prev $self, $index);
+        let next = indexing!(@next $self, $index);
+        let slc = $self.byte.slc;
+        !slc.get(next).map_or(false, |&x| $self.is_digit_separator(x)) &&
+            !slc.get(prev).map_or(false, |&x| $self.is_digit_separator(x))
+    }};
+
+    (@first $self:ident) => {
+        is_ilt!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {{
+        // NOTE: We must have validated `prev`, so this just checks `next`.
+        // NOTE: The conditions here then are that:
+        // - `index + 1` is not a digit separator
+
+        let next = indexing!(@next $self, $index);
+        let slc = $self.byte.slc;
+        slc.get(next).map_or(true, |&x| !$self.is_digit_separator(x))
+    }};
+
+    (@internal $self:ident) => {
+        is_ilt!(@internal $self, $self.byte.index)
+    };
+}
+
+/// Determine if consecutive digit separators are internal, leading, or
+/// trailing.
+///
+/// This is always true.
+///
+/// # Examples
+///
+/// - `__123`- valid
+/// - `+__123`- valid
+/// - `._123`- valid
+/// - `_+123`- valid
+/// - `_123`- valid
+/// - `+_123`- valid
+/// - `+1_23`- valid
+/// - `+1__23`- valid
+/// - `+123_`- valid
+/// - `+123__`- valid
+/// - _: valid
+/// - _+: valid
+/// - 1_+: valid
+///
+/// # Preconditions
+///
+/// Assumes `slc[index]` is a digit separator.
+macro_rules! is_iltc {
+    (@first $self:ident, $index:expr) => {
+        true
+    };
+
+    (@first $self:ident) => {
+        is_iltc!(@first $self, $self.byte.index)
+    };
+
+    (@internal $self:ident, $index:expr) => {
+        true
+    };
+
+    (@internal $self:ident) => {
+        is_iltc!(@internal $self, $self.byte.index)
+    };
+}
+
+// PEEK
+// ----
 
 /// Consumes 1 or more digit separators.
 /// Peeks the next token that's not a digit separator.
 macro_rules! peek_1 {
     ($self:ident, $is_skip:ident) => {{
         // This will consume a single, non-consecutive digit separators.
-        let mut index = $self.cursor();
+        let index = $self.cursor();
         let buffer = $self.get_buffer();
         let value = buffer.get(index)?;
         let is_digit_separator = $self.is_digit_separator(*value);
-        if is_digit_separator && $is_skip!($self) {
-            // Have a skippable digit separator: keep incrementing until we find
-            // a non-digit separator character. Don't need any complex checks
-            // here, since we've already done them above.
-            index += 1;
-            while index < buffer.len()
-                && buffer.get(index).map_or(false, |&x| $self.is_digit_separator(x))
-            {
-                index += 1;
+        // NOTE: We can do some pretty major optimizations for internal values,
+        // since we can check the location and don't need to check previous values.
+        if is_digit_separator {
+            // NOTE: This cannot iteratively search for the next value,
+            // or else the consecutive digit separator has no effect (#96).
+            let is_skip = if $self.current_count() == 0 {
+                $is_skip!(@first $self)
+            } else {
+                $is_skip!(@internal $self)
+            };
+            if is_skip {
+                // SAFETY: Safe since `index < buffer.len()`, so `index + 1 <= buffer.len()``
+                unsafe { $self.set_cursor(index + 1) };
+                buffer.get(index + 1)
+            } else {
+                Some(value)
             }
-            // SAFETY: Safe since `index < buffer.len()`.
-            unsafe { $self.set_cursor(index) };
-            buffer.get(index)
         } else {
             // Have 1 of 2 conditions:
             //  1. A non-digit separator character.
@@ -177,19 +866,30 @@ macro_rules! peek_n {
         let buffer = $self.get_buffer();
         let value = buffer.get(index)?;
         let is_digit_separator = $self.is_digit_separator(*value);
-        if is_digit_separator && $is_skip!($self) {
-            // Have a skippable digit separator: keep incrementing until we find
-            // a non-digit separator character. Don't need any complex checks
-            // here, since we've already done them above.
-            index += 1;
-            while index < buffer.len()
-                && buffer.get(index).map_or(false, |&x| $self.is_digit_separator(x))
-            {
+        // NOTE: We can do some pretty major optimizations for internal values,
+        // since we can check the location and don't need to check previous values.
+        if is_digit_separator {
+            let is_skip = if $self.current_count() == 0 {
+                $is_skip!(@first $self)
+            } else {
+                $is_skip!(@internal $self)
+            };
+            if is_skip {
+                // Have a skippable digit separator: keep incrementing until we find
+                // a non-digit separator character. Don't need any complex checks
+                // here, since we've already done them above.
                 index += 1;
+                while index < buffer.len()
+                    && buffer.get(index).map_or(false, |&x| $self.is_digit_separator(x))
+                {
+                    index += 1;
+                }
+                // SAFETY: Safe since `index <= buffer.len()`.
+                unsafe { $self.set_cursor(index) };
+                buffer.get(index)
+            } else {
+                Some(value)
             }
-            // SAFETY: Safe since `index < buffer.len()`.
-            unsafe { $self.set_cursor(index) };
-            buffer.get(index)
         } else {
             // Have 1 of 2 conditions:
             //  1. A non-digit separator character.
@@ -261,21 +961,21 @@ macro_rules! peek_ilt {
 /// Consumes 1 or more leading digit separators and peeks the next value.
 macro_rules! peek_lc {
     ($self:ident) => {
-        peek_n!($self, is_l)
+        peek_n!($self, is_lc)
     };
 }
 
 /// Consumes 1 or more internal digit separators and peeks the next value.
 macro_rules! peek_ic {
     ($self:ident) => {
-        peek_n!($self, is_i)
+        peek_n!($self, is_ic)
     };
 }
 
 /// Consumes 1 or more trailing digit separators and peeks the next value.
 macro_rules! peek_tc {
     ($self:ident) => {
-        peek_n!($self, is_t)
+        peek_n!($self, is_tc)
     };
 }
 
@@ -283,7 +983,7 @@ macro_rules! peek_tc {
 /// value.
 macro_rules! peek_ilc {
     ($self:ident) => {
-        peek_n!($self, is_il)
+        peek_n!($self, is_ilc)
     };
 }
 
@@ -291,7 +991,7 @@ macro_rules! peek_ilc {
 /// value.
 macro_rules! peek_itc {
     ($self:ident) => {
-        peek_n!($self, is_it)
+        peek_n!($self, is_itc)
     };
 }
 
@@ -299,21 +999,15 @@ macro_rules! peek_itc {
 /// value.
 macro_rules! peek_ltc {
     ($self:ident) => {
-        peek_n!($self, is_lt)
+        peek_n!($self, is_ltc)
     };
 }
 
 /// Consumes 1 or more digit separators and peeks the next value.
 macro_rules! peek_iltc {
-    ($self:ident) => {{
-        loop {
-            let value = $self.byte.slc.get($self.byte.index)?;
-            if !$self.is_digit_separator(*value) {
-                return Some(value);
-            }
-            $self.byte.index += 1;
-        }
-    }};
+    ($self:ident) => {
+        peek_n!($self, is_iltc)
+    };
 }
 
 // AS DIGITS
@@ -354,9 +1048,15 @@ pub struct Bytes<'a, const FORMAT: u128> {
     slc: &'a [u8],
     /// Current index of the iterator in the slice.
     index: usize,
-    /// The current count of values returned by the iterator.
+    /// The current count of integer digits returned by the iterator.
     /// This is only used if the iterator is not contiguous.
-    count: usize,
+    integer_count: usize,
+    /// The current count of fraction digits returned by the iterator.
+    /// This is only used if the iterator is not contiguous.
+    fraction_count: usize,
+    /// The current count of exponent digits returned by the iterator.
+    /// This is only used if the iterator is not contiguous.
+    exponent_count: usize,
 }
 
 impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
@@ -366,7 +1066,9 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         Self {
             slc,
             index: 0,
-            count: 0,
+            integer_count: 0,
+            fraction_count: 0,
+            exponent_count: 0,
         }
     }
 
@@ -386,7 +1088,9 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         Self {
             slc,
             index,
-            count: 0,
+            integer_count: 0,
+            fraction_count: 0,
+            exponent_count: 0,
         }
     }
 
@@ -447,11 +1151,6 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
             );
         }
         self.index += count;
-        if !is_contiguous {
-            // Only increment the count if it's not contiguous, otherwise,
-            // this is an unnecessary performance penalty.
-            self.count += count;
-        }
     }
 
     /// Internal implementation that handles if it's contiguous.
@@ -501,7 +1200,12 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
         self.index = index;
     }
 
-    /// Get the current number of values returned by the iterator.
+    /// Get the current number of digits returned by the iterator.
+    ///
+    /// For contiguous iterators, this can include the sign character, decimal
+    /// point, and the exponent sign (that is, it is always the cursor). For
+    /// non-contiguous iterators, this must always be the only the number of
+    /// digits returned.
     #[inline(always)]
     fn current_count(&self) -> usize {
         // If the buffer is contiguous, then we don't need to track the
@@ -509,7 +1213,7 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
         if Self::IS_CONTIGUOUS {
             self.index
         } else {
-            self.count
+            self.integer_count + self.fraction_count + self.exponent_count
         }
     }
 
@@ -540,6 +1244,14 @@ macro_rules! skip_iterator {
     };
 }
 
+macro_rules! is_sign {
+    () => {
+        pub const fn is_sign(&self, value: u8) -> bool {
+            matches!(value, b'+' | b'-')
+        }
+    };
+}
+
 macro_rules! is_digit_separator {
     ($format:ident) => {
         /// Determine if the character is a digit separator.
@@ -561,9 +1273,11 @@ macro_rules! is_digit_separator {
 macro_rules! skip_iterator_impl {
     ($iterator:ident, $radix_cb:ident) => {
         impl<'a: 'b, 'b, const FORMAT: u128> $iterator<'a, 'b, FORMAT> {
+            is_sign!();
             is_digit_separator!(FORMAT);
 
             /// Create a new digits iterator from the bytes underlying item.
+            #[inline(always)]
             pub fn new(byte: &'b mut Bytes<'a, FORMAT>) -> Self {
                 Self {
                     byte,
@@ -612,10 +1326,13 @@ macro_rules! skip_iterator_iterator_impl {
                 let value = self.peek()?;
                 // Increment the index so we know not to re-fetch it.
                 self.byte.index += 1;
-                if !Self::IS_CONTIGUOUS {
-                    // Only increment the count if it's not contiguous, otherwise,
-                    // this is an unnecessary performance penalty.
-                    self.byte.count += 1;
+                // NOTE: Only increment the count if it's not contiguous, otherwise,
+                // this is an unnecessary performance penalty. We also need
+                // to check if it's a digit, which adds on additional cost but
+                // there's not much else we can do. Hopefully the previous inlining
+                // checks will minimize the performance hit.
+                if !Self::IS_CONTIGUOUS && self.is_digit(*value) {
+                    self.increment_count();
                 }
                 Some(value)
             }
@@ -625,7 +1342,7 @@ macro_rules! skip_iterator_iterator_impl {
 
 /// Create base methods for the Iter block of a skip iterator.
 macro_rules! skip_iterator_iter_base {
-    ($format:ident, $mask:ident) => {
+    ($format:ident, $mask:ident, $count:ident) => {
         // It's contiguous if we don't skip over any values.
         // IE, the digit separator flags for the iterator over
         // the digits doesn't skip any values.
@@ -648,9 +1365,19 @@ macro_rules! skip_iterator_iter_base {
             unsafe { self.byte.set_cursor(index) };
         }
 
+        /// Get the current number of digits returned by the iterator.
+        ///
+        /// For contiguous iterators, this can include the sign character, decimal
+        /// point, and the exponent sign (that is, it is always the cursor). For
+        /// non-contiguous iterators, this must always be the only the number of
+        /// digits returned.
         #[inline(always)]
         fn current_count(&self) -> usize {
-            self.byte.current_count()
+            if Self::IS_CONTIGUOUS {
+                self.byte.current_count()
+            } else {
+                self.byte.$count
+            }
         }
 
         #[inline(always)]
@@ -679,15 +1406,35 @@ macro_rules! skip_iterator_digits_iter_base {
 
 /// Create impl `ByteIter` block for skip iterator.
 macro_rules! skip_iterator_bytesiter_impl {
-    ($iterator:ident, $mask:ident, $i:ident, $l:ident, $t:ident, $c:ident) => {
+    ($iterator:ident, $mask:ident, $count:ident, $i:ident, $l:ident, $t:ident, $c:ident) => {
         unsafe impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for $iterator<'a, 'b, FORMAT> {
-            skip_iterator_iter_base!(FORMAT, $mask);
+            skip_iterator_iter_base!(FORMAT, $mask, $count);
         }
 
         impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for $iterator<'a, 'b, FORMAT> {
             skip_iterator_digits_iter_base!();
 
+            /// Increment the number of digits that have been returned by the iterator.
+            ///
+            /// For contiguous iterators, this is a no-op. For non-contiguous iterators,
+            /// this increments the count by 1.
+            #[inline(always)]
+            fn increment_count(&mut self) {
+                self.byte.$count += 1;
+            }
+
             /// Peek the next value of the iterator, without consuming it.
+            ///
+            /// Note that this can modify the internal state, by skipping digits
+            /// for iterators that find the first non-zero value, etc. We optimize
+            /// this for the case where we have contiguous iterators, since
+            /// non-contiguous iterators already have a major performance penalty.
+            ///
+            /// Checking if the character is a digit in the `next()` implementation
+            /// after skipping characters can:
+            /// 1. Likely be optimized out due to the use of macros and inlining.
+            /// 2. Is a small amount of overhead compared to the branching on
+            ///    characters,
             #[inline(always)]
             fn peek(&mut self) -> Option<<Self as Iterator>::Item> {
                 let format = NumberFormat::<{ FORMAT }> {};
@@ -746,6 +1493,7 @@ skip_iterator_iterator_impl!(IntegerDigitsIterator);
 skip_iterator_bytesiter_impl!(
     IntegerDigitsIterator,
     INTEGER_DIGIT_SEPARATOR_FLAG_MASK,
+    integer_count,
     INTEGER_INTERNAL_DIGIT_SEPARATOR,
     INTEGER_LEADING_DIGIT_SEPARATOR,
     INTEGER_TRAILING_DIGIT_SEPARATOR,
@@ -764,6 +1512,7 @@ skip_iterator_iterator_impl!(FractionDigitsIterator);
 skip_iterator_bytesiter_impl!(
     FractionDigitsIterator,
     FRACTION_DIGIT_SEPARATOR_FLAG_MASK,
+    fraction_count,
     FRACTION_INTERNAL_DIGIT_SEPARATOR,
     FRACTION_LEADING_DIGIT_SEPARATOR,
     FRACTION_TRAILING_DIGIT_SEPARATOR,
@@ -782,6 +1531,7 @@ skip_iterator_iterator_impl!(ExponentDigitsIterator);
 skip_iterator_bytesiter_impl!(
     ExponentDigitsIterator,
     EXPONENT_DIGIT_SEPARATOR_FLAG_MASK,
+    exponent_count,
     EXPONENT_INTERNAL_DIGIT_SEPARATOR,
     EXPONENT_LEADING_DIGIT_SEPARATOR,
     EXPONENT_TRAILING_DIGIT_SEPARATOR,
@@ -798,15 +1548,21 @@ skip_iterator!(
 skip_iterator_iterator_impl!(SpecialDigitsIterator);
 
 impl<'a: 'b, 'b, const FORMAT: u128> SpecialDigitsIterator<'a, 'b, FORMAT> {
+    is_sign!();
     is_digit_separator!(FORMAT);
 }
 
 unsafe impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for SpecialDigitsIterator<'a, 'b, FORMAT> {
-    skip_iterator_iter_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
+    skip_iterator_iter_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR, integer_count);
 }
 
 impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for SpecialDigitsIterator<'a, 'b, FORMAT> {
     skip_iterator_digits_iter_base!();
+
+    // Always a no-op.
+    #[inline(always)]
+    fn increment_count(&mut self) {
+    }
 
     /// Peek the next value of the iterator, without consuming it.
     #[inline(always)]
