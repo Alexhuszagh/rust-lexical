@@ -18,13 +18,13 @@ exclude = [
 ]
 
 [dependencies.lexical-util]
-version = "1.0.1"
+version = "1.0.3"
 path = "../lexical-util"
 default-features = false
 features = ["write-floats"]
 
 [dependencies.lexical-write-integer]
-version = "1.0.1"
+version = "1.0.2"
 path = "../lexical-write-integer"
 default-features = false
 features = []
