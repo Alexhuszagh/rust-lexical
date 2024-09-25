@@ -1,4 +1,4 @@
-#![cfg(feature = "radix")]
+#![cfg(feature = "power-of-two")]
 #![cfg(feature = "parse-floats")]
 #![cfg(feature = "write-floats")]
 
@@ -99,51 +99,22 @@ macro_rules! test_radix {
 macro_rules! test_all {
     ($f:ident, $buffer:ident, $data:ident) => {{
         test_radix!($f, 2, $buffer, $data);
-        test_radix!($f, 3, $buffer, $data);
         test_radix!($f, 4, $buffer, $data);
-        test_radix!($f, 5, $buffer, $data);
-        test_radix!($f, 6, $buffer, $data);
-        test_radix!($f, 7, $buffer, $data);
         test_radix!($f, 8, $buffer, $data);
-        test_radix!($f, 9, $buffer, $data);
-        test_radix!($f, 19, $buffer, $data);
-        test_radix!($f, 11, $buffer, $data);
-        test_radix!($f, 12, $buffer, $data);
-        test_radix!($f, 13, $buffer, $data);
-        test_radix!($f, 14, $buffer, $data);
-        test_radix!($f, 15, $buffer, $data);
         test_radix!($f, 16, $buffer, $data);
-        test_radix!($f, 17, $buffer, $data);
-        test_radix!($f, 18, $buffer, $data);
-        test_radix!($f, 19, $buffer, $data);
-        test_radix!($f, 20, $buffer, $data);
-        test_radix!($f, 21, $buffer, $data);
-        test_radix!($f, 22, $buffer, $data);
-        test_radix!($f, 23, $buffer, $data);
-        test_radix!($f, 24, $buffer, $data);
-        test_radix!($f, 25, $buffer, $data);
-        test_radix!($f, 26, $buffer, $data);
-        test_radix!($f, 27, $buffer, $data);
-        test_radix!($f, 28, $buffer, $data);
-        test_radix!($f, 29, $buffer, $data);
-        test_radix!($f, 30, $buffer, $data);
-        test_radix!($f, 31, $buffer, $data);
         test_radix!($f, 32, $buffer, $data);
-        test_radix!($f, 33, $buffer, $data);
-        test_radix!($f, 34, $buffer, $data);
-        test_radix!($f, 35, $buffer, $data);
         test_radix!($f, 36, $buffer, $data);
     }};
 }
 
 #[test]
-fn parse_f32_radix_roundtrip_test() {
+fn parse_f32_pow2_roundtrip_test() {
     let mut buffer = [0u8; 1024];
     test_all!(f32, buffer, F32_DATA);
 }
 
 #[test]
-fn parse_f64_radix_roundtrip_test() {
+fn parse_f64_pow2_roundtrip_test() {
     let mut buffer = [0u8; 1024];
     test_all!(f64, buffer, F64_DATA);
 }

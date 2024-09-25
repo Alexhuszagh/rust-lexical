@@ -107,7 +107,9 @@ f16 = [
     "lexical-write-float?/f16"
 ]
 
-# Internal only features.
+# INTERNAL ONLY
+# -------------
+# Internal only features. These are not meant to be used directly.
 # Enable the lint checks.
 lint = [
     "lexical-util/lint",
@@ -117,16 +119,23 @@ lint = [
     "lexical-parse-float?/lint"
 ]
 # Add support for writing numbers.
-write = []
+# Library users should use `write-integers` and `write-floats` instead.
+write = ["lexical-util/write"]
 # Add support for parsing numbers.
-parse = []
+# Library users should use `parse-integers` and `parse-floats` instead.
+parse = ["lexical-util/parse"]
 # Add support for conversions to or from integers.
-integers = []
+# Library users should use `write-integers` and `parse-integers` instead.
+integers = ["lexical-util/integers"]
 # Add support for conversions to or from floats.
-floats = []
+# Library users should use `write-floats` and `parse-floats` instead.
+floats = ["lexical-util/floats"]
 
-# Currently unsupported.
-# Enable support for 128-bit floats.
+# UNSUPPORTED
+# -----------
+# Currently unsupported features.
+# Enable support for 128-bit floats. Unsupported and unlikely to ever be.
+#   https://github.com/Alexhuszagh/rust-lexical/issues/46
 f128 = [
     "lexical-util/f128",
     "lexical-parse-float?/f128",

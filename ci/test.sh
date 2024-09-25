@@ -31,6 +31,14 @@ FEATURES=(
     "format,radix"
 )
 
+check_error() {
+    local feature=$1
+    if 2>/dev/null cargo check --no-default-features --features="${feature}" ; then
+        >&2 echo "The feature ${feature} did not error..."
+        exit 1
+    fi
+}
+
 # Don't build the target, but ensure the syntax is correct.
 check() {
     if [ ! -z $NO_FEATURES ]; then
@@ -55,6 +63,18 @@ check() {
 
     cd ../lexical-write-integer
     cargo check --tests
+
+    # ensure our partial features aren't allowed, as are unsupported features
+    cd ../lexical-core
+    partial=(parse write floats integers)
+    for feature in "${partial[@]}"; do
+        check_error "${feature}"
+    done
+
+    cd ../lexical
+    for feature in "${partial[@]}"; do
+        check_error "${feature}"
+    done
 
     cd ..
 }
@@ -82,6 +102,20 @@ test() {
     cargo test --features=radix,format,compact $DOCTESTS --release
     # NOTE: This tests a regressions, related to #96.
     cargo test --features=format $DOCTESTS
+
+    # this fixes an issue where the lexical and lexical-core tests weren't being run
+    cd lexical-core
+    cargo test $test_features,format
+    cargo test $test_features,radix
+    cargo test $test_features,format,radix
+    cd ..
+
+    # this fixes an issue where the lexical and lexical-core tests weren't being run
+    cd lexical
+    cargo test $test_features,format
+    cargo test $test_features,radix
+    cargo test $test_features,format,radix
+    cd ..
 }
 
 # Dry-run bench target

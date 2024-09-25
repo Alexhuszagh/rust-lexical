@@ -47,7 +47,9 @@ format = ["lexical-util/format"]
 # Reduce code size at the cost of performance.
 compact = ["lexical-util/compact"]
 
-# Internal only features.
+# INTERNAL ONLY
+# -------------
+# Internal only features. These are not meant to be used directly.
 # Enable the lint checks.
 lint = ["lexical-util/lint"]
 
