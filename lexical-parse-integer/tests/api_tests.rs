@@ -393,7 +393,7 @@ macro_rules! is_underflow {
 }
 
 macro_rules! is_invalid_digit_match {
-    ($result:expr, $p1:pat $(| $prest:pat)*) => {{
+    ($result:expr, $p1:pat_param $(| $prest:pat_param)*) => {{
         let result = $result;
         prop_assert!(result.is_err());
         let err = result.err().unwrap();

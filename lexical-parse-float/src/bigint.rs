@@ -802,7 +802,7 @@ impl<'a, T: 'a> ReverseView<'a, T> {
     }
 }
 
-impl<'a, T> ops::Index<usize> for ReverseView<'a, T> {
+impl<T> ops::Index<usize> for ReverseView<'_, T> {
     type Output = T;
 
     #[inline(always)]
