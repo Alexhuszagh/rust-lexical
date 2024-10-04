@@ -36,6 +36,10 @@ fn fast_div(v: u32) -> (u32, u32) {
     let max_precision = 14;
     let additional_precision = 5;
 
+    // FIXME: Determine if this produces as efficient code with the `div_ceil`
+    // method.
+    // reason="performance must be guaranteed as well as correctness"
+    #[allow(clippy::manual_div_ceil)]
     let left_end = ((1 << (max_precision + additional_precision)) + divisor - 1) / divisor;
     let quotient = (v.wrapping_mul(left_end)) >> (max_precision + additional_precision);
     let remainder = v - divisor * quotient;

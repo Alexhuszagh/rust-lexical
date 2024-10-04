@@ -1,6 +1,5 @@
 #![no_main]
-#[macro_use]
-extern crate libfuzzer_sys;
+use libfuzzer_sys::fuzz_target;
 use lexical_util::constants::BUFFER_SIZE;
 use lexical_write_integer::ToLexical;
 

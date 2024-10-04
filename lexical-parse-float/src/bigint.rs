@@ -758,7 +758,7 @@ impl<const SIZE: usize> Default for StackVec<SIZE> {
     }
 }
 
-/// REVERSE VIEW
+// REVERSE VIEW
 
 /// Reverse, immutable view of a sequence.
 pub struct ReverseView<'a, T: 'a> {
@@ -1202,7 +1202,7 @@ pub fn large_add<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Optio
 /// ```
 ///
 /// We get the following results:
-
+///
 /// ```text
 /// mul/small:long          time:   [220.23 ns 221.47 ns 222.81 ns]
 /// Found 4 outliers among 100 measurements (4.00%)
