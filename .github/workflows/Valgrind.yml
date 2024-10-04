@@ -14,9 +14,14 @@ jobs:
       - name: Install latest nightly
         uses: dtolnay/rust-toolchain@stable
         with:
-            toolchain: nightly
+            # NOTE: For whatever reason, there's a memory leak for recent
+            # versions if we don't FULLY qualify the toolchain version.
+            # This seems to have happened between 2024-09-27 and 2024-10-03.
+            # But, since it requires an unqualified nightly name, it's
+            # impossible to bisect.
+            toolchain: nightly-2024-09-27
       - run: sudo apt-get update
       - run: sudo apt-get install valgrind
-      - run: cargo +nightly install cargo-valgrind
-      - run: cargo +nightly valgrind test --release
-      - run: cargo +nightly valgrind test --all-features --release
+      - run: cargo +nightly-2024-09-27 install cargo-valgrind
+      - run: cargo +nightly-2024-09-27 valgrind test --release
+      - run: cargo +nightly-2024-09-27 valgrind test --all-features --release
