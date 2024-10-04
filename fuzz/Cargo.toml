@@ -34,7 +34,7 @@ default-features = false
 features = []
 
 [dependencies]
-libfuzzer-sys = "0.2.0"
+libfuzzer-sys = "0.4.7"
 
 [features]
 std = [
@@ -74,7 +74,6 @@ compact = [
 opt-level = 3
 debug = false
 debug-assertions = false
-lto = true
 
 [[bin]]
 name = "parse-integer-i8"
