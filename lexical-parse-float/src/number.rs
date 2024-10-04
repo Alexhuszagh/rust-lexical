@@ -32,7 +32,7 @@ pub struct Number<'a> {
     pub fraction: Option<&'a [u8]>,
 }
 
-impl<'a> Number<'a> {
+impl Number<'_> {
     /// Detect if the float can be accurately reconstructed from native floats.
     #[must_use]
     #[inline(always)]

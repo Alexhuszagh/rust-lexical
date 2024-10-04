@@ -7,6 +7,7 @@ members = [
     "lexical-write-integer",
     "lexical-write-float",
 ]
+resolver = "2"
 
 [profile.dev]
 opt-level = 0
