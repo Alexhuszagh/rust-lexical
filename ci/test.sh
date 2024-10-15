@@ -107,6 +107,10 @@ test() {
     # NOTE: This tests a regressions, related to #96.
     cargo test --features=format $DOCTESTS
 
+    # Ensure we test radix without the compact feature
+    # See #169
+    cargo test --features=radix,format --release
+
     # this fixes an issue where the lexical and lexical-core tests weren't being run
     cd lexical-core
     cargo test $test_features,format
