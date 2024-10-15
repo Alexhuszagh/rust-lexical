@@ -10,6 +10,7 @@ name = "lexical"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
 version = "7.0.2"
+rust-version = "1.63.0"
 exclude = [
     "assets/*",
     "docs/*",
