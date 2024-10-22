@@ -1,6 +1,9 @@
 use lexical_parse_float::number::Number;
 use lexical_util::format::STANDARD;
 
+#[cfg(all(feature = "format", feature = "power-of-two"))]
+use lexical_util::format::C_HEX_STRING;
+
 #[test]
 fn is_fast_path_test() {
     let mut number = Number {
@@ -11,6 +14,11 @@ fn is_fast_path_test() {
         integer: &[],
         fraction: None,
     };
+
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    assert_eq!(number.is_fast_path::<f32, { C_HEX_STRING }>(), false);
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    assert_eq!(number.is_fast_path::<f64, { C_HEX_STRING }>(), false);
     assert_eq!(number.is_fast_path::<f32, { STANDARD }>(), true);
     assert_eq!(number.is_fast_path::<f64, { STANDARD }>(), true);
 
@@ -62,6 +70,11 @@ fn try_fast_path_test() {
         integer: &[],
         fraction: None,
     };
+
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    assert_eq!(number.try_fast_path::<f32, { C_HEX_STRING }>(), None);
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    assert_eq!(number.try_fast_path::<f64, { C_HEX_STRING }>(), None);
     assert_eq!(number.try_fast_path::<f32, { STANDARD }>(), Some(1.2345));
     assert_eq!(number.try_fast_path::<f64, { STANDARD }>(), Some(1.2345));
 
