@@ -135,7 +135,7 @@ pub unsafe trait Iter<'a> {
     #[inline(always)]
     fn first_is_uncased(&self, value: u8) -> bool {
         if let Some(&c) = self.first() {
-            c.to_ascii_lowercase() == value.to_ascii_lowercase()
+            c.eq_ignore_ascii_case(&value)
         } else {
             false
         }
@@ -334,7 +334,7 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     #[inline(always)]
     fn peek_is_uncased(&mut self, value: u8) -> bool {
         if let Some(&c) = self.peek() {
-            c.to_ascii_lowercase() == value.to_ascii_lowercase()
+            c.eq_ignore_ascii_case(&value)
         } else {
             false
         }
@@ -387,7 +387,7 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     /// sensitivity.
     #[inline(always)]
     fn read_if_value_uncased(&mut self, value: u8) -> Option<u8> {
-        self.read_if(|x| x.to_ascii_lowercase() == value.to_ascii_lowercase())
+        self.read_if(|x| x.eq_ignore_ascii_case(&value))
     }
 
     /// Read a value if the value matches the provided one.
