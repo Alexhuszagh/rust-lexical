@@ -136,7 +136,7 @@ macro_rules! fmt_invalid_digit {
             let is_suffix = if uncased_base_suffix {
                 $c == base_suffix
             } else {
-                $c.to_ascii_lowercase() == base_suffix.to_ascii_lowercase()
+                $c.eq_ignore_ascii_case(&base_suffix)
             };
             // NOTE: If we're using the `take_n` optimization where it can't
             // be the end, then the iterator cannot be done. So, in that case,

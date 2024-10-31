@@ -16,4 +16,5 @@ jobs:
         with:
             toolchain: nightly
             components: rustfmt, clippy
+      - run: git submodule update --init
       - run: ci/comprehensive.sh

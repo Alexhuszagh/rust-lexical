@@ -1,0 +1,3 @@
+[submodule "lexical-parse-float/etc/correctness/test-parse-golang/parse-number-fxx-test-data"]
+	path = lexical-parse-float/etc/correctness/test-parse-golang/parse-number-fxx-test-data
+	url = https://github.com/Alexhuszagh/parse-number-fxx-test-data
