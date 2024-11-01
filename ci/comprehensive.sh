@@ -13,6 +13,9 @@ script_home=$(realpath "${script_dir}")
 home=$(dirname "${script_home}")
 cd "${home}"
 
+# Ensure we have all our testing data files
+git submodule update --init
+
 run_tests() {
     # Test the parse-float correctness tests
     cd "${home}"

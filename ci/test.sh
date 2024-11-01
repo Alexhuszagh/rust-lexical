@@ -6,11 +6,15 @@ set -ex
 
 # Change to our project home.
 script_dir=$(dirname "${BASH_SOURCE[0]}")
-home=$(dirname "${script_dir}")
+script_home=$(realpath "${script_dir}")
+home=$(dirname "${script_home}")
 cd "${home}"
 
 # Print our cargo version, for debugging.
 cargo --version
+
+# Ensure we have all our benchmark data files
+git submodule update --init lexical-benchmark/data
 
 # Force default tests to disable default feature on NO_STD.
 if [ ! -z $NO_STD ]; then
