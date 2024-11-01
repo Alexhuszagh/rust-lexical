@@ -12,7 +12,6 @@
 
 import argparse
 import json
-import mimetypes
 import subprocess
 import os
 
@@ -57,6 +56,7 @@ debug-assertions = false
 lto = true
 '''
 
+
 def parse_args(argv=None):
     '''Create and parse our command line arguments.'''
 
@@ -88,6 +88,7 @@ def parse_args(argv=None):
     )
     return parser.parse_args(argv)
 
+
 def filename(basename, args):
     '''Get a resilient name for the benchmark data.'''
 
@@ -97,6 +98,7 @@ def filename(basename, args):
     if args.features:
         name = f'{name}_features={args.features}'
     return name
+
 
 def plot_bar(
     xlabel=None,
@@ -133,12 +135,12 @@ def plot_bar(
         ax.legend(libraries, fancybox=True, framealpha=1, shadow=True, borderpad=1)
 
     fig = plt.figure(figsize=(10, 8))
-    index = 1
     ax = fig.add_subplot(1, 1, 1)
     plot_ax(ax, xticks)
 
     fig.savefig(path, format='svg')
     fig.clf()
+
 
 def clean():
     '''Clean the project'''
@@ -150,6 +152,7 @@ def clean():
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+
 
 def write_manifest(level):
     '''Write the manifest for the given optimization level.'''
@@ -169,11 +172,12 @@ def write_manifest(level):
     with open(manifest, 'w') as file:
         file.write(contents)
 
+
 def build(args, level, is_lexical):
     '''Build the project.'''
 
     os.chdir(f'{home}/lexical-size')
-    command = f'cargo +nightly build'
+    command = 'cargo +nightly build'
     if args.no_default_features:
         command = f'{command} --no-default-features'
     features = args.features
@@ -195,12 +199,14 @@ def build(args, level, is_lexical):
         stdout=subprocess.DEVNULL,
     )
 
+
 def is_executable(path):
     '''Determine if a file is a binary executable.'''
     if os.name == 'nt':
         return magic.from_file(path, mime=True) == 'application/x-dosexec'
     else:
         return magic.from_file(path, mime=True) == 'application/x-pie-executable'
+
 
 def prettyify(size):
     '''Get the human readable filesize from bytes.'''
@@ -215,6 +221,7 @@ def prettyify(size):
         size /= 1024
 
     return f'{size:0.1f}PB'
+
 
 def get_file_size(path):
     '''Read the file size of a given binary.'''
@@ -240,6 +247,7 @@ def get_file_size(path):
 
     return text + data + rodata
 
+
 def get_sizes(level):
     '''Get the binary sizes for all targets.'''
 
@@ -257,6 +265,7 @@ def get_sizes(level):
     empty = data.pop('empty')
 
     return {k: v - empty for k, v in data.items()}
+
 
 def strip(level):
     '''Strip all the binaries'''
@@ -276,10 +285,12 @@ def strip(level):
                 stdout=subprocess.DEVNULL,
             )
 
+
 def plot_level(args, data, level):
     '''Print markdown-based report for the file sizes.'''
 
     print(f'Plotting binary sizes for optimization level {level}.')
+
     def sort_key(x):
         split = x.split('-')
         ctype = split[-1]
@@ -369,6 +380,7 @@ def plot_level(args, data, level):
             title=f'Write Stripped Data -- Optimization Level "{level}"',
         )
 
+
 def run_level(args, level, is_lexical):
     '''Generate the size data for a given build configuration.'''
 
@@ -386,6 +398,7 @@ def run_level(args, level, is_lexical):
 
     return data
 
+
 def run(args):
     '''Run the size calculations.'''
 
@@ -399,6 +412,7 @@ def run(args):
         with open(f'{assets}/{file}.json', 'w') as file:
             json.dump(data, file)
 
+
 def plot(args):
     '''Plot the size calculations.'''
 
@@ -410,6 +424,7 @@ def plot(args):
             data = json.load(file)
         plot_level(args, data, level)
 
+
 def main(argv=None):
     '''Entry point.'''
 
@@ -418,6 +433,7 @@ def main(argv=None):
         run(args)
     if args.plot:
         plot(args)
+
 
 if __name__ == '__main__':
     main()

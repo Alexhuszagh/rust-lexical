@@ -13,12 +13,12 @@ import os
 
 import matplotlib.pyplot as plt
 from matplotlib import patches
-from matplotlib import textpath
 
 plt.style.use('ggplot')
 
 scripts = os.path.dirname(os.path.realpath(__file__))
 home = os.path.dirname(scripts)
+
 
 def parse_args(argv=None):
     '''Create and parse our command line arguments.'''
@@ -41,6 +41,7 @@ def parse_args(argv=None):
     )
     return parser.parse_args(argv)
 
+
 def clean(directory=home):
     '''Clean the project'''
 
@@ -51,6 +52,7 @@ def clean(directory=home):
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+
 
 def build(args, directory=home):
     '''Build the project and get the timings output.'''
@@ -81,6 +83,7 @@ def build(args, directory=home):
 
     return data
 
+
 def filename(basename, args):
     '''Get a resilient name for the benchmark data.'''
 
@@ -90,6 +93,7 @@ def filename(basename, args):
     if args.features:
         name = f'{name}_features={args.features}'
     return name
+
 
 def plot_timings(timings, output, workspace=''):
     '''Plot our timings data.'''
@@ -190,6 +194,7 @@ def plot_timings(timings, output, workspace=''):
     fig.savefig(output, format='svg')
     fig.clf()
 
+
 def plot_all(args):
     '''Build and plot the timings for the root module.'''
 
@@ -197,6 +202,7 @@ def plot_all(args):
     timings = build(args)
     path = f'{home}/assets/timings_{filename("all", args)}_{os.name}.svg'
     plot_timings(timings, path)
+
 
 def plot_workspace(args, workspace):
     '''Build and plot the timings for the root module.'''
@@ -207,6 +213,7 @@ def plot_workspace(args, workspace):
     path = f'{home}/assets/{basename}.svg'
     plot_timings(timings, path, workspace)
 
+
 def main(argv=None):
     '''Entry point.'''
 
@@ -215,6 +222,7 @@ def main(argv=None):
     plot_all(args)
     for workspace in workspaces:
         plot_workspace(args, workspace)
+
 
 if __name__ == '__main__':
     main()

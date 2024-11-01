@@ -81,19 +81,19 @@ def print_large(radix, max_exp):
     print(f'pub const LARGE_POW{radix}: [u32; {len(limb32)}] = [')
     for value in limb32:
         print(f'    {value},')
-    print(f'];')
-    print(f'')
+    print('];')
+    print('')
 
     print(f'/// Pre-computed large power-of-{radix} for 64-bit limbs.')
     print('#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]')
     print(f'pub const LARGE_POW{radix}: [u64; {len(limb64)}] = [')
     for value in limb64:
         print(f'    {value},')
-    print(f'];')
-    print(f'')
+    print('];')
+    print('')
     print(f'/// Step for large power-of-{radix} for 32-bit limbs.')
     print(f'pub const LARGE_POW{radix}_STEP: u32 = {5 * max_exp};')
-    print(f'')
+    print('')
 
 
 def print_tables(radix, f64_pow_limit, f32_exp_limit, f64_exp_limit):
@@ -106,11 +106,11 @@ def print_tables(radix, f64_pow_limit, f32_exp_limit, f64_exp_limit):
 
 def f32_exponent_limit(radix):
     return {
-        3 : (-15, 15),
-        5 : (-10, 10),
-        6 : (-15, 15),
-        7 : (-8, 8),
-        9 : (-7, 7),
+        3 : (-15, 15),  # noqa
+        5 : (-10, 10),  # noqa
+        6 : (-15, 15),  # noqa
+        7 : (-8, 8),  # noqa
+        9 : (-7, 7),  # noqa
         11: (-6, 6),
         12: (-15, 15),
         13: (-6, 6),
@@ -206,7 +206,10 @@ def f64_power_limit(radix):
     }[radix]
 
 
-radixes = [3, 5, 6, 7, 9, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36]
+radixes = [
+    3, 5, 6, 7, 9, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21,
+    22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36
+]
 for radix in radixes:
     f64_pow_limit = f64_power_limit(radix)
     f32_exp_limit = f32_exponent_limit(radix)[1]

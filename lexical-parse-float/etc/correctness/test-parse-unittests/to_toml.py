@@ -37,6 +37,7 @@ parser.add_argument(
 # FLOAT HELPERS
 # -------------
 
+
 class FloatMixin:
     '''Mixing for floating-point methods.'''
 
@@ -87,13 +88,13 @@ class FloatMixin:
 class Float32(FloatMixin):
     '''Wrapper around a 32-bit floating point value.'''
 
-    SIGN_MASK           = np.uint32(0x80000000)
-    EXPONENT_MASK       = np.uint32(0x7F800000)
-    HIDDEN_BIT_MASK     = np.uint32(0x00800000)
-    MANTISSA_MASK       = np.uint32(0x007FFFFF)
-    MANTISSA_SIZE       = np.int32(23)
-    EXPONENT_BIAS       = np.int32(127 + MANTISSA_SIZE)
-    DENORMAL_EXPONENT   = np.int32(1 - EXPONENT_BIAS)
+    SIGN_MASK           = np.uint32(0x80000000)  # noqa
+    EXPONENT_MASK       = np.uint32(0x7F800000)  # noqa
+    HIDDEN_BIT_MASK     = np.uint32(0x00800000)  # noqa
+    MANTISSA_MASK       = np.uint32(0x007FFFFF)  # noqa
+    MANTISSA_SIZE       = np.int32(23)  # noqa
+    EXPONENT_BIAS       = np.int32(127 + MANTISSA_SIZE)  # noqa
+    DENORMAL_EXPONENT   = np.int32(1 - EXPONENT_BIAS)  # noqa
 
     def __init__(self, value):
         self.value = np.float32(value)
@@ -103,13 +104,13 @@ class Float32(FloatMixin):
 class Float64(FloatMixin):
     '''Wrapper around a 64-bit floating point value.'''
 
-    SIGN_MASK           = np.uint64(0x8000000000000000)
-    EXPONENT_MASK       = np.uint64(0x7FF0000000000000)
-    HIDDEN_BIT_MASK     = np.uint64(0x0010000000000000)
-    MANTISSA_MASK       = np.uint64(0x000FFFFFFFFFFFFF)
-    MANTISSA_SIZE       = np.int32(52)
-    EXPONENT_BIAS       = np.int32(1023 + MANTISSA_SIZE)
-    DENORMAL_EXPONENT   = np.int32(1 - EXPONENT_BIAS)
+    SIGN_MASK           = np.uint64(0x8000000000000000)  # noqa
+    EXPONENT_MASK       = np.uint64(0x7FF0000000000000)  # noqa
+    HIDDEN_BIT_MASK     = np.uint64(0x0010000000000000)  # noqa
+    MANTISSA_MASK       = np.uint64(0x000FFFFFFFFFFFFF)  # noqa
+    MANTISSA_SIZE       = np.int32(52)  # noqa
+    EXPONENT_BIAS       = np.int32(1023 + MANTISSA_SIZE)  # noqa
+    DENORMAL_EXPONENT   = np.int32(1 - EXPONENT_BIAS)  # noqa
 
     def __init__(self, value):
         self.value = np.float64(value)
@@ -180,6 +181,7 @@ class TestFloat32(unittest.TestCase):
         float32 = Float32("1e-45")
         self.assertEqual(float32.mantissa(), np.uint32(1))
 
+
 class TestFloat64(unittest.TestCase):
 
     def test_to_bits(self):
@@ -249,6 +251,7 @@ def run_tests():
     '''Run unittest suite.'''
     unittest.main(argv=sys.argv[:1])
 
+
 def create_test(test):
     '''Create conversion test table.'''
 
@@ -262,6 +265,7 @@ def create_test(test):
     conversion_test.add('int', '{}*2^{}'.format(mantissa, exponent))
 
     return conversion_test
+
 
 def main(source, destination):
     '''Run main script.'''
@@ -283,6 +287,7 @@ def main(source, destination):
     else:
         with open(destination, 'w') as fout:
             print(tomlkit.dumps(document), file=fout)
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
