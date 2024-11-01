@@ -5,7 +5,8 @@ set -ex
 
 # Change to our project home.
 script_dir=$(dirname "${BASH_SOURCE[0]}")
-cd "$script_dir"/..
+script_home=$(realpath "${script_dir}")
+cd "${script_home}"/..
 
 # Make sure we error on warnings, and don't format in-place.
 

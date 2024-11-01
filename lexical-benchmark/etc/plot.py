@@ -10,7 +10,6 @@
 import argparse
 import json
 import os
-import re
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -20,6 +19,7 @@ plt.style.use('ggplot')
 
 etc = os.path.dirname(os.path.realpath(__file__))
 home = os.path.dirname(etc)
+
 
 def parse_args(argv=None):
     '''Create and parse our command line arguments.'''
@@ -42,6 +42,7 @@ def parse_args(argv=None):
     )
     return parser.parse_args(argv)
 
+
 def filename(basename, args):
     '''Get a resilient name for the benchmark data.'''
 
@@ -51,6 +52,7 @@ def filename(basename, args):
     if args.features:
         name = f'{name}_features={args.features}'
     return name
+
 
 def format_time(time):
     '''Format time to be a nice value.'''
@@ -71,13 +73,16 @@ def format_time(time):
     time /= 1000
     return f'{strip_zero(str(round(time, 3)))} s'
 
+
 def float_sort_key(x):
     '''Sort key for an float value.'''
     return (x[0], int(x[1:]))
 
+
 def integer_sort_key(x):
     '''Sort key for an integral value.'''
     return (x[0], int(x[1:]))
+
 
 def plot_bar(
     prefix=None,
@@ -115,12 +120,12 @@ def plot_bar(
         ax.legend(libraries, fancybox=True, framealpha=1, shadow=True, borderpad=1)
 
     fig = plt.figure(figsize=(10, 8))
-    index = 1
     ax = fig.add_subplot(1, 1, 1)
     plot_ax(ax, xticks)
 
     fig.savefig(path, format='svg')
     fig.clf()
+
 
 def plot_scatter(
     prefix=None,
@@ -146,7 +151,7 @@ def plot_scatter(
 
         for library in libraries:
             ys = [data[f'{prefix}_{i}_{library}'] for i in xticks]
-            points = ax.semilogy(
+            _ = ax.semilogy(
                 xticks, ys, '-o', mec='k', ms=15,
                 mew=1, alpha=.8, label=library
             )
@@ -169,6 +174,7 @@ def plot_scatter(
 
     fig.savefig(path, format='svg')
     fig.clf()
+
 
 def plot_write_float(args):
     '''Plot the write float dataset.'''
@@ -235,6 +241,7 @@ def plot_write_float(args):
         title='Random Data: BigInts',
     )
 
+
 def plot_write_integer(args):
     '''Plot the write integer dataset.'''
 
@@ -300,6 +307,7 @@ def plot_write_integer(args):
         path=f'{assets}/{filename("random_large_signed", args)}.svg',
         title='Random Data: Large Negative',
     )
+
 
 def plot_parse_float(args):
     '''Plot the parse float dataset.'''
@@ -392,6 +400,7 @@ def plot_parse_float(args):
         key=lambda x: int(x),
     )
 
+
 def plot_parse_integer(args):
     '''Plot the parse integer dataset.'''
 
@@ -452,6 +461,7 @@ def plot_parse_integer(args):
         title='Random Data: Large Negative',
     )
 
+
 def main(argv=None):
     '''Entry point.'''
 
@@ -468,6 +478,7 @@ def main(argv=None):
             plot_parse_float(args)
         else:
             raise NotImplementedError
+
 
 if __name__ == '__main__':
     main()

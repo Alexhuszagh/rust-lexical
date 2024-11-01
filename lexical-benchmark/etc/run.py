@@ -16,6 +16,7 @@ import subprocess
 etc = os.path.dirname(os.path.realpath(__file__))
 home = os.path.dirname(etc)
 
+
 def parse_args(argv=None):
     '''Create and parse our command line arguments.'''
 
@@ -42,6 +43,7 @@ def parse_args(argv=None):
     )
     return parser.parse_args(argv)
 
+
 def filename(basename, args):
     '''Get a resilient name for the benchmark data.'''
 
@@ -51,6 +53,7 @@ def filename(basename, args):
     if args.features:
         name = f'{name}_features={args.features}'
     return name
+
 
 @contextlib.contextmanager
 def change_directory(path):
@@ -62,6 +65,7 @@ def change_directory(path):
         yield
     finally:
         os.chdir(cwd)
+
 
 def process_rust_benchmark(line):
     '''Process the result of an individual Rust benchmark.'''
@@ -82,6 +86,7 @@ def process_rust_benchmark(line):
         raise ValueError('Unknown unit: ' + unit)
 
     return group, name, speed
+
 
 def run_benchmark(args):
     '''Run a single benchmark.'''
@@ -109,6 +114,7 @@ def run_benchmark(args):
 
     return data
 
+
 def main(argv=None):
     '''Entry point.'''
 
@@ -120,6 +126,7 @@ def main(argv=None):
             data = run_benchmark(args)
             with open(f'{home}/results/{filename(bench, args)}.json', 'w') as file:
                 json.dump(data, file)
+
 
 if __name__ == '__main__':
     main()

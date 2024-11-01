@@ -6,11 +6,15 @@ set -ex
 
 # Change to our project home.
 script_dir=$(dirname "${BASH_SOURCE[0]}")
-home=$(dirname "${script_dir}")
+script_home=$(realpath "${script_dir}")
+home=$(dirname "${script_home}")
 cd "${home}"
 
 # Print our cargo version, for debugging.
 cargo --version
+
+# Ensure we have all our testing data files
+git submodule update --init
 
 # Test our Miri logic
 rustup component add --toolchain nightly miri &2 > /dev/null || true

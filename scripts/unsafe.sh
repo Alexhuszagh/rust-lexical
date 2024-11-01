@@ -13,7 +13,8 @@ count() {
 
 # Change to our project home.
 script_dir=$(dirname "${BASH_SOURCE[0]}")
-cd "$script_dir"/
+script_home=$(realpath "${script_dir}")
+cd "${script_home}"/
 count "lexical-util"
 count "lexical-parse-integer"
 count "lexical-parse-float"
