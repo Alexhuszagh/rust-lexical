@@ -38,8 +38,8 @@ run_tests --all-features
 
 cd "${home}"
 if [ ! -z "${EXHAUSTIVE}" ]; then
-    if [ -z "${PYTHON}" ]; then
-        PYTHON=python
-    fi
-    $PYTHON "${home}/lexical-parse-float/etc/correctness/test-parse-random/runtests.py"
+# Test the parse-float correctness tests
+    cd "${home}"
+    cd lexical-parse-float/etc/correctness
+    cargo run "${@}" --release --bin test-parse-random
 fi
