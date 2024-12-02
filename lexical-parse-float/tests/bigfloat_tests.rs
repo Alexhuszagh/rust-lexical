@@ -2,7 +2,7 @@
 
 mod stackvec;
 
-use lexical_parse_float::bigint::{Bigfloat, LIMB_BITS};
+use lexical_parse_float::bigint::{Bigfloat, Limb};
 use lexical_parse_float::float::ExtendedFloat80;
 use stackvec::vec_from_u32;
 
@@ -35,11 +35,11 @@ fn simple_test() {
     assert_eq!(&*x.data, &[0, 19531250]);
     assert_eq!(x.exp, 10);
 
-    assert_eq!(x.leading_zeros(), LIMB_BITS as u32 - 25);
+    assert_eq!(x.leading_zeros(), Limb::BITS - 25);
 
     // y has a 0 for 32-bit limbs, no 0s for 64-bit limbs.
     x *= &y;
-    let expected = if LIMB_BITS == 32 {
+    let expected = if Limb::BITS == 32 {
         vec_from_u32(&[0, 0, 0, 9765625])
     } else {
         vec_from_u32(&[0, 0, 0, 0, 9765625])
@@ -52,12 +52,12 @@ fn simple_test() {
 fn leading_zeros_test() {
     assert_eq!(Bigfloat::new().leading_zeros(), 0);
 
-    assert_eq!(Bigfloat::from_u32(0xFF).leading_zeros(), LIMB_BITS as u32 - 8);
+    assert_eq!(Bigfloat::from_u32(0xFF).leading_zeros(), Limb::BITS - 8);
     assert_eq!(Bigfloat::from_u64(0xFF00000000).leading_zeros(), 24);
 
-    assert_eq!(Bigfloat::from_u32(0xF).leading_zeros(), LIMB_BITS as u32 - 4);
+    assert_eq!(Bigfloat::from_u32(0xF).leading_zeros(), Limb::BITS - 4);
     assert_eq!(Bigfloat::from_u64(0xF00000000).leading_zeros(), 28);
 
-    assert_eq!(Bigfloat::from_u32(0xF0).leading_zeros(), LIMB_BITS as u32 - 8);
+    assert_eq!(Bigfloat::from_u32(0xF0).leading_zeros(), Limb::BITS - 8);
     assert_eq!(Bigfloat::from_u64(0xF000000000).leading_zeros(), 24);
 }

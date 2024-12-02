@@ -2,5 +2,8 @@
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "always",
     "lldb.dereferencePointers": true,
-    "lldb.consoleMode": "commands"
+    "lldb.consoleMode": "commands",
+    "rust-analyzer.rustfmt.extraArgs": [
+        "+nightly"
+    ],
 }
