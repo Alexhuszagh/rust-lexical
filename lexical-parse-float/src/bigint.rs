@@ -41,7 +41,7 @@ const BIGINT_BITS: usize = 6000;
 const BIGINT_BITS: usize = 4000;
 
 /// The number of limbs for the bigint.
-const BIGINT_LIMBS: usize = BIGINT_BITS / LIMB_BITS;
+const BIGINT_LIMBS: usize = BIGINT_BITS / Limb::BITS as usize;
 
 /// Storage for a big integer type.
 ///
@@ -144,7 +144,7 @@ const BIGFLOAT_BITS: usize = 1200;
 
 /// The number of limbs for the Bigfloat.
 #[cfg(feature = "radix")]
-const BIGFLOAT_LIMBS: usize = BIGFLOAT_BITS / LIMB_BITS;
+const BIGFLOAT_LIMBS: usize = BIGFLOAT_BITS / Limb::BITS as usize;
 
 /// Storage for a big floating-point type.
 ///
@@ -247,7 +247,7 @@ impl Bigfloat {
 impl ops::MulAssign<&Bigfloat> for Bigfloat {
     #[inline(always)]
     #[allow(clippy::suspicious_op_assign_impl)] // reason="intended increment"
-    #[allow(clippy::unwrap_used)] // reason="exceeding the bounds is a developper error"
+    #[allow(clippy::unwrap_used)] // reason="exceeding the bounds is a developer error"
     fn mul_assign(&mut self, rhs: &Bigfloat) {
         large_mul(&mut self.data, &rhs.data).unwrap();
         self.exp += rhs.exp;
@@ -544,9 +544,9 @@ impl<const SIZE: usize> StackVec<SIZE> {
         unsafe {
             match rview.len() {
                 0 => (0, false),
-                1 if LIMB_BITS == 32 => hi!(@1 self, rview, u32, u32_to_hi16_1),
+                1 if Limb::BITS == 32 => hi!(@1 self, rview, u32, u32_to_hi16_1),
                 1 => hi!(@1 self, rview, u64, u64_to_hi16_1),
-                _ if LIMB_BITS == 32 => hi!(@nonzero2 self, rview, u32, u32_to_hi16_2),
+                _ if Limb::BITS == 32 => hi!(@nonzero2 self, rview, u32, u32_to_hi16_2),
                 _ => hi!(@nonzero2 self, rview, u64, u64_to_hi16_2),
             }
         }
@@ -561,9 +561,9 @@ impl<const SIZE: usize> StackVec<SIZE> {
         unsafe {
             match rview.len() {
                 0 => (0, false),
-                1 if LIMB_BITS == 32 => hi!(@1 self, rview, u32, u32_to_hi32_1),
+                1 if Limb::BITS == 32 => hi!(@1 self, rview, u32, u32_to_hi32_1),
                 1 => hi!(@1 self, rview, u64, u64_to_hi32_1),
-                _ if LIMB_BITS == 32 => hi!(@nonzero2 self, rview, u32, u32_to_hi32_2),
+                _ if Limb::BITS == 32 => hi!(@nonzero2 self, rview, u32, u32_to_hi32_2),
                 _ => hi!(@nonzero2 self, rview, u64, u64_to_hi32_2),
             }
         }
@@ -578,11 +578,11 @@ impl<const SIZE: usize> StackVec<SIZE> {
         unsafe {
             match rview.len() {
                 0 => (0, false),
-                1 if LIMB_BITS == 32 => hi!(@1 self, rview, u32, u32_to_hi64_1),
+                1 if Limb::BITS == 32 => hi!(@1 self, rview, u32, u32_to_hi64_1),
                 1 => hi!(@1 self, rview, u64, u64_to_hi64_1),
-                2 if LIMB_BITS == 32 => hi!(@2 self, rview, u32, u32_to_hi64_2),
+                2 if Limb::BITS == 32 => hi!(@2 self, rview, u32, u32_to_hi64_2),
                 2 => hi!(@2 self, rview, u64, u64_to_hi64_2),
-                _ if LIMB_BITS == 32 => hi!(@nonzero3 self, rview, u32, u32_to_hi64_3),
+                _ if Limb::BITS == 32 => hi!(@nonzero3 self, rview, u32, u32_to_hi64_3),
                 _ => hi!(@nonzero2 self, rview, u64, u64_to_hi64_2),
             }
         }
@@ -620,7 +620,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
         let mut vec = Self::new();
         debug_assert!(2 <= vec.capacity(), "cannot exceed our array bounds");
         assert!(2 <= SIZE, "cannot exceed our array bounds");
-        if LIMB_BITS == 32 {
+        if Limb::BITS == 32 {
             _ = vec.try_push(x as Limb);
             _ = vec.try_push((x >> 32) as Limb);
         } else {
@@ -746,7 +746,7 @@ impl<const SIZE: usize> ops::DerefMut for StackVec<SIZE> {
 
 impl<const SIZE: usize> ops::MulAssign<&[Limb]> for StackVec<SIZE> {
     #[inline(always)]
-    #[allow(clippy::unwrap_used)] // reason="exceeding the bounds is a developper error"
+    #[allow(clippy::unwrap_used)] // reason="exceeding the bounds is a developer error"
     fn mul_assign(&mut self, rhs: &[Limb]) {
         large_mul(self, rhs).unwrap();
     }
@@ -1016,7 +1016,7 @@ pub fn pow<const SIZE: usize>(x: &mut StackVec<SIZE>, base: u32, mut exp: u32) -
     }
 
     // Now use our pre-computed small powers iteratively.
-    let small_step = if LIMB_BITS == 32 {
+    let small_step = if Limb::BITS == 32 {
         u32_power_limit(base)
     } else {
         u64_power_limit(base)
@@ -1055,7 +1055,7 @@ pub const fn scalar_mul(x: Limb, y: Limb, carry: Limb) -> (Limb, Limb) {
     // the following is always true:
     // `Wide::MAX - (Narrow::MAX * Narrow::MAX) >= Narrow::MAX`
     let z: Wide = (x as Wide) * (y as Wide) + (carry as Wide);
-    (z as Limb, (z >> LIMB_BITS) as Limb)
+    (z as Limb, (z >> Limb::BITS) as Limb)
 }
 
 // SMALL
@@ -1301,10 +1301,10 @@ pub fn large_quorem<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Li
         for j in 0..x.len() {
             let yj = y[j] as Wide;
             let p = yj * q as Wide + carry;
-            carry = p >> LIMB_BITS;
+            carry = p >> Limb::BITS;
             let xj = x[j] as Wide;
             let t = xj.wrapping_sub(p & mask).wrapping_sub(borrow);
-            borrow = (t >> LIMB_BITS) & 1;
+            borrow = (t >> Limb::BITS) & 1;
             x[j] = t as Limb;
         }
         x.normalize();
@@ -1318,10 +1318,10 @@ pub fn large_quorem<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Li
         for j in 0..x.len() {
             let yj = y[j] as Wide;
             let p = yj + carry;
-            carry = p >> LIMB_BITS;
+            carry = p >> Limb::BITS;
             let xj = x[j] as Wide;
             let t = xj.wrapping_sub(p & mask).wrapping_sub(borrow);
-            borrow = (t >> LIMB_BITS) & 1;
+            borrow = (t >> Limb::BITS) & 1;
             x[j] = t as Limb;
         }
         x.normalize();
@@ -1366,8 +1366,8 @@ pub fn shl_bits<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<(
     // For example, we transform (for u8) shifted left 2, to:
     //      b10100100 b01000010
     //      b10 b10010001 b00001000
-    debug_assert!(n < LIMB_BITS, "cannot shift left more bits than in our limb");
-    let rshift = LIMB_BITS - n;
+    debug_assert!(n < Limb::BITS as usize, "cannot shift left more bits than in our limb");
+    let rshift = Limb::BITS as usize - n;
     let lshift = n;
     let mut prev: Limb = 0;
     for xi in x.iter_mut() {
@@ -1416,8 +1416,8 @@ pub fn shl_limbs<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<
 #[must_use]
 #[inline(always)]
 pub fn shl<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<()> {
-    let rem = n % LIMB_BITS;
-    let div = n / LIMB_BITS;
+    let rem = n % Limb::BITS as usize;
+    let div = n / Limb::BITS as usize;
     if rem != 0 {
         shl_bits(x, rem)?;
     }
@@ -1445,7 +1445,7 @@ pub fn leading_zeros(x: &[Limb]) -> u32 {
 #[inline(always)]
 pub fn bit_length(x: &[Limb]) -> u32 {
     let nlz = leading_zeros(x);
-    LIMB_BITS as u32 * x.len() as u32 - nlz
+    Limb::BITS * x.len() as u32 - nlz
 }
 
 // RADIX
@@ -1612,8 +1612,6 @@ pub type Limb = u64;
 pub type Wide = u128;
 #[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
 pub type SignedWide = i128;
-#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
-pub const LIMB_BITS: usize = 64;
 
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
 pub type Limb = u32;
@@ -1621,5 +1619,3 @@ pub type Limb = u32;
 pub type Wide = u64;
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
 pub type SignedWide = i64;
-#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
-pub const LIMB_BITS: usize = 32;

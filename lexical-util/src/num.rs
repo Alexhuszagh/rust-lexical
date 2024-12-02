@@ -471,10 +471,10 @@ pub trait Integer:
         // this is heavily optimized for base10 and it's a way under estimate
         // that said, it's fast and works.
         if radix <= 16 {
-            core::mem::size_of::<Self>() * 2 - Self::IS_SIGNED as usize
+            mem::size_of::<Self>() * 2 - Self::IS_SIGNED as usize
         } else {
             // way under approximation but always works and is fast
-            core::mem::size_of::<Self>()
+            mem::size_of::<Self>()
         }
     }
 }
@@ -487,8 +487,7 @@ macro_rules! integer_impl {
         const TWO: $t = 2;
         const MAX: $t = $t::MAX;
         const MIN: $t = $t::MIN;
-        // DEPRECATE: when we drop support for <= 1.53.0, change to `<$t>::BITS`
-        const BITS: usize = mem::size_of::<$t>() * 8;
+        const BITS: usize = $t::BITS as usize;
 
         #[inline(always)]
         fn leading_zeros(self) -> u32 {

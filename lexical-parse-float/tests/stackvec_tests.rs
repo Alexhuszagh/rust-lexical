@@ -2,7 +2,7 @@ mod stackvec;
 
 use core::cmp;
 
-use lexical_parse_float::bigint::{self, Limb, StackVec, LIMB_BITS};
+use lexical_parse_float::bigint::{self, Limb, StackVec};
 use stackvec::vec_from_u32;
 
 const SIZE: usize = 50;
@@ -34,7 +34,7 @@ fn simple_test() {
     assert_eq!(x.len(), 2);
     assert_eq!(x.is_empty(), false);
     assert_eq!(x.hi16(), (0x8000, true));
-    if LIMB_BITS == 32 {
+    if Limb::BITS == 32 {
         assert_eq!(x.hi32(), (0x80000002, true));
         assert_eq!(x.hi64(), (0x8000000280000000, false));
     } else {
@@ -128,7 +128,7 @@ fn math_test() {
     x.mul_small(3);
     assert_eq!(&*x, &[0, 6, 27]);
     x.mul_small(Limb::MAX);
-    let expected: VecType = if LIMB_BITS == 32 {
+    let expected: VecType = if Limb::BITS == 32 {
         vec_from_u32(&[0, 4294967290, 4294967274, 26])
     } else {
         vec_from_u32(&[0, 0, 4294967290, 4294967295, 4294967274, 4294967295, 26])
@@ -419,7 +419,7 @@ fn shl_bits_test() {
 fn shl_limbs_test() {
     let mut x = VecType::from_u32(0xD2210408);
     bigint::shl_limbs(&mut x, 2);
-    let expected: VecType = if LIMB_BITS == 32 {
+    let expected: VecType = if Limb::BITS == 32 {
         vec_from_u32(&[0, 0, 0xD2210408])
     } else {
         vec_from_u32(&[0, 0, 0, 0, 0xD2210408])

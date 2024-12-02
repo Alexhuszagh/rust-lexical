@@ -19,7 +19,7 @@ use lexical_util::num::{AsPrimitive, Integer};
 
 #[cfg(feature = "radix")]
 use crate::bigint::Bigfloat;
-use crate::bigint::{Bigint, Limb, LIMB_BITS};
+use crate::bigint::{Bigint, Limb};
 use crate::float::{extended_to_float, ExtendedFloat80, RawFloat};
 use crate::limits::{u32_power_limit, u64_power_limit};
 use crate::number::Number;
@@ -413,7 +413,7 @@ pub fn parse_mantissa<const FORMAT: u128>(num: Number, max_digits: usize) -> (Bi
     let mut result = Bigint::new();
 
     // Now use our pre-computed small powers iteratively.
-    let step = if LIMB_BITS == 32 {
+    let step = if Limb::BITS == 32 {
         u32_power_limit(format.radix())
     } else {
         u64_power_limit(format.radix())
@@ -645,11 +645,11 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
         num.shl(shift).unwrap();
         num.exp -= shift as i32;
     } else if diff > 0 {
-        // Need to shift denominator left, go by a power of LIMB_BITS.
+        // Need to shift denominator left, go by a power of Limb::BITS.
         // After this, the numerator will be non-normalized, and the
         // denominator will be normalized. We need to add one to the
         // quotient,since we're calculating the ceiling of the divmod.
-        let (q, r) = shift.ceil_divmod(LIMB_BITS);
+        let (q, r) = shift.ceil_divmod(Limb::BITS as usize);
         let r = -r;
         if r != 0 {
             num.shl_bits(r as usize).unwrap();
@@ -657,7 +657,7 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
         }
         if q != 0 {
             den.shl_limbs(q).unwrap();
-            den.exp -= LIMB_BITS as i32 * q as i32;
+            den.exp -= Limb::BITS as i32 * q as i32;
         }
     }
 

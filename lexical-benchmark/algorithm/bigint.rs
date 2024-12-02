@@ -15,7 +15,7 @@ fn standard_pow(big: &mut bigint::Bigint, exp: u32) {
 fn small_pow(big: &mut bigint::Bigint, mut exp: u32) {
     let shift = exp as usize;
     // Mul pow5
-    let small_step = if bigint::LIMB_BITS == 32 {
+    let small_step = if bigint::Limb::BITS == 32 {
         u32_power_limit(5)
     } else {
         u64_power_limit(5)
@@ -189,7 +189,7 @@ fn karatsuba_mul_algo(big: &mut bigint::Bigint, y: &[bigint::Limb]) {
 
 #[inline(always)]
 fn new_limb(rng: &mut Rng) -> bigint::Limb {
-    if bigint::LIMB_BITS == 32 {
+    if bigint::Limb::BITS == 32 {
         rng.u32(..) as bigint::Limb
     } else {
         rng.u64(..) as bigint::Limb

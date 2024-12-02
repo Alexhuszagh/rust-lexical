@@ -48,7 +48,7 @@ impl Number<'_> {
             && !self.many_digits
     }
 
-    /// The fast path algorithmn using machine-sized integers and floats.
+    /// The fast path algorithm using machine-sized integers and floats.
     ///
     /// This is extracted into a separate function so that it can be attempted
     /// before constructing a Decimal. This only works if both the mantissa
@@ -60,7 +60,7 @@ impl Number<'_> {
     // `set_precision` doesn't return a unit value on x87 FPUs.
     #[must_use]
     #[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
-    #[allow(clippy::let_unit_value)] // reason = "untentional ASM drop for X87 FPUs"
+    #[allow(clippy::let_unit_value)] // reason = "intentional ASM drop for X87 FPUs"
     pub fn try_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> Option<F> {
         let format = NumberFormat::<FORMAT> {};
         debug_assert!(
@@ -110,7 +110,7 @@ impl Number<'_> {
     // `set_precision` doesn't return a unit value on x87 FPUs.
     #[must_use]
     #[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
-    #[allow(clippy::let_unit_value)] // reason = "untentional ASM drop for X87 FPUs"
+    #[allow(clippy::let_unit_value)] // reason = "intentional ASM drop for X87 FPUs"
     pub fn force_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> F {
         let format = NumberFormat::<FORMAT> {};
         debug_assert!(
