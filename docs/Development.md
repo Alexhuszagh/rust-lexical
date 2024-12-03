@@ -48,7 +48,11 @@ rustup +nightly component add miri
 cargo +nightly install cargo-valgrind
 cargo +nightly install cargo-tarpaulin
 cargo +nightly install cargo-fuzz
-cargo +nightly install cargo-count
+
+# This is only needed if checking the number of lines of unsafe code,
+# which uses a deprecated binary that requires an old nightly to
+# install.
+cargo +nightly install cargo-count --git https://github.com/kbknapp/cargo-count --rev eebe6f8 --locked
 ```
 
 In addition, the following non-Rust dependencies must be installed:

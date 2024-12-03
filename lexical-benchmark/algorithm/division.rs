@@ -42,7 +42,10 @@ fn fast_div(v: u32) -> (u32, u32) {
     #[allow(clippy::manual_div_ceil)]
     let left_end = ((1 << (max_precision + additional_precision)) + divisor - 1) / divisor;
     let quotient = (v.wrapping_mul(left_end)) >> (max_precision + additional_precision);
-    let remainder = v - divisor * quotient;
+    // NOTE: This should never wrap unless the multiplication wraps, which should
+    // never happen in the cases we use it. Since this is only used for
+    // algorithm generation and testing, this will never fail in real scenarios.
+    let remainder = v.wrapping_sub(divisor * quotient);
 
     (quotient, remainder)
 }
