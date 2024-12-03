@@ -7,17 +7,17 @@
 //! This is therefore under an Apache 2.0/Boost Software dual-license.
 //!
 //! We use a u64 for the significant digits, even for a 32-bit integer,
-//! however, we use the proper bitshifts, etc. for the float in question,
+//! however, we use the proper bit shifts, etc. for the float in question,
 //! rather than clobbering the result to f64, as Rust's port does.
 //!
 //! Each one of the algorithms described here has the main implementation,
 //! according to the reference Dragonbox paper, as well as an alias for
 //! our own purposes. The existing algorithms include:
 //!
-//! 1. compute_nearest_normal
-//! 2. compute_nearest_shorter
-//! 3. compute_left_closed_directed
-//! 4. compute_right_closed_directed
+//! 1. `compute_nearest_normal`
+//! 2. `compute_nearest_shorter`
+//! 3. `compute_left_closed_directed`
+//! 4. `compute_right_closed_directed`
 //!
 //! `compute_nearest_normal` and `compute_nearest_shorter` are used for
 //! round-nearest, tie-even and `compute_right_closed_directed` is used
@@ -295,8 +295,8 @@ pub fn to_decimal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     }
 
     // Shorter interval case; proceed like Schubfach.
-    // One might think this condition is wrong, since when exponent_bits == 1
-    // and two_fc == 0, the interval is actullay regular. However, it turns out
+    // One might think this condition is wrong, since when `exponent_bits == 1`
+    // and `two_fc == 0`, the interval is actually regular. However, it turns out
     // that this seemingly wrong condition is actually fine, because the end
     // result is anyway the same.
     //
@@ -306,7 +306,7 @@ pub fn to_decimal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     //    fc    * 2^e = 1.175'494'35... * 10^-38
     // (fc+1/2) * 2^e = 1.175'494'42... * 10^-38
     //
-    // Hence, shorter_interval_case will return 1.175'494'4 * 10^-38.
+    // Hence, `shorter_interval_case` will return 1.175'494'4 * 10^-38.
     // 1.175'494'3 * 10^-38 is also a correct shortest representation that will
     // be rejected if we assume shorter interval, but 1.175'494'4 * 10^-38 is
     // closer to the true value so it doesn't matter.
@@ -317,7 +317,7 @@ pub fn to_decimal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     //    fc    * 2^e = 2.225'073'858'507'201'38... * 10^-308
     // (fc+1/2) * 2^e = 2.225'073'858'507'201'63... * 10^-308
     //
-    // Hence, shorter_interval_case will return 2.225'073'858'507'201'4 *
+    // Hence, `shorter_interval_case` will return 2.225'073'858'507'201'4 *
     // 10^-308. This is indeed of the shortest length, and it is the unique one
     // closest to the true value among valid representations of the same length.
 
@@ -325,8 +325,8 @@ pub fn to_decimal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     //
     // What we need is a compute-nearest, but with truncated digits in the
     // truncated case. Note that we don't need the left-closed direct
-    // rounding case of I = [w,w+), or right-closed directed rounding
-    // case of I = (w−,w], since these produce the shortest intervals for
+    // rounding case of `I = [w,w+)`, or right-closed directed rounding
+    // case of `I = (w−,w]`, since these produce the shortest intervals for
     // a **float parser** assuming the rounding of the float-parser.
     // The left-directed case assumes the float parser will round-down,
     // while the right-directed case assumed the float parser will round-up.
@@ -369,28 +369,29 @@ pub fn compute_round<F: RawFloat>(float: F) -> ExtendedFloat80 {
     compute_nearest_normal(float)
 }
 
-/// Compute the interval I = [m−w,m+w] if even, otherwise, (m−w,m+w).
+/// Compute the interval `I = [m−w,m+w]` if even, otherwise, `(m−w,m+w)`.
 /// This is the simple case for a finite number where only the hidden bit is
 /// set.
 #[inline]
 pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
-    // Compute k and beta.
+    // Compute `k` and `beta`.
     let exponent = float.exponent();
     let minus_k = floor_log10_pow2_minus_log10_4_over_3(exponent);
     let beta = exponent + floor_log2_pow10(-minus_k);
 
-    // Compute xi and zi.
+    // Compute `xi` and `zi`.
     // SAFETY: safe, since value must be finite and therefore in the correct range.
     // `-324 <= exponent <= 308`, so `x * log10(2) - log10(4 / 3)` must be in
-    // `-98 <= x <= 93`, so the final value must be in [-93, 98] (for f64). We have
-    // precomputed powers for [-292, 326] for f64 (same logic applies for f32) so
-    // this is **ALWAYS** safe.
+    // `-98 <= x <= 93`, so the final value must be in `[-93, 98]` (for f64). We
+    // have pre-computed powers for `[-292, 326]` for f64 (same logic applies
+    // for f32) so this is **ALWAYS** safe.
     let pow5 = unsafe { F::dragonbox_power(-minus_k) };
     let mut xi = F::compute_left_endpoint(&pow5, beta);
     let mut zi = F::compute_right_endpoint(&pow5, beta);
 
     // Get the interval type.
-    // Must be Round since we only use compute_round with a round-nearest direction.
+    // Must be Round since we only use `compute_round` with a round-nearest
+    // direction.
     let interval_type = IntervalType::Closed;
 
     // If we don't accept the right endpoint and if the right endpoint is an
@@ -413,7 +414,7 @@ pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
         return extended_float(mant, exp);
     }
 
-    // Otherwise, compute the round-up of y.
+    // Otherwise, compute the round-up of `y`.
     let mut significand = F::compute_round_up(&pow5, beta);
 
     // When tie occurs, choose one of them according to the rule.
@@ -428,7 +429,7 @@ pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
         significand += 1;
     }
 
-    // Ensure we haven't re-assigned exponent or minus_k, since this
+    // Ensure we haven't re-assigned `exponent` or `minus_k`, since this
     // is a massive potential security vulnerability.
     debug_assert!(float.exponent() == exponent);
     debug_assert!(minus_k == floor_log10_pow2_minus_log10_4_over_3(exponent));
@@ -436,7 +437,7 @@ pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
     extended_float(significand, minus_k)
 }
 
-/// Compute the interval I = [m−w,m+w] if even, otherwise, (m−w,m+w).
+/// Compute the interval `I = [m−w,m+w]` if even, otherwise, `(m−w,m+w)`.
 /// This is the normal case for a finite number with non-zero significant
 /// digits.
 #[allow(clippy::comparison_chain)] // reason="logical approach for algorithm"
@@ -446,26 +447,26 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let is_even = mantissa % 2 == 0;
 
     // Step 1: Schubfach multiplier calculation
-    // Compute k and beta.
+    // Compute `k` and `beta`.
     let minus_k = floor_log10_pow2(exponent) - F::KAPPA as i32;
     // SAFETY: safe, since value must be finite and therefore in the correct range.
     // `-324 <= exponent <= 308`, so `x * log10(2)` must be in
-    // `-98 <= x <= 93`, so the final value must be in [-93, 98] (for f64). We have
-    // precomputed powers for [-292, 326] for f64 (same logic applies for f32) so
-    // this is **ALWAYS** safe.
+    // `-98 <= x <= 93`, so the final value must be in `[-93, 98]` (for f64). We
+    // have pre-computed powers for `[-292, 326]` for f64 (same logic applies
+    // for f32) so this is **ALWAYS** safe.
     let pow5 = unsafe { F::dragonbox_power(-minus_k) };
     let beta = exponent + floor_log2_pow10(-minus_k);
 
-    // Compute zi and deltai.
-    // 10^kappa <= deltai < 10^(kappa + 1)
+    // Compute `zi` and `deltai`.
+    // `10^kappa <= deltai < 10^(kappa + 1)`
     let two_fc = mantissa << 1;
     let deltai = F::compute_delta(&pow5, beta);
     // For the case of binary32, the result of integer check is not correct for
-    // 29711844 * 2^-82
-    // = 6.1442653300000000008655037797566933477355632930994033813476... * 10^-18
-    // and 29711844 * 2^-81
-    // = 1.2288530660000000001731007559513386695471126586198806762695... * 10^-17,
-    // and they are the unique counterexamples. However, since 29711844 is even,
+    // `29711844 * 2^-82
+    // = 6.1442653300000000008655037797566933477355632930994033813476... * 10^-18`
+    // and `29711844 * 2^-81
+    // = 1.2288530660000000001731007559513386695471126586198806762695... * 10^-17`,
+    // and they are the unique counterexamples. However, since `29711844` is even,
     // this does not cause any problem for the endpoints calculations; it can only
     // cause a problem when we need to perform integer check for the center.
     // Fortunately, with these inputs, that branch is never executed, so we are
@@ -476,15 +477,16 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let big_divisor = pow32(10, F::KAPPA + 1);
     let small_divisor = pow32(10, F::KAPPA);
 
-    // Using an upper bound on zi, we might be able to optimize the division
-    // better than the compiler; we are computing zi / big_divisor here.
+    // Using an upper bound on `zi`, we might be able to optimize the division
+    // better than the compiler; we are computing `zi / big_divisor` here.
     let exp = F::KAPPA + 1;
     let n_max = (1 << (F::MANTISSA_SIZE + 1)) * big_divisor as u64 - 1;
     let mut significand = F::divide_by_pow10(zi, exp, n_max);
     let mut r = (zi - (big_divisor as u64).wrapping_mul(significand)) as u32;
 
     // Get the interval type.
-    // Must be Round since we only use compute_round with a round-nearest direction.
+    // Must be Round since we only use `compute_round` with a round-nearest
+    // direction.
     let interval_type = IntervalType::Symmetric(is_even);
 
     // Check for short-circuit.
@@ -504,7 +506,7 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     } else if r > deltai {
         should_short_circuit = false;
     } else {
-        // r == deltai; compare fractional parts.
+        // `r == deltai`; compare fractional parts.
         // Due to the more complex logic in the new dragonbox algorithm,
         // it's much easier logically to store if we should short circuit,
         // the default, and only mark
@@ -513,9 +515,9 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
 
         if !include_left || exponent < F::FC_PM_HALF_LOWER || exponent > F::DIV_BY_5_THRESHOLD {
             // If the left endpoint is not included, the condition for
-            // success is z^(f) < delta^(f) (odd parity).
+            // success is `z^(f) < delta^(f)` (odd parity).
             // Otherwise, the inequalities on exponent ensure that
-            // x is not an integer, so if z^(f) >= delta^(f) (even parity), we in fact
+            // `x` is not an integer, so if `z^(f) >= delta^(f)` (even parity), we in fact
             // have strict inequality.
             let parity = F::compute_mul_parity(two_fl, &pow5, beta).0;
             if !parity {
@@ -540,32 +542,31 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
         let dist = r - (deltai / 2) + (small_divisor / 2);
         let approx_y_parity = ((dist ^ (small_divisor / 2)) & 1) != 0;
 
-        // Is dist divisible by 10^kappa?
+        // Is dist divisible by `10^kappa`?
         let (dist, is_dist_div_by_kappa) = F::check_div_pow10(dist);
 
-        // Add dist / 10^kappa to the significand.
+        // Add `dist / 10^kappa` to the significand.
         significand += dist as u64;
 
         if is_dist_div_by_kappa {
-            // Check z^(f) >= epsilon^(f).
-            // We have either yi == zi - epsiloni or yi == (zi - epsiloni) - 1,
-            // where yi == zi - epsiloni if and only if z^(f) >= epsilon^(f).
+            // Check `z^(f) >= epsilon^(f)`.
+            // We have either `yi == zi - epsiloni` or `yi == (zi - epsiloni) - 1`,
+            // where `yi == zi - epsiloni` if and only if `z^(f) >= epsilon^(f)`.
             // Since there are only 2 possibilities, we only need to care about the
-            // parity. Also, zi and r should have the same parity since the divisor is
+            // parity. Also, `zi` and `r` should have the same parity since the divisor is
             // an even number.
             let (yi_parity, is_y_integer) = F::compute_mul_parity(two_fc, &pow5, beta);
             let round_down = RoundMode::Round.prefer_round_down(significand);
 
             if yi_parity != approx_y_parity || (is_y_integer && round_down) {
-                // If z^(f) >= epsilon^(f), we might have a tie
-                // when z^(f) == epsilon^(f), or equivalently, when y is an integer.
+                // If `z^(f) >= epsilon^(f)`, we might have a tie
+                // when `z^(f) == epsilon^(f)`, or equivalently, when `y` is an integer.
                 // For tie-to-up case, we can just choose the upper one.
-                //significand -= 1;
                 significand -= 1;
             }
         }
 
-        // Ensure we haven't re-assigned exponent or minus_k, since this
+        // Ensure we haven't re-assigned `exponent` or `minus_k`, since this
         // is a massive potential security vulnerability.
         debug_assert!(float.exponent() == exponent);
         debug_assert!(minus_k == floor_log10_pow2(exponent) - F::KAPPA as i32);
@@ -574,33 +575,33 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     }
 }
 
-/// Compute the interval I = [w,w+).
+/// Compute the interval `I = [w,w+)`.
 #[allow(clippy::comparison_chain)] // reason="logical approach for algorithm"
 pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let mantissa = float.mantissa().as_u64();
     let exponent = float.exponent();
 
     // Step 1: Schubfach multiplier calculation
-    // Compute k and beta.
+    // Compute `k` and `beta`.
     let minus_k = floor_log10_pow2(exponent) - F::KAPPA as i32;
     // SAFETY: safe, since value must be finite and therefore in the correct range.
-    // `-324 <= exponent <= 308`, so `x * log10(2)` must be in [-98, 93] (for f64).
-    // We have precomputed powers for [-292, 326] for f64 (same logic applies for
-    // f32) so this is **ALWAYS** safe.
+    // `-324 <= exponent <= 308`, so `x * log10(2)` must be in `[-98, 93]` (for
+    // f64). We have pre-computed powers for `[-292, 326]` for f64 (same logic
+    // applies for f32) so this is **ALWAYS** safe.
     let pow5 = unsafe { F::dragonbox_power(-minus_k) };
     let beta = exponent + floor_log2_pow10(-minus_k);
 
-    // Compute zi and deltai.
-    // 10^kappa <= deltai < 10^(kappa + 1)
+    // Compute `zi` and `deltai`.
+    // `10^kappa <= deltai < 10^(kappa + 1)`
     let two_fc = mantissa << 1;
     let deltai = F::compute_delta(&pow5, beta);
     let (mut xi, mut is_x_integer) = F::compute_mul(two_fc << beta, &pow5);
 
     // Deal with the unique exceptional cases
-    // 29711844 * 2^-82
-    // = 6.1442653300000000008655037797566933477355632930994033813476... * 10^-18
-    // and 29711844 * 2^-81
-    // = 1.2288530660000000001731007559513386695471126586198806762695... * 10^-17
+    // `29711844 * 2^-82
+    // = 6.1442653300000000008655037797566933477355632930994033813476... * 10^-18`
+    // and `29711844 * 2^-81
+    // = 1.2288530660000000001731007559513386695471126586198806762695... * 10^-17`
     // for binary32.
     if F::BITS == 32 && exponent <= -80 {
         is_x_integer = false;
@@ -613,8 +614,8 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // Step 2: Try larger divisor; remove trailing zeros if necessary
     let big_divisor = pow32(10, F::KAPPA + 1);
 
-    // Using an upper bound on xi, we might be able to optimize the division
-    // better than the compiler; we are computing xi / big_divisor here.
+    // Using an upper bound on `xi`, we might be able to optimize the division
+    // better than the compiler; we are computing `xi / big_divisor` here.
     let exp = F::KAPPA + 1;
     let n_max = (1 << (F::MANTISSA_SIZE + 1)) * big_divisor as u64 - 1;
     let mut significand = F::divide_by_pow10(xi, exp, n_max);
@@ -636,10 +637,10 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
     } else if r == deltai {
         // Compare the fractional parts.
         // This branch is never taken for the exceptional cases
-        // 2f_c = 29711482, e = -81
-        // (6.1442649164096937243516663440523473127541365101933479309082... * 10^-18)
-        // and 2f_c = 29711482, e = -80
-        // (1.2288529832819387448703332688104694625508273020386695861816... * 10^-17).
+        // `2f_c = 29711482, e = -81`
+        // `(6.1442649164096937243516663440523473127541365101933479309082... * 10^-18)`
+        // and `2f_c = 29711482, e = -80`
+        // `(1.2288529832819387448703332688104694625508273020386695861816... * 10^-17)`.
         let (zi_parity, is_z_integer) = F::compute_mul_parity(two_fc + 2, &pow5, beta);
         if zi_parity || is_z_integer {
             should_short_circuit = false;
@@ -654,7 +655,7 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
         significand *= 10;
         significand -= F::div_pow10(r) as u64;
 
-        // Ensure we haven't re-assigned exponent or minus_k, since this
+        // Ensure we haven't re-assigned `exponent` or `minus_k`, since this
         // is a massive potential security vulnerability.
         debug_assert!(float.exponent() == exponent);
         debug_assert!(minus_k == floor_log10_pow2(exponent) - F::KAPPA as i32);
@@ -663,7 +664,7 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
     }
 }
 
-/// Compute the interval I = (w−,w]..
+/// Compute the interval `I = (w−,w]`.
 #[allow(clippy::comparison_chain, clippy::if_same_then_else)] // reason="logical approach for algorithm"
 pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> ExtendedFloat80 {
     // ensure our floats have a maximum exp in the range [-324, 308].
@@ -673,19 +674,19 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
     let exponent = float.exponent();
 
     // Step 1: Schubfach multiplier calculation
-    // Exponent must be in the range [-324, 308]
-    // Compute k and beta.
+    // Exponent must be in the range `[-324, 308]`
+    // Compute `k` and `beta`.
     let minus_k = floor_log10_pow2(exponent - shorter as i32) - F::KAPPA as i32;
     assert!(F::KAPPA <= 2);
     // SAFETY: safe, since value must be finite and therefore in the correct range.
     // `-324 <= exponent <= 308`, so `x * log10(2)` must be in [-100, 92] (for f64).
-    // We have precomputed powers for [-292, 326] for f64 (same logic applies for
+    // We have pre-computed powers for [-292, 326] for f64 (same logic applies for
     // f32) so this is **ALWAYS** safe.
     let pow5: <F as DragonboxFloat>::Power = unsafe { F::dragonbox_power(-minus_k) };
     let beta = exponent + floor_log2_pow10(-minus_k);
 
-    // Compute zi and deltai.
-    // 10^kappa <= deltai < 10^(kappa + 1)
+    // Compute `zi` and `deltai`.
+    // `10^kappa <= deltai < 10^(kappa + 1)`
     let two_fc = mantissa << 1;
     let deltai = F::compute_delta(&pow5, beta - shorter as i32);
     let zi = F::compute_mul(two_fc << beta, &pow5).0;
@@ -693,8 +694,8 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
     // Step 2: Try larger divisor; remove trailing zeros if necessary
     let big_divisor = pow32(10, F::KAPPA + 1);
 
-    // Using an upper bound on zi, we might be able to optimize the division better
-    // than the compiler; we are computing zi / big_divisor here.
+    // Using an upper bound on `zi`, we might be able to optimize the division
+    // better than the compiler; we are computing `zi / big_divisor` here.
     let exp = F::KAPPA + 1;
     let n_max = (1 << (F::MANTISSA_SIZE + 1)) * big_divisor as u64 - 1;
     let mut significand = F::divide_by_pow10(zi, exp, n_max);
@@ -729,7 +730,7 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
         significand *= 10;
         significand -= F::div_pow10(r) as u64;
 
-        // Ensure we haven't re-assigned exponent or minus_k.
+        // Ensure we haven't re-assigned `exponent` or `minus_k`.
         assert!(float.exponent() == exponent);
         debug_assert!(
             minus_k == floor_log10_pow2(float.exponent() - shorter as i32) - F::KAPPA as i32
@@ -941,13 +942,13 @@ pub const fn count_factors(radix: u32, mut n: u64) -> u32 {
 // DIV
 // ---
 
-// Compute floor(n / 10^exp) for small exp.
-// Precondition: exp >= 0.
+// Compute `floor(n / 10^exp)` for small exp.
+// Precondition: `exp >= 0.`
 #[inline(always)]
 pub const fn divide_by_pow10_32(n: u32, exp: u32) -> u32 {
     // Specialize for 32-bit division by 100.
     // Compiler is supposed to generate the identical code for just writing
-    // "n / 100", but for some reason MSVC generates an inefficient code
+    // `n / 100`, but for some reason MSVC generates an inefficient code
     // (mul + mov for no apparent reason, instead of single imul),
     // so we does this manually.
     if exp == 2 {
@@ -958,8 +959,8 @@ pub const fn divide_by_pow10_32(n: u32, exp: u32) -> u32 {
     }
 }
 
-// Compute floor(n / 10^exp) for small exp.
-// Precondition: n <= n_max
+// Compute `floor(n / 10^exp)` for small exp.
+// Precondition: `n <= n_max`
 #[inline(always)]
 pub const fn divide_by_pow10_64(n: u64, exp: u32, n_max: u64) -> u64 {
     // Specialize for 64-bit division by 1000.
@@ -1096,9 +1097,9 @@ pub const fn rotr64(n: u64, r: u64) -> u64 {
 }
 
 /// Magic numbers for division by a power of 10.
-/// Replace n by floor(n / 10^N).
-/// Returns true if and only if n is divisible by 10^N.
-/// Precondition: n <= 10^(N+1)
+/// Replace `n` by `floor(n / 10^N)`.
+/// Returns true if and only if n is divisible by `10^N`.
+/// Precondition: `n <= 10^(N+1)`
 /// !!It takes an in-out parameter!!
 struct Div10Info {
     magic_number: u32,
@@ -1117,7 +1118,7 @@ const F64_DIV10_INFO: Div10Info = Div10Info {
 
 macro_rules! check_div_pow10 {
     ($n:ident, $exp:literal, $float:ident, $info:ident) => {{
-        // Make sure the computation for max_n does not overflow.
+        // Make sure the computation for `max_n` does not overflow.
         debug_assert!($exp + 2 < floor_log10_pow2(31));
         debug_assert!($n as u64 <= pow64(10, $exp + 1));
 
@@ -1187,24 +1188,24 @@ pub trait DragonboxFloat: Float {
     /// Remove trailing zeros from the float.
     fn remove_trailing_zeros(mantissa: u64) -> (u64, i32);
 
-    /// Determine if `two_f` is divisible by 2^exp.
+    /// Determine if `two_f` is divisible by `2^exp`.
     #[inline(always)]
     fn divisible_by_pow2(x: u64, exp: u32) -> bool {
-        // Preconditions: exp >= 1 && x != 0
+        // Preconditions: `exp >= 1 && x != 0`
         x.trailing_zeros() >= exp
     }
 
-    // Replace n by floor(n / 10^N).
-    // Returns true if and only if n is divisible by 10^N.
-    // Precondition: n <= 10^(N+1)
+    // Replace `n` by `floor(n / 10^N)`.
+    // Returns true if and only if `n` is divisible by `10^N`.
+    // Precondition: `n <= 10^(N+1)`
     fn check_div_pow10(n: u32) -> (u32, bool);
 
-    // Compute floor(n / 10^N) for small n and exp.
-    // Precondition: n <= 10^(N+1)
+    // Compute `floor(n / 10^N)` for small `n` and exp.
+    // Precondition: `n <= 10^(N+1)`
     fn div_pow10(n: u32) -> u32;
 
-    // Compute floor(n / 10^N) for small N.
-    // Precondition: n <= n_max
+    // Compute `floor(n / 10^N)` for small `N`.
+    // Precondition: `n <= n_max`
     fn divide_by_pow10(n: u64, exp: u32, n_max: u64) -> u64;
 }
 
@@ -1391,7 +1392,7 @@ impl DragonboxFloat for f64 {
     fn remove_trailing_zeros(mantissa: u64) -> (u64, i32) {
         debug_assert!(mantissa != 0);
 
-        // This magic number is ceil(2^90 / 10^8).
+        // This magic number is `ceil(2^90 / 10^8)`.
         let magic_number = 12379400392853802749u64;
         let nm = mantissa as u128 * magic_number as u128;
 

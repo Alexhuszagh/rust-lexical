@@ -5,7 +5,7 @@
 
 /// Cached powers of ten as specified by the Grisu algorithm.
 ///
-/// Cached powers of 10^k, calculated as if by:
+/// Cached powers of `10^k`, calculated as if by:
 /// `ceil((alpha-e+63) * ONE_LOG_TEN);`
 ///
 /// The estimation of the exponents can be trivially shown to be true,

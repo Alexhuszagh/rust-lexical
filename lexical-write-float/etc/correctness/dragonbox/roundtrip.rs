@@ -1,4 +1,4 @@
-// Validate a roundtrip for a given float.
+// Validate a round-trip for a given float.
 
 use lexical_write_float::float::RawFloat;
 use lexical_write_float::ToLexical;

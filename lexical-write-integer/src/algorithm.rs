@@ -108,10 +108,10 @@ unsafe fn write_digits<T: UnsignedInteger>(
         let r1 = usize::as_cast(T::TWO * (r / radix2));
         let r2 = usize::as_cast(T::TWO * (r % radix2));
 
-        // SAFETY: This is always safe, since the table is 2*radix^2, and
-        // r1 and r2 must be in the range [0, 2*radix^2-1), since the maximum
-        // value of r is `radix4-1`, which must have a div and r
-        // in the range [0, radix^2-1).
+        // SAFETY: This is always safe, since the table is `2*radix^2`, and
+        // `r1` and `r2` must be in the range `[0, 2*radix^2-1)`, since the maximum
+        // value of r is `radix4-1`, which must have a `div` and `r`
+        // in the range `[0, radix^2-1)`.
         write_digits!(buffer, index, table, r2);
         write_digits!(buffer, index, table, r1);
     }
@@ -121,21 +121,21 @@ unsafe fn write_digits<T: UnsignedInteger>(
         let r = usize::as_cast(T::TWO * (value % radix2));
         value /= radix2;
 
-        // SAFETY: this is always safe, since the table is 2*radix^2, and
-        // r must be in the range [0, 2*radix^2-1).
+        // SAFETY: this is always safe, since the table is `2*radix^2`, and
+        // `r` must be in the range `[0, 2*radix^2-1)`.
         write_digits!(buffer, index, table, r);
     }
 
     // Decode last 2 digits.
     if value < radix {
         let r = u32::as_cast(value);
-        // SAFETY: this is always safe, since value < radix, so it must be < 36.
+        // SAFETY: this is always safe, since `value < radix`, so it must be < 36.
         write_digit!(buffer, index, r);
     } else {
         let r = usize::as_cast(T::TWO * value);
-        // SAFETY: this is always safe, since the table is 2*radix^2, and
-        // the value must <= radix^2, so rem must be in the range
-        // [0, 2*radix^2-1).
+        // SAFETY: this is always safe, since the table is `2*radix^2`, and
+        // the value must `<= radix^2`, so rem must be in the range
+        // `[0, 2*radix^2-1)`.
         write_digits!(buffer, index, table, r);
     }
 
@@ -161,7 +161,7 @@ unsafe fn write_step_digits<T: UnsignedInteger>(
     debug_assert_radix(radix);
 
     let start = index;
-    // SAFETY: safe as long as the call to write_step_digits is safe.
+    // SAFETY: safe as long as the call to `write_step_digits` is safe.
     let index = unsafe { write_digits(value, radix, table, buffer, index, count) };
     // Write the remaining 0 bytes.
     let end = start.saturating_sub(step);
@@ -189,7 +189,7 @@ pub fn algorithm<T>(value: T, radix: u32, table: &[u8], buffer: &mut [u8], count
 where
     T: UnsignedInteger,
 {
-    // This is so that radix^4 does not overflow, since 36^4 overflows a u16.
+    // This is so that `radix^4` does not overflow, since `36^4` overflows a u16.
     assert!(T::BITS >= 32, "Must have at least 32 bits in the input.");
     assert!(radix <= 36, "radix must be <= 36");
     assert!(table.len() >= (radix * radix * 2) as usize, "table must be 2 * radix^2 long");
@@ -198,7 +198,7 @@ where
     let buffer = &mut buffer[..count];
 
     // SAFETY: Both forms of unchecked indexing cannot overflow.
-    // The table always has 2*radix^2 elements, so it must be a legal index.
+    // The table always has `2*radix^2` elements, so it must be a legal index.
     // The buffer is ensured to have at least `FORMATTED_SIZE` or
     // `FORMATTED_SIZE_DECIMAL` characters, which is the maximum number of
     // digits an integer of that size may write.
@@ -224,8 +224,8 @@ pub fn algorithm_u128<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
     buffer: &mut [u8],
     count: usize,
 ) -> usize {
-    // NOTE: Use the const version of radix for u64_step and
-    // u128_divrem to ensure they're evaluated at compile time.
+    // NOTE: Use the const version of radix for `u64_step` and
+    // `u128_divrem` to ensure they're evaluated at compile time.
     assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
 
     assert!(count <= buffer.len());
@@ -243,7 +243,7 @@ pub fn algorithm_u128<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
     }
 
     // LOGIC: Both forms of unchecked indexing cannot overflow.
-    // The table always has 2*radix^2 elements, so it must be a legal index.
+    // The table always has `2*radix^2` elements, so it must be a legal index.
     // The buffer is ensured to have at least `FORMATTED_SIZE` or
     // `FORMATTED_SIZE_DECIMAL` characters, which is the maximum number of
     // digits an integer of that size may write.

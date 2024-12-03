@@ -46,7 +46,7 @@ pub fn binary<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> Ext
     // is not a power-of-two. If it's odd and we're at halfway, we'll
     // always round-up **anyway**.
     //
-    // We need to check the truncated bits are equal to 0b100000....,
+    // We need to check the truncated bits are equal to `0b100000....`,
     // if it's above that, always round-up. If it's odd, we can always
     // disambiguate the float. If it's even, and exactly halfway, this
     // step fails.
@@ -96,7 +96,7 @@ pub fn binary<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> Ext
 ///
 /// We're guaranteed to have a large number of digits here
 /// (in general, 20+ or much higher), due to how close we
-/// are to a halfway representation, so an uncheced loop
+/// are to a halfway representation, so an unchecked loop
 /// optimization isn't worth it.
 #[cfg_attr(not(feature = "compact"), inline(always))]
 #[allow(unused_mut)]

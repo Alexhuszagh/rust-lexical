@@ -92,8 +92,9 @@ pub fn moderate_u128_divrem(n: u128, d: u64, factor: u128, factor_shr: u32) -> (
 
 /// Optimized fallback division/remainder algorithm for u128.
 ///
-/// This is because the codegen for u128 divrem is very inefficient in Rust,
-/// calling both `__udivmodti4` twice internally, rather than a single time.
+/// This is because the code generation for u128 divrem is very inefficient
+/// in Rust, calling both `__udivmodti4` twice internally, rather than a single
+/// time.
 ///
 /// This is still a fair bit slower than the optimized algorithms described
 /// in the above paper, but this is a suitable fallback when we cannot use

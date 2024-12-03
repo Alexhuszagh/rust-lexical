@@ -766,8 +766,8 @@ pub const fn u64_power_limit(radix: u32) -> u32 {
 ///  > finite number of digits is that β should divide an integer power of γ.
 ///
 /// According to the "Handbook of Floating Point Arithmetic",
-/// for IEEE754, with emin being the min exponent, p2 being the
-/// precision, and b being the radix, the number of digits follows as:
+/// for IEEE754, with `emin` being the min exponent, `p2` being the
+/// precision, and `b` being the radix, the number of digits follows as:
 ///
 /// `−emin + p2 + ⌊(emin + 1) log(2, b) − log(1 − 2^(−p2), b)⌋`
 ///
@@ -900,8 +900,8 @@ impl MaxDigits for bf16 {
     }
 }
 
-///// emin = -16382
-///// p2 = 113
+///// `emin = -16382`
+///// `p2 = 113`
 //#[cfg(feature = "f128")]
 //impl MaxDigits for f128 {
 //    #[inline(always)]

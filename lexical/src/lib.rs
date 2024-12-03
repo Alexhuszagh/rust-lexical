@@ -144,11 +144,11 @@
 //! #### safe
 //!
 //! This replaces most unchecked indexing, required in cases where the
-//! compiler cannot ellide the check, with checked indexing. However,
+//! compiler cannot elide the check, with checked indexing. However,
 //! it does not fully replace all unsafe behavior with safe behavior.
-//! To minimize the risk of UB and out-of-bounds reads/writers, extensive
-//! edge-cases, property-based tests, and fuzzing is done with both the
-//! safe feature enabled and disabled, with the tests verified by Miri
+//! To minimize the risk of undefined behavior and out-of-bounds reads/writers,
+//! extensive edge-cases, property-based tests, and fuzzing is done with both
+//! the safe feature enabled and disabled, with the tests verified by Miri
 //! and Valgrind.
 //!
 //! # Configuration API
@@ -357,12 +357,12 @@ pub use lexical_core::{ToLexical, ToLexicalWithOptions};
 
 // NOTE: We cannot just use an uninitialized vector with excess capacity and
 // then use read-assign rather than `ptr::write` or `MaybeUninit.write` to
-// modify the values. When LLVM was the primary codegen, this was
+// modify the values. When LLVM was the primary code generator, this was
 // **UNSPECIFIED** but not undefined behavior: reading undef primitives is safe:
 //  https://llvm.org/docs/LangRef.html#undefined-values
 //
 // However, a different backend such as cranelift might make this undefined
-// behavior. That is, from the perspective of Rust, this is UB:
+// behavior. That is, from the perspective of Rust, this is undefined behavior:
 //
 //  ```rust
 //  let x = Vec::<u8>::with_capacity(500);
@@ -377,7 +377,7 @@ pub use lexical_core::{ToLexical, ToLexicalWithOptions};
 //
 // Currently, since LLVM treats it as unspecified behavior and will not drop
 // values, there is no risk of a memory leak and this is **currently** safe.
-// However, this can explode at any time, just like any UB.
+// However, this can explode at any time, just like any undefined behavior.
 
 /// High-level conversion of a number to a decimal-encoded string.
 ///
@@ -431,15 +431,15 @@ pub fn to_string_with_options<N: ToLexicalWithOptions, const FORMAT: u128>(
     n: N,
     options: &N::Options,
 ) -> String {
-    // Need to use the buffer_size hint to properly deal with float formatting
+    // Need to use the `buffer_size` hint to properly deal with float formatting
     // options.
     let size = N::Options::buffer_size::<N, FORMAT>(options);
     let mut buf = vec![0u8; size];
     let slc = buf.as_mut_slice();
     let len = lexical_core::write_with_options::<_, FORMAT>(n, slc, options).len();
 
-    // SAFETY: safe since the buffer is of sufficient size, len() must be <= the vec
-    // size.
+    // SAFETY: safe since the buffer is of sufficient size, `len()` must be <= the
+    // vec size.
     unsafe {
         buf.set_len(len);
         String::from_utf8_unchecked(buf)

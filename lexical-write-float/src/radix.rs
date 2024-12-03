@@ -154,7 +154,7 @@ where
     // Get our exponent.
     // We can't use a naive float log algorithm, since rounding issues can
     // cause major issues. For example, `12157665459056928801f64` is `3^40`,
-    // but glibc gives us (f.ln() / 3.0.ln()) of `39.999`, while Android, and
+    // but glibc gives us `(f.ln() / 3.0.ln())` of `39.999`, while Android, and
     // MUSL libm, and openlibm give us `40.0`, the correct answer. This of
     // course means we have off-by-1 errors, so the correct way is to trim
     // leading zeros, and then calculate the exponent as the offset.
@@ -397,7 +397,7 @@ pub fn truncate_and_round(
         return (max_digits, false);
     }
 
-    // Need to add the number of leading zeros to the digits digit_count.
+    // Need to add the number of leading zeros to the digits `digit_count`.
     let max_digits = {
         let digits = &mut buffer[start..start + max_digits];
         max_digits + ltrim_char_count(digits, b'0')

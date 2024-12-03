@@ -1,6 +1,6 @@
 //! A simple big-integer type for slow path algorithms.
 //!
-//! This includes minimal stackvector for use in big-integer arithmetic.
+//! This includes minimal stack vector for use in big-integer arithmetic.
 
 #![doc(hidden)]
 
@@ -996,10 +996,10 @@ pub const fn u64_to_hi64_2(r0: u64, r1: u64) -> (u64, bool) {
 ///
 /// Even using worst-case scenarios, exponentiation by squaring is
 /// significantly slower for our workloads. Just multiply by small powers,
-/// in simple cases, and use precalculated large powers in other cases.
+/// in simple cases, and use pre-calculated large powers in other cases.
 ///
 /// Furthermore, using sufficiently big large powers is also crucial for
-/// performance. This is a tradeoff of binary size and performance, and
+/// performance. This is a trade-off of binary size and performance, and
 /// using a single value at ~`5^(5 * max_exp)` seems optimal.
 #[allow(clippy::doc_markdown)] // reason="not attempted to be referencing items"
 #[allow(clippy::missing_inline_in_public_items)] // reason="only public for testing"
@@ -1116,8 +1116,8 @@ pub fn large_add_from<const SIZE: usize>(
     y: &[Limb],
     start: usize,
 ) -> Option<()> {
-    // The effective x buffer is from `xstart..x.len()`, so we need to treat
-    // that as the current range. If the effective y buffer is longer, need
+    // The effective `x` buffer is from `xstart..x.len()`, so we need to treat
+    // that as the current range. If the effective `y` buffer is longer, need
     // to resize to that, + the start index.
     if y.len() > x.len().saturating_sub(start) {
         // Ensure we panic if we can't extend the buffer.
@@ -1125,14 +1125,14 @@ pub fn large_add_from<const SIZE: usize>(
         x.try_resize(y.len() + start, 0)?;
     }
 
-    // Iteratively add elements from y to x.
+    // Iteratively add elements from `y` to `x`.
     let mut carry = false;
     for index in 0..y.len() {
         let xi = &mut x[start + index];
         let yi = y[index];
 
         // Only one op of the two ops can overflow, since we added at max
-        // Limb::max_value() + Limb::max_value(). Add the previous carry,
+        // `Limb::max_value() + Limb::max_value()`. Add the previous carry,
         // and store the current carry for the next.
         let result = scalar_add(*xi, yi);
         *xi = result.0;
@@ -1432,7 +1432,7 @@ pub fn shl<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<()> {
 #[inline(always)]
 pub fn leading_zeros(x: &[Limb]) -> u32 {
     let length = x.len();
-    // wrapping_sub is fine, since it'll just return None.
+    // `wrapping_sub` is fine, since it'll just return None.
     if let Some(&value) = x.get(length.wrapping_sub(1)) {
         value.leading_zeros()
     } else {

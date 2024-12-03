@@ -147,7 +147,7 @@ macro_rules! fmt_invalid_digit {
                 break;
             } else if !$iter.is_buffer_empty() {
                 // Haven't finished parsing, so we're going to call
-                // invalid_digit!. Need to ensure we include the
+                // `invalid_digit!`. Need to ensure we include the
                 // base suffix in that.
 
                 // SAFETY: safe since the iterator is not empty, as checked
@@ -194,7 +194,7 @@ macro_rules! parse_sign {
         $invalid_positive:ident,
         $missing:ident
     ) => {
-        // NOTE: read_if optimizes poorly since we then match after
+        // NOTE: `read_if` optimizes poorly since we then match after
         match $byte.integer_iter().first() {
             Some(&b'+') if !$no_positive => {
                 // SAFETY: We have at least 1 item left since we peaked a value
@@ -261,9 +261,9 @@ pub fn parse_4digits<const FORMAT: u128>(mut v: u32) -> u32 {
 
     // Normalize our digits to the range `[0, 9]`.
     v -= 0x3030_3030;
-    // Scale digits in 0 <= Nn <= 99.
+    // Scale digits in `0 <= Nn <= 99`.
     v = (v * radix) + (v >> 8);
-    // Scale digits in 0 <= Nnnn <= 9999.
+    // Scale digits in `0 <= Nnnn <= 9999`.
     v = ((v & 0x0000007f) * radix * radix) + ((v >> 16) & 0x0000007f);
 
     v
@@ -338,7 +338,7 @@ pub fn parse_8digits<const FORMAT: u128>(mut v: u64) -> u64 {
 
     // Normalize our digits to the base.
     v -= 0x3030_3030_3030_3030;
-    // Scale digits in 0 <= Nn <= 99.
+    // Scale digits in `0 <= Nn <= 99`.
     v = (v * radix) + (v >> 8);
     let v1 = (v & mask).wrapping_mul(mul1);
     let v2 = ((v >> 16) & mask).wrapping_mul(mul2);
@@ -375,14 +375,14 @@ where
 
 /// Run a loop where the integer cannot possibly overflow.
 ///
-/// If the len of the str is short compared to the range of the type
+/// If the length of the str is short compared to the range of the type
 /// we are parsing into, then we can be certain that an overflow will not occur.
 /// This bound is when `radix.pow(digits.len()) - 1 <= T::MAX` but the condition
 /// above is a faster (conservative) approximation of this.
 ///
 /// Consider radix 16 as it has the highest information density per digit and
-/// will thus overflow the earliest: `u8::MAX` is `ff` - any str of len 2 is
-/// guaranteed to not overflow. `i8::MAX` is `7f` - only a str of len 1 is
+/// will thus overflow the earliest: `u8::MAX` is `ff` - any str of length 2 is
+/// guaranteed to not overflow. `i8::MAX` is `7f` - only a str of length 1 is
 /// guaranteed to not overflow.
 ///
 /// This is based off of [core/num](core).
@@ -541,9 +541,9 @@ macro_rules! parse_digits_checked {
         $no_multi_digit:expr,
         $overflow_digits:expr
     ) => {{
-        // Can use the unchecked for the max_digits here. If we
+        // Can use the unchecked for the `max_digits` here. If we
         // have a non-contiguous iterator, we could have a case like
-        // 123__456, with no consecutive digit sepatators allowed. If
+        // 123__456, with no consecutive digit separators allowed. If
         // it's broken between the `_` characters, the integer will be
         // seen as valid when it isn't.
         if cfg!(not(feature = "format")) || $iter.is_contiguous() {
@@ -582,7 +582,7 @@ macro_rules! algorithm {
     // --------
     // None of this code can be changed for optimization reasons.
     // Do not change it without benchmarking every change.
-    //  1. You cannot use the NoSkipIterator in the loop,
+    //  1. You cannot use the `NoSkipIterator` in the loop,
     //      you must either return a subslice (indexing)
     //      or increment outside of the loop.
     //      Failing to do so leads to numerous more, unnecessary
@@ -599,7 +599,7 @@ macro_rules! algorithm {
     // With `step_by_unchecked`, this is sufficiently optimized.
     // Removes conditional paths, to, which simplifies maintenance.
     // The skip version of the iterator automatically coalesces to
-    // the noskip iterator.
+    // the no-skip iterator.
     let mut byte = $bytes.bytes::<FORMAT>();
     let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
 

@@ -32,3 +32,6 @@ cobertura.xml
 # Fuzzing data
 corpus/
 artifacts/
+
+# Spellchecking files
+spellcheck.txt

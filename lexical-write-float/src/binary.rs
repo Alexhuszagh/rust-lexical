@@ -274,7 +274,7 @@ where
     // Write the significant digits.
     // Calculate the number of digits we can write left of the decimal point.
     // If we have a scientific exp of 0, we still need
-    // to write 1 digit before, so it's ⌊ leading_bits / bits_per_digit ⌋ + 1.
+    // to write 1 digit before, so it's `⌊ leading_bits / bits_per_digit ⌋ + 1`.
     let leading_bits = sci_exp;
     let leading_digits = (leading_bits / bits_per_digit) as usize + 1;
 
@@ -697,7 +697,7 @@ pub fn calculate_shl(exp: i32, bits_per_digit: i32) -> i32 {
 /// If we have a negative exp, then when scaling that,
 /// we need to consider that an exp of -1 with 5 bits
 /// per base is still <0, IE, the sci exp we write has
-/// to be: `⌊sci_exp / bits_per_base⌋`, where ceil is
+/// to be: `⌊sci_exp / bits_per_base⌋`, where `ceil` is
 /// wrapping towards greatest magnitude.
 ///
 /// If we have a positive exp, we just need the floor of the

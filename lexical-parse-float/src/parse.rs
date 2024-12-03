@@ -161,7 +161,7 @@ parse_float_as_f32! { bf16 f16 }
 // NOTE:
 //  The partial and complete parsers are done separately because it provides
 //  minor optimizations when parsing invalid input, and the logic is slightly
-//  different internally. Most of the code is reshared, so the duplicated
+//  different internally. Most of the code is shared, so the duplicated
 //  code is only like 30 lines.
 
 /// Parse the sign from the leading digits.
@@ -194,7 +194,7 @@ pub fn parse_exponent_sign<const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> 
 
 /// Utility to extract the result and handle any errors from parsing a `Number`.
 ///
-/// - `format` - The numberical format as a packed integer
+/// - `format` - The numerical format as a packed integer
 /// - `byte` - The `DigitsIter` iterator
 /// - `is_negative` - If the final value is negative
 /// - `parse_normal` - The function to parse non-special numbers with
@@ -480,7 +480,7 @@ pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
 /// significant digits and the decimal exponent.
 #[cfg_attr(not(feature = "compact"), inline(always))]
 #[allow(unused_mut)] // reason = "used when format is enabled"
-#[allow(clippy::unwrap_used)] // reason = "developper error if we incorrectly assume an overflow"
+#[allow(clippy::unwrap_used)] // reason = "developer error if we incorrectly assume an overflow"
 #[allow(clippy::collapsible_if)] // reason = "more readable uncollapsed"
 #[allow(clippy::cast_possible_wrap)] // reason = "no hardware supports buffers >= i64::MAX"
 #[allow(clippy::too_many_lines)] // reason = "function is one logical entity"
@@ -538,7 +538,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
             // Check to see if the next character is the base prefix.
             // We must have a format like `0x`, `0d`, `0o`.
             // NOTE: The check for empty integer digits happens below so
-            // we don't need a redunant check here.
+            // we don't need a redundant check here.
             is_prefix = true;
             if iter.read_if_value(base_prefix, format.case_sensitive_base_prefix()).is_some()
                 && iter.is_buffer_empty()
@@ -606,7 +606,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     let mut fraction_digits = None;
     let has_decimal = byte.first_is_cased(decimal_point);
     if has_decimal {
-        // SAFETY: byte cannot be empty due to first_is
+        // SAFETY: byte cannot be empty due to `first_is`
         unsafe { byte.step_unchecked() };
         let before = byte.clone();
         #[cfg(not(feature = "compact"))]
@@ -652,7 +652,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     let has_exponent = byte
         .first_is(exponent_character, format.case_sensitive_exponent() && cfg!(feature = "format"));
 
-    // check to see if we have any inval;id leading zeros
+    // check to see if we have any invalid leading zeros
     n_digits += n_after_dot;
     if format.required_mantissa_digits()
         && (n_digits == 0 || (cfg!(feature = "format") && byte.current_count() == 0))
@@ -756,7 +756,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     let mut zeros_integer = zeros.integer_iter();
     n_digits = n_digits.saturating_sub(zeros_integer.skip_zeros());
     if zeros.first_is_cased(decimal_point) {
-        // SAFETY: safe since zeros cannot be empty due to first_is
+        // SAFETY: safe since zeros cannot be empty due to `first_is`
         unsafe { zeros.step_unchecked() };
     }
     let mut zeros_fraction = zeros.fraction_iter();
@@ -780,8 +780,8 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
         // short-circuit and should be determined at compile time. So, the
         // conditions are either:
         // 1. Step == 0
-        // 2. cfg!(feature = "format") && !byte.is_contiguous() &&
-        //    fraction_digits.is_none()
+        // 2. `cfg!(feature = "format") && !byte.is_contiguous() &&
+        //    fraction_digits.is_none()`
         implicit_exponent = if step == 0
             || (cfg!(feature = "format") && !byte.is_contiguous() && fraction_digits.is_none())
         {
@@ -869,7 +869,7 @@ where
         }
         // SAFETY: iter cannot be empty due to `iter.peek()`.
         // NOTE: Because of the match statement, this would optimize poorly with
-        // read_if.
+        // `read_if`.
         unsafe { iter.step_unchecked() };
         iter.increment_count();
     }

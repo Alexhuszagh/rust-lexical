@@ -160,7 +160,7 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
 
 /// Slice iterator that stores the original length of the slice.
 pub struct DigitsIterator<'a: 'b, 'b, const __: u128> {
-    /// The internal byte object for the noskip iterator.
+    /// The internal byte object for the no-skip iterator.
     byte: &'b mut Bytes<'a, __>,
 }
 

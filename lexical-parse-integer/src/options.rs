@@ -167,14 +167,14 @@ impl ParseOptions for Options {
 pub const STANDARD: Options = Options::new();
 const_assert!(STANDARD.is_valid());
 
-/// Optiobns optimized for small numbers.
+/// Options optimized for small numbers.
 #[rustfmt::skip]
 pub const SMALL_NUMBERS: Options = Options::builder()
         .no_multi_digit(true)
         .build_unchecked();
 const_assert!(SMALL_NUMBERS.is_valid());
 
-/// Optiobns optimized for large numbers and long strings.
+/// Options optimized for large numbers and long strings.
 #[rustfmt::skip]
 pub const LARGE_NUMBERS: Options = Options::builder()
         .no_multi_digit(false)

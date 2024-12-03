@@ -7,8 +7,8 @@
 // ---------
 
 // These are optimized functions for when the radix is known at compile-time,
-// which is **most** of our cases. There are cases where for codegen, using a
-// runtime algorithm is preferable.
+// which is **most** of our cases. There are cases where for code generation,
+// using a runtime algorithm is preferable.
 
 /// Unchecked, highly optimized algorithm to convert a char to a digit.
 /// This only works if the input character is known to be a valid digit.

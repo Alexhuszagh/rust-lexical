@@ -10,7 +10,7 @@ use crate::parse::ParseInteger;
 
 /// Implement `FromLexical` for numeric type.
 ///
-/// Need to inline these, otherwise codegen is suboptimal.
+/// Need to inline these, otherwise code generation is sub-optimal.
 /// For some reason, it can't determine some of the const evaluations
 /// can actually be evaluated at compile-time, which causes major branching
 /// issues.

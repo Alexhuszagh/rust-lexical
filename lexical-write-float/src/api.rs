@@ -16,7 +16,7 @@ use crate::write::WriteFloat;
 
 const DEFAULT_OPTIONS: Options = Options::new();
 
-// Implement ToLexical for numeric type.
+// Implement `ToLexical` for numeric type.
 macro_rules! float_to_lexical {
     ($($t:tt ; )*) => ($(
         impl ToLexical for $t {
