@@ -42,7 +42,7 @@ pub struct Constants {
     ///
     /// This is a mapping from integers to half the precision available at that exponent. In other
     /// words, `0.5 * 2^n` = `2^(n-1)`, which is half the distance between `m * 2^n` and
-    /// `(m + 1) * 2^n`, m ∈ ℤ.
+    /// `(m + 1) * 2^n`, `m ∈ ℤ`.
     ///
     /// So, this is the maximum error from a real number to its floating point representation,
     /// assuming the float type can represent the exponent.

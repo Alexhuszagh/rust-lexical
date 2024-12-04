@@ -575,7 +575,7 @@ pub const RUBY_LITERAL: Options = Options::builder()
 const_assert!(RUBY_LITERAL.is_valid());
 
 /// Number format to parse a `Ruby` float from string.
-/// `Ruby` can write NaN and Infinity as strings, but won't roundtrip them back to floats.
+/// `Ruby` can write NaN and Infinity as strings, but won't round-trip them back to floats.
 #[rustfmt::skip]
 pub const RUBY_STRING: Options = Options::builder()
         .nan_string(options::RUBY_STRING_NONE)

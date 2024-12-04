@@ -393,7 +393,7 @@ pub fn from_float<F: Float>(float: F) -> ExtendedFloat80 {
 /// Get the number of bytes shifted.
 pub fn normalize(fp: &mut ExtendedFloat80) {
     // Note:
-    // Using the ctlz intrinsic via leading_zeros is way faster (~10x)
+    // Using the ctlz intrinsic via `leading_zeros` is way faster (~10x)
     // than shifting 1-bit at a time, via while loop, and also way
     // faster (~2x) than an unrolled loop that checks at 32, 16, 4,
     // 2, and 1 bit.
@@ -404,7 +404,7 @@ pub fn normalize(fp: &mut ExtendedFloat80) {
     // code as it removes conditional logic.
 
     // Calculate the number of leading zeros, and then zero-out
-    // any overflowing bits, to avoid shl overflow when self.mant == 0.
+    // any overflowing bits, to avoid shl overflow when `self.mant == 0`.
     if fp.mant != 0 {
         let shift = fp.mant.leading_zeros() as i32;
         fp.mant <<= shift;

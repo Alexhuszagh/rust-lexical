@@ -9,6 +9,9 @@ members = [
 ]
 resolver = "2"
 
+[workspace.metadata.spellcheck]
+config = "spellcheck.toml"
+
 [profile.dev]
 opt-level = 0
 debug = true

@@ -160,7 +160,7 @@ pub fn bellerophon<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -
 // Specifically, we want to know if we are close to a halfway representation,
 // or halfway between `b` and `b+1`, or `b+h`. The halfway representation
 // has the form:
-//     SEEEEEEEHMMMMMMMMMMMMMMMMMMMMMMM100...
+//     `SEEEEEEEHMMMMMMMMMMMMMMMMMMMMMMM100...`
 // where:
 //     S = Sign Bit
 //     E = Exponent Bits
@@ -196,7 +196,7 @@ fn error_is_accurate<F: RawFloat>(errors: u32, fp: &ExtendedFloat80) -> bool {
     // See the documentation for dtoa for more information.
 
     // This is always a valid u32, since `fp.exp >= -64`
-    // will always be positive and the significand size is {23, 52}.
+    // will always be positive and the significand size is `{23, 52}`.
     let mantissa_shift = 64 - F::MANTISSA_SIZE - 1;
 
     // The unbiased exponent checks is `unbiased_exp <= F::MANTISSA_SIZE
@@ -293,7 +293,7 @@ fn error_is_accurate<F: RawFloat>(errors: u32, fp: &ExtendedFloat80) -> bool {
 #[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn normalize(fp: &mut ExtendedFloat80) -> i32 {
     // Note:
-    // Using the ctlz intrinsic via leading_zeros is way faster (~10x)
+    // Using the ctlz intrinsic via `leading_zeros` is way faster (~10x)
     // than shifting 1-bit at a time, via while loop, and also way
     // faster (~2x) than an unrolled loop that checks at 32, 16, 4,
     // 2, and 1 bit.
@@ -304,7 +304,7 @@ pub fn normalize(fp: &mut ExtendedFloat80) -> i32 {
     // code as it removes conditional logic.
 
     // Calculate the number of leading zeros, and then zero-out
-    // any overflowing bits, to avoid shl overflow when self.mant == 0.
+    // any overflowing bits, to avoid shl overflow when `self.mant == 0`.
     if fp.mant != 0 {
         let shift = fp.mant.leading_zeros() as i32;
         fp.mant <<= shift;
@@ -358,7 +358,7 @@ pub fn mul(x: &ExtendedFloat80, y: &ExtendedFloat80) -> ExtendedFloat80 {
 // POWERS
 // ------
 
-/// Precalculated powers of base N for the Bellerophon algorithm.
+/// Pre-calculated powers of base N for the Bellerophon algorithm.
 pub struct BellerophonPowers {
     // Pre-calculated small powers.
     pub small: &'static [u64],
@@ -370,9 +370,9 @@ pub struct BellerophonPowers {
     pub step: i32,
     // Exponent bias for the large powers.
     pub bias: i32,
-    /// ceil(log2(radix)) scaled as a multiplier.
+    /// `ceil(log2(radix))` scaled as a multiplier.
     pub log2: i64,
-    /// Bitshift for the log2 multiplier.
+    /// Bit shift for the log2 multiplier.
     pub log2_shift: i32,
 }
 

@@ -99,7 +99,7 @@ pub fn fast_digit_count(x: u32) -> usize {
         42949672960,
         42949672960,
     ];
-    // This always safe, since fast_log2 will always return a value
+    // This always safe, since `fast_log2` will always return a value
     // <= 32. This is because the range of values from `ctlz(x | 1)` is
     // `[0, 31]`, so `32 - 1 - ctlz(x | 1)` must be in the range `[0, 31]`.
     let shift = TABLE[fast_log2(x)];

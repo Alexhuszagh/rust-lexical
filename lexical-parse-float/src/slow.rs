@@ -46,7 +46,7 @@ use crate::shared;
 /// a large number of digits to unambiguously determine how to round.
 #[must_use]
 #[inline(always)]
-#[allow(clippy::unwrap_used)] // reason = "none is a developper error"
+#[allow(clippy::unwrap_used)] // reason = "none is a developer error"
 pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
     num: Number,
     fp: ExtendedFloat80,
@@ -119,7 +119,7 @@ pub fn digit_comp<F: RawFloat, const FORMAT: u128>(
 /// Generate the significant digits with a positive exponent relative to
 /// mantissa.
 #[must_use]
-#[allow(clippy::unwrap_used)] // reason = "none is a developper error"
+#[allow(clippy::unwrap_used)] // reason = "none is a developer error"
 #[allow(clippy::cast_possible_wrap)] // reason = "can't wrap in practice: max is ~1000 limbs"
 #[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
 pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
@@ -319,7 +319,7 @@ macro_rules! add_digit {
 /// - `format` - The numerical format specification as a packed 128-bit integer
 /// - `result` - The big integer,
 /// - `power` - The power to scale the big integer by.
-/// - `value` - The value to add to the big intger,
+/// - `value` - The value to add to the big integer,
 /// - `counter` - The number of parsed digits since creating the current u32
 macro_rules! add_temporary {
     // Multiply by the small power and add the native value.
@@ -587,7 +587,7 @@ macro_rules! fraction_compare {
 /// Adapted from "Bigcomp: Deciding Truncated, Near Halfway Conversions",
 /// available [here](https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/).
 #[cfg(feature = "radix")]
-#[allow(clippy::unwrap_used)] // reason = "none is a developper error due to shl overflow"
+#[allow(clippy::unwrap_used)] // reason = "none is a developer error due to shl overflow"
 #[allow(clippy::comparison_chain)] // reason = "logically different conditions for algorithm"
 pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
     number: Number,
@@ -615,8 +615,8 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
     let mut den: Bigfloat;
 
     if sci_exp < 0 {
-        // Need to have the basen factor be the numerator, and the fp
-        // be the denominator. Since we assumed that theor was the numerator,
+        // Need to have the basen factor be the numerator, and the `fp`
+        // be the denominator. Since we assumed that `theor` was the numerator,
         // if it's the denominator, we need to multiply it into the numerator.
         num = factor;
         num.data *= &theor.data;
@@ -686,7 +686,7 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
 /// - `den` - The theoretical digits created by `b+h` to determine if `b` or
 ///   `b+1`
 #[cfg(feature = "radix")]
-#[allow(clippy::unwrap_used)] // reason = "none is a developper error due to a missing fraction"
+#[allow(clippy::unwrap_used)] // reason = "none is a developer error due to a missing fraction"
 pub fn compare_bytes<const FORMAT: u128>(
     number: Number,
     mut num: Bigfloat,
@@ -736,7 +736,7 @@ pub fn scientific_exponent<const FORMAT: u128>(num: &Number) -> i32 {
     let format = NumberFormat::<FORMAT> {};
 
     // Use power reduction to make this faster: we need at least
-    // F::MANTISSA_SIZE bits, so we must have at least radix^4 digits.
+    // `F::MANTISSA_SIZE` bits, so we must have at least radix^4 digits.
     // IF we're using base 3, we can have at most 11 divisions, and
     // base 36, at most ~4. So, this is reasonably efficient.
     let radix = format.radix() as u64;

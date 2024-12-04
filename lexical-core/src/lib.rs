@@ -185,11 +185,11 @@
 //! #### safe
 //!
 //! This replaces most unchecked indexing, required in cases where the
-//! compiler cannot ellide the check, with checked indexing. However,
+//! compiler cannot elide the check, with checked indexing. However,
 //! it does not fully replace all unsafe behavior with safe behavior.
-//! To minimize the risk of UB and out-of-bounds reads/writers, extensive
-//! edge-cases, property-based tests, and fuzzing is done with both the
-//! safe feature enabled and disabled, with the tests verified by Miri
+//! To minimize the risk of undefined behavior and out-of-bounds reads/writers,
+//! extensive edge-cases, property-based tests, and fuzzing is done with both
+//! the safe feature enabled and disabled, with the tests verified by Miri
 //! and Valgrind.
 //!
 //! # Configuration API

@@ -205,7 +205,7 @@
 //!
 //! # Character Shifts and Masks
 //!
-//! Bitmasks and bitshifts to get and set control characters for the format
+//! Bitmasks and bit shifts to get and set control characters for the format
 //! packed struct.
 //!
 //! - [`DIGIT_SEPARATOR_SHIFT`]

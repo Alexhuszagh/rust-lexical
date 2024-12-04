@@ -35,7 +35,7 @@ pub fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, bool) {
             digits[index - 1] = rounded;
             return (index, false);
         }
-        // Don't have to assign b'0' otherwise, since we're just carrying
+        // Don't have to assign `b'0'` otherwise, since we're just carrying
         // to the next digit.
         index -= 1;
     }

@@ -137,7 +137,7 @@ fn check_integer<T: num::Integer>(mut x: T) {
     x |= T::ONE;
     x ^= T::ONE;
 
-    // Bitshifts
+    // Bit shifts
     let _ = x << 1i32;
     let _ = x >> 1i32;
     x <<= 1i32;

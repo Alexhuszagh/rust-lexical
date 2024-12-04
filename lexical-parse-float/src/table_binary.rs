@@ -71,7 +71,7 @@ pub fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
 
 //  NOTE:
 //      These functions use the fact that **all** powers-of-two
-//      can be exactly represented and cheaply using bitshifts for
+//      can be exactly represented and cheaply using bit shifts for
 //      integers, or by setting the exponent directly.
 
 /// Get pre-computed int power of 2.

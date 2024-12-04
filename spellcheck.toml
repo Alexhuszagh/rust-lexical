@@ -1,0 +1,28 @@
+
+dev_comments = true
+
+[Hunspell]
+lang = "en_US"
+use_builtin = true
+skip_os_lookups = false
+tokenization_splitchars = "\",;:.!?#(){}[]|/_-‒^'`&@§¶…=<>~+≅|%"
+search_dirs = [ "." ]
+extra_dictionaries = [ "spellcheck.dic" ]
+
+[Hunspell.quirks]
+transform_regex = [
+    "^[+-]?\\d+\\^[+-]?\\d*$",
+    "^0?b\\d+$",
+    "^0x[A-Fa-f0-9]+$",
+    # this is the C-style hex floats
+    "^0x[A-Fa-f0-9]+p\\d+$",
+    # these are for mathematical notation
+    "^[A-Za-z]\\d?(?:_[A-Za-z]\\d?)?$",
+    # this is for multiplication cases
+    "^\\d+x$",
+    # this is for our custom radix bases
+    "^[Bb][Aa][Ss][Ee]\\d+$",
+    "^[Rr][Aa][Dd][Ii][Xx]\\d+$",
+    # this is for markdown bolding
+    "\\*{2}\\w+\\*{2}"
+]

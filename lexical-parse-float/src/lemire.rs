@@ -74,16 +74,16 @@ pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> Extende
     w <<= lz;
     let (lo, hi) = compute_product_approx(q, w, F::MANTISSA_SIZE as usize + 3);
     if !lossy && lo == 0xFFFF_FFFF_FFFF_FFFF {
-        // If we have failed to approximate w x 5^-q with our 128-bit value.
+        // If we have failed to approximate `w x 5^-q` with our 128-bit value.
         // Since the addition of 1 could lead to an overflow which could then
         // round up over the half-way point, this can lead to improper rounding
         // of a float.
         //
-        // However, this can only occur if q ∈ [-27, 55]. The upper bound of q
-        // is 55 because 5^55 < 2^128, however, this can only happen if 5^q > 2^64,
+        // However, this can only occur if `q ∈ [-27, 55]`. The upper bound of q
+        // is 55 because `5^55 < 2^128`, however, this can only happen if `5^q > 2^64`,
         // since otherwise the product can be represented in 64-bits, producing
         // an exact result. For negative exponents, rounding-to-even can
-        // only occur if 5^-q < 2^64.
+        // only occur if `5^-q < 2^64`.
         //
         // For detailed explanations of rounding for negative exponents, see
         // <https://arxiv.org/pdf/2101.11408.pdf#section.9.1>. For detailed
@@ -117,7 +117,7 @@ pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> Extende
     // need to round down.
     //
     // This will only occur if:
-    //  1. The lower 64 bits of the 128-bit representation is 0. IE, 5^q fits in
+    //  1. The lower 64 bits of the 128-bit representation is 0. IE, `5^q` fits in
     //     single 64-bit word.
     //  2. The least-significant bit prior to truncated mantissa is odd.
     //  3. All the bits truncated when shifting to mantissa bits + 1 are 0.
@@ -197,10 +197,10 @@ const fn full_multiplication(a: u64, b: u64) -> (u64, u64) {
     (r as u64, (r >> 64) as u64)
 }
 
-// This will compute or rather approximate w * 5**q and return a pair of 64-bit
-// words approximating the result, with the "high" part corresponding to the
-// most significant bits and the low part corresponding to the least significant
-// bits.
+// This will compute or rather approximate `w * 5**q` and return a pair of
+// 64-bit words approximating the result, with the "high" part corresponding to
+// the most significant bits and the low part corresponding to the least
+// significant bits.
 fn compute_product_approx(q: i64, w: u64, precision: usize) -> (u64, u64) {
     debug_assert!(q >= SMALLEST_POWER_OF_FIVE as i64, "must be within our required pow5 range");
     debug_assert!(q <= LARGEST_POWER_OF_FIVE as i64, "must be within our required pow5 range");
@@ -212,7 +212,7 @@ fn compute_product_approx(q: i64, w: u64, precision: usize) -> (u64, u64) {
         0xFFFF_FFFF_FFFF_FFFF_u64
     };
 
-    // 5^q < 2^64, then the multiplication always provides an exact value.
+    // `5^q < 2^64`, then the multiplication always provides an exact value.
     // That means whenever we need to round ties to even, we always have
     // an exact value.
     let index = (q - SMALLEST_POWER_OF_FIVE as i64) as usize;

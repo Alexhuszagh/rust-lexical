@@ -6,7 +6,7 @@
 // RADIX^2 TABLES
 // --------------
 
-// Conditionally compile the precompiled radix**2 tables.
+// Conditionally compile the pre-computed radix**2 tables.
 // These tables take `2 * (value % (radix^2))`, and return
 // two consecutive values corresponding to both digits.
 //

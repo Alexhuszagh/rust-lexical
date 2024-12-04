@@ -53,6 +53,10 @@ cargo +nightly install cargo-fuzz
 # which uses a deprecated binary that requires an old nightly to
 # install.
 cargo +nightly install cargo-count --git https://github.com/kbknapp/cargo-count --rev eebe6f8 --locked
+
+# Only if editing doc comments. This requires a Linux or macOS install.
+# On Ubuntu, the packages `libclang-dev` and `llvm` are required.
+cargo install cargo-spellcheck
 ```
 
 In addition, the following non-Rust dependencies must be installed:
@@ -117,3 +121,7 @@ Each workspace has a "docs" directory containing detailed descriptions of algori
 ## Pitfalls
 
 **ALWAYS** benchmark, even for trivial changes. I've been burned many times by `#[cfg(...)]` being way faster than `if cfg!()`, which youl would think both would be eliminated during optimization, just one during the first stage of compilation. It's better to confirm than assume. This is a nightmare development-wise because of how many features we support but there's not many alternatives: it seems it doesn't entirely remove code as if by tree-shaking which can majorly impact performance.
+
+## Documentation
+
+If making significant changes to the documentation, running the spellchecker can be useful. Remember these are **guidelines** and anything inside `libm.rs` should be ignored. To check the spelling, run `cargo spellcheck check`.

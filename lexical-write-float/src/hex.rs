@@ -4,7 +4,7 @@
 //! any power of the mantissa radix using the exponent base. For example,
 //! given a mantissa radix of `16`, and an exponent base of `8`,
 //! `16^2` cannot be exactly represented in octal. In short:
-//! ⌊log2(r) / log2(b)⌋ == ⌈log2(r) / log2(b)⌉.
+//! `⌊log2(r) / log2(b)⌋ == ⌈log2(r) / log2(b)⌉`.
 //!
 //! This gives us the following mantissa radix/exponent base combinations:
 //!

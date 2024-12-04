@@ -231,7 +231,7 @@ where
 #[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn round_nearest_tie_even<Cb>(fp: &mut ExtendedFloat80, shift: i32, cb: Cb)
 where
-    // is_odd, is_halfway, is_above
+    // `is_odd`, `is_halfway`, `is_above`
     Cb: Fn(bool, bool, bool) -> bool,
 {
     // Ensure we've already handled denormal values that underflow.
@@ -250,7 +250,7 @@ where
     let is_halfway = truncated_bits == halfway;
 
     // Bit shift so the leading bit is in the hidden bit.
-    // This optimixes pretty well:
+    // This optimizes pretty well:
     //  ```text
     //   mov     ecx, esi
     //   shr     rdi, cl
