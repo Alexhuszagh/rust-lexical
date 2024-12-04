@@ -35,3 +35,6 @@ artifacts/
 
 # Spellchecking files
 spellcheck.txt
+
+# Bisection logic
+target-bisector-nightly-*/
