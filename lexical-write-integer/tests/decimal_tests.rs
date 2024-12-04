@@ -3,22 +3,7 @@
 mod util;
 
 use lexical_util::num::UnsignedInteger;
-use lexical_write_integer::decimal::{self, Decimal, DigitCount};
-
-#[test]
-fn fast_log2_test() {
-    // Check the first, even if illogical case works.
-    assert_eq!(decimal::fast_log2(0u32), 0);
-    assert_eq!(decimal::fast_log2(1u32), 0);
-    assert_eq!(decimal::fast_log2(2u32), 1);
-    assert_eq!(decimal::fast_log2(3u32), 1);
-
-    assert_eq!(decimal::fast_log2((1u32 << 16) - 1), 15);
-    assert_eq!(decimal::fast_log2(1u32 << 16), 16);
-    assert_eq!(decimal::fast_log2((1u32 << 16) + 1), 16);
-
-    assert_eq!(decimal::fast_log2(u32::MAX), 31);
-}
+use lexical_write_integer::decimal::{self, Decimal, DecimalCount};
 
 #[test]
 fn fast_log10_test() {
@@ -32,39 +17,39 @@ fn fast_log10_test() {
 }
 
 #[test]
-fn u32_digit_count_test() {
-    assert_eq!(u32::digit_count(0), 1);
-    assert_eq!(u32::digit_count(1), 1);
-    assert_eq!(u32::digit_count(9), 1);
-    assert_eq!(u32::digit_count(10), 2);
-    assert_eq!(u32::digit_count(11), 2);
+fn u32_decimal_count_test() {
+    assert_eq!(u32::decimal_count(0), 1);
+    assert_eq!(u32::decimal_count(1), 1);
+    assert_eq!(u32::decimal_count(9), 1);
+    assert_eq!(u32::decimal_count(10), 2);
+    assert_eq!(u32::decimal_count(11), 2);
 
-    assert_eq!(u32::digit_count((1 << 16) - 1), 5);
-    assert_eq!(u32::digit_count(1 << 16), 5);
-    assert_eq!(u32::digit_count((1 << 16) + 1), 5);
+    assert_eq!(u32::decimal_count((1 << 16) - 1), 5);
+    assert_eq!(u32::decimal_count(1 << 16), 5);
+    assert_eq!(u32::decimal_count((1 << 16) + 1), 5);
 
-    assert_eq!(u32::digit_count(u32::MAX), 10);
+    assert_eq!(u32::decimal_count(u32::MAX), 10);
 }
 
 #[test]
-fn u64_digit_count_test() {
-    assert_eq!(u64::digit_count(0), 1);
-    assert_eq!(u64::digit_count(1), 1);
-    assert_eq!(u64::digit_count(9), 1);
-    assert_eq!(u64::digit_count(10), 2);
-    assert_eq!(u64::digit_count(11), 2);
+fn u64_decimal_count_test() {
+    assert_eq!(u64::decimal_count(0), 1);
+    assert_eq!(u64::decimal_count(1), 1);
+    assert_eq!(u64::decimal_count(9), 1);
+    assert_eq!(u64::decimal_count(10), 2);
+    assert_eq!(u64::decimal_count(11), 2);
 
-    assert_eq!(u64::digit_count((1 << 16) - 1), 5);
-    assert_eq!(u64::digit_count(1 << 16), 5);
-    assert_eq!(u64::digit_count((1 << 16) + 1), 5);
+    assert_eq!(u64::decimal_count((1 << 16) - 1), 5);
+    assert_eq!(u64::decimal_count(1 << 16), 5);
+    assert_eq!(u64::decimal_count((1 << 16) + 1), 5);
 
-    assert_eq!(u64::digit_count(u32::MAX as u64), 10);
-    assert_eq!(u64::digit_count(u64::MAX), 20);
+    assert_eq!(u64::decimal_count(u32::MAX as u64), 10);
+    assert_eq!(u64::decimal_count(u64::MAX), 20);
 }
 
 #[test]
-fn u128_digit_count_test() {
-    assert_eq!(u128::digit_count(u128::MAX), 39);
+fn u128_decimal_count_test() {
+    assert_eq!(u128::decimal_count(u128::MAX), 39);
 }
 
 #[test]
@@ -400,34 +385,21 @@ fn u128toa_test() {
     assert_eq!(&buffer[..39], b"340282366920938463463374607431768211455");
 }
 
-fn slow_log2(x: u32) -> usize {
-    // Slow approach to calculating a log2, using floats.
-    if x == 0 {
-        0
-    } else {
-        (x as f64).log2().floor() as usize
-    }
-}
-
 fn slow_digit_count<T: UnsignedInteger>(x: T) -> usize {
     x.to_string().len()
 }
 
 default_quickcheck! {
-    fn fast_log2_quickcheck(x: u32) -> bool {
-        slow_log2(x) == decimal::fast_log2(x)
-    }
-
     fn u32_digit_count_quickcheck(x: u32) -> bool {
-        slow_digit_count(x) == x.digit_count()
+        slow_digit_count(x) == x.decimal_count()
     }
 
     fn u64_digit_count_quickcheck(x: u64) -> bool {
-        slow_digit_count(x) == x.digit_count()
+        slow_digit_count(x) == x.decimal_count()
     }
 
     fn u128_digit_count_quickcheck(x: u128) -> bool {
-        slow_digit_count(x) == x.digit_count()
+        slow_digit_count(x) == x.decimal_count()
     }
 
     fn u32toa_quickcheck(x: u32) -> bool {
