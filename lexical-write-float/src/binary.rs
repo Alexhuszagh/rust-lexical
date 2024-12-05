@@ -135,7 +135,7 @@ where
     let shl = calculate_shl(exp, bits_per_digit);
     let value = mantissa << shl;
 
-    let count = value.write_mantissa::<M, FORMAT>(&mut bytes[1..]);
+    let count = value.write_mantissa::<FORMAT>(&mut bytes[1..]);
     bytes[0] = bytes[1];
     bytes[1] = decimal_point;
     let zeros = rtrim_char_count(&bytes[2..count + 1], b'0');
@@ -221,7 +221,7 @@ where
 
     // Won't panic, if the buffer is large enough to hold the significant
     // digits.
-    let count = value.write_mantissa::<M, FORMAT>(&mut bytes[cursor..]);
+    let count = value.write_mantissa::<FORMAT>(&mut bytes[cursor..]);
     let zeros = rtrim_char_count(&bytes[cursor..cursor + count], b'0');
     let digit_count = count - zeros;
     cursor += digit_count;
@@ -267,7 +267,7 @@ where
     let shl = calculate_shl(exp, bits_per_digit);
     let value = mantissa << shl;
 
-    let count = value.write_mantissa::<M, FORMAT>(bytes);
+    let count = value.write_mantissa::<FORMAT>(bytes);
     let zeros = rtrim_char_count(&bytes[..count], b'0');
     let mut digit_count = count - zeros;
 

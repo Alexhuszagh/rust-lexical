@@ -34,6 +34,7 @@ features = ["write-integers"]
 #  Fix:     https://github.com/BurntSushi/quickcheck/pull/296
 quickcheck = { git = "https://github.com/Alexhuszagh/quickcheck/", branch = "i32min-shrink-bound-legacy" }
 proptest = ">=1.5.0"
+rustversion = ">=1.0.18"
 
 [features]
 default = ["std"]

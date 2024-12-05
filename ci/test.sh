@@ -8,10 +8,11 @@ set -ex
 script_dir=$(dirname "${BASH_SOURCE[0]}")
 script_home=$(realpath "${script_dir}")
 home=$(dirname "${script_home}")
+version="${CARGO_VERSION}"
 cd "${home}"
 
 # Print our cargo version, for debugging.
-cargo --version
+cargo ${version} --version
 
 # Ensure we have all our benchmark data files
 git submodule update --init lexical-benchmark/data
@@ -37,7 +38,7 @@ FEATURES=(
 
 check_error() {
     local feature=$1
-    if 2>/dev/null cargo check --no-default-features --features="${feature}" ; then
+    if 2>/dev/null cargo ${version} check --no-default-features --features="${feature}" ; then
         >&2 echo "The feature ${feature} did not error..."
         exit 1
     fi
@@ -52,21 +53,21 @@ check() {
     # Need to test a few permutations just to ensure everything compiles.
     for features in "${FEATURES[@]}"; do
         check_features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES,$features"
-        cargo check --tests $check_features
+        cargo ${version} check --tests $check_features
     done
 
     # Check each of our sub-crates compiles.
     cd lexical-parse-float
-    cargo check --tests
+    cargo ${version} check --tests
 
     cd ../lexical-parse-integer
-    cargo check --tests
+    cargo ${version} check --tests
 
     cd ../lexical-write-float
-    cargo check --tests
+    cargo ${version} check --tests
 
     cd ../lexical-write-integer
-    cargo check --tests
+    cargo ${version} check --tests
 
     # ensure our partial features aren't allowed, as are unsupported features
     cd ../lexical-core
@@ -86,8 +87,8 @@ check() {
 # Build target.
 build() {
     build_features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
-    cargo build $build_features
-    cargo build $build_features --release
+    cargo ${version} build $build_features
+    cargo ${version} build $build_features --release
 }
 
 # Test target.
@@ -101,24 +102,28 @@ test() {
 
     # Default tests.
     test_features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
-    cargo test $test_features $DOCTESTS
-    cargo test $test_features $DOCTESTS --release
-    cargo test --features=radix,format,compact $DOCTESTS --release
+    cargo ${version} test $test_features $DOCTESTS
+    cargo ${version} test $test_features $DOCTESTS --release
+    cargo ${version} test --features=radix,format,compact $DOCTESTS --release
     # NOTE: This tests a regressions, related to #96.
-    cargo test --features=format $DOCTESTS
+    cargo ${version} test --features=format $DOCTESTS
+
+    # Ensure we test radix without the compact feature
+    # See #169
+    cargo ${version} test --features=radix,format --release
 
     # this fixes an issue where the lexical and lexical-core tests weren't being run
     cd lexical-core
-    cargo test $test_features,format
-    cargo test $test_features,radix
-    cargo test $test_features,format,radix
+    cargo ${version} test $test_features,format
+    cargo ${version} test $test_features,radix
+    cargo ${version} test $test_features,format,radix
     cd ..
 
     # this fixes an issue where the lexical and lexical-core tests weren't being run
     cd lexical
-    cargo test $test_features,format
-    cargo test $test_features,radix
-    cargo test $test_features,format,radix
+    cargo ${version} test $test_features,format
+    cargo ${version} test $test_features,radix
+    cargo ${version} test $test_features,format,radix
     cd ..
 }
 
@@ -140,7 +145,7 @@ bench() {
 
     cd lexical-benchmark
     bench_features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
-    cargo test $bench_features --bench '*'
+    cargo ${version} test $bench_features --bench '*'
     cd ..
 }
 

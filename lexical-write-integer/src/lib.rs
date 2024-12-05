@@ -152,6 +152,7 @@ mod index;
 pub mod algorithm;
 pub mod compact;
 pub mod decimal;
+pub mod digit_count;
 pub mod options;
 pub mod radix;
 pub mod table;

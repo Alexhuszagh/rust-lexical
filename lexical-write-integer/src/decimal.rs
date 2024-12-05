@@ -17,23 +17,8 @@ use lexical_util::format::{RADIX, RADIX_SHIFT, STANDARD};
 use lexical_util::num::UnsignedInteger;
 
 use crate::algorithm::{algorithm, algorithm_u128};
+use crate::digit_count::fast_log2;
 use crate::table::DIGIT_TO_BASE10_SQUARED;
-
-/// Fast integral log2.
-///
-/// This is fairly trivial to explain, since the log2 is related to the
-/// number of bits in the value. Therefore, it has to be related to
-/// `T::BITS - ctlz(x)`. For example, `log2(2) == 1`, and `log2(1) == 0`,
-/// and `log2(3) == 1`. Therefore, we must take the log of an odd number,
-/// and subtract one.
-///
-/// This algorithm is described in detail in "Computing the number of digits
-/// of an integer quickly", available
-/// [here](https://lemire.me/blog/2021/05/28/computing-the-number-of-digits-of-an-integer-quickly/).
-#[inline(always)]
-pub fn fast_log2<T: UnsignedInteger>(x: T) -> usize {
-    T::BITS - 1 - (x | T::ONE).leading_zeros() as usize
-}
 
 /// Calculate the fast, integral log10 of a value.
 ///
@@ -125,35 +110,48 @@ pub fn fallback_digit_count<T: UnsignedInteger>(x: T, table: &[T]) -> usize {
     log10 + shift_up as usize + 1
 }
 
-/// Quickly calculate the number of digits in a type.
-pub trait DigitCount: UnsignedInteger {
+/// Quickly calculate the number of decimal digits in a type.
+///
+/// # Safety
+///
+/// Safe as long as `digit_count` returns at least the number of
+/// digits that would be written by the integer. If the value is
+/// too small, then the buffer might underflow, causing out-of-bounds
+/// read/writes.
+pub unsafe trait DecimalCount: UnsignedInteger {
     /// Get the number of digits in a value.
-    fn digit_count(self) -> usize;
+    fn decimal_count(self) -> usize;
 }
 
-macro_rules! digit_count_unimpl {
-    ($($t:ty)*) => ($(
-        impl DigitCount for $t {
-            #[inline(always)]
-            fn digit_count(self) -> usize {
-                unimplemented!()
-            }
-        }
-    )*)
-}
-
-digit_count_unimpl! { u8 u16 usize }
-
-impl DigitCount for u32 {
+// SAFETY: Safe since `fast_digit_count` is always correct for `<= u32::MAX`.
+unsafe impl DecimalCount for u8 {
     #[inline(always)]
-    fn digit_count(self) -> usize {
+    fn decimal_count(self) -> usize {
+        fast_digit_count(self as u32)
+    }
+}
+
+// SAFETY: Safe since `fast_digit_count` is always correct for `<= u32::MAX`.
+unsafe impl DecimalCount for u16 {
+    #[inline(always)]
+    fn decimal_count(self) -> usize {
+        fast_digit_count(self as u32)
+    }
+}
+
+// SAFETY: Safe since `fast_digit_count` is always correct for `<= u32::MAX`.
+unsafe impl DecimalCount for u32 {
+    #[inline(always)]
+    fn decimal_count(self) -> usize {
         fast_digit_count(self)
     }
 }
 
-impl DigitCount for u64 {
+// SAFETY: Safe since `fallback_digit_count` is valid for the current table,
+// as described in <https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/>
+unsafe impl DecimalCount for u64 {
     #[inline(always)]
-    fn digit_count(self) -> usize {
+    fn decimal_count(self) -> usize {
         const TABLE: [u64; 19] = [
             10,
             100,
@@ -179,9 +177,11 @@ impl DigitCount for u64 {
     }
 }
 
-impl DigitCount for u128 {
+// SAFETY: Safe since `fallback_digit_count` is valid for the current table,
+// as described in <https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/>
+unsafe impl DecimalCount for u128 {
     #[inline(always)]
-    fn digit_count(self) -> usize {
+    fn decimal_count(self) -> usize {
         const TABLE: [u128; 38] = [
             10,
             100,
@@ -226,8 +226,21 @@ impl DigitCount for u128 {
     }
 }
 
+// SAFETY: Safe since it uses the default implementation for the type size.
+unsafe impl DecimalCount for usize {
+    #[inline(always)]
+    fn decimal_count(self) -> usize {
+        match Self::BITS {
+            8 | 16 | 32 => (self as u32).decimal_count(),
+            64 => (self as u64).decimal_count(),
+            128 => (self as u128).decimal_count(),
+            _ => unimplemented!(),
+        }
+    }
+}
+
 /// Write integer to decimal string.
-pub trait Decimal: DigitCount {
+pub trait Decimal: DecimalCount {
     /// # Safety
     ///
     /// Safe as long as buffer is at least [`FORMATTED_SIZE`] elements long,
@@ -238,47 +251,27 @@ pub trait Decimal: DigitCount {
     fn decimal(self, buffer: &mut [u8]) -> usize;
 }
 
-// Don't implement decimal for small types, where we could have an overflow.
-macro_rules! decimal_unimpl {
-    ($($t:ty)*) => ($(
-        impl Decimal for $t {
-            #[inline(always)]
-            fn decimal(self, _: &mut [u8]) -> usize {
-                // Forces a hard error if we have a logic error in our code.
-                unimplemented!()
-            }
-        }
-    )*);
-}
-
-decimal_unimpl! { u8 u16 usize }
-
 // Implement decimal for type.
 macro_rules! decimal_impl {
     ($($t:ty)*) => ($(
         impl Decimal for $t {
             #[inline(always)]
             fn decimal(self, buffer: &mut [u8]) -> usize {
-                let count = self.digit_count();
-                let _ = algorithm(self, 10, &DIGIT_TO_BASE10_SQUARED, buffer, count);
-                count
+                algorithm(self, 10, &DIGIT_TO_BASE10_SQUARED, buffer)
             }
         }
     )*);
 }
 
-decimal_impl! { u32 u64 }
+decimal_impl! { u8 u16 u32 u64 usize }
 
 impl Decimal for u128 {
     #[inline(always)]
     fn decimal(self, buffer: &mut [u8]) -> usize {
-        let count = self.digit_count();
-        let _ = algorithm_u128::<{ STANDARD }, { RADIX }, { RADIX_SHIFT }>(
+        algorithm_u128::<{ STANDARD }, { RADIX }, { RADIX_SHIFT }>(
             self,
             &DIGIT_TO_BASE10_SQUARED,
             buffer,
-            count,
-        );
-        count
+        )
     }
 }

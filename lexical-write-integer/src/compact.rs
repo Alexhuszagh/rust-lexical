@@ -11,6 +11,24 @@ use lexical_util::constants::FormattedSize;
 use lexical_util::digit::digit_to_char;
 use lexical_util::num::{AsCast, UnsignedInteger};
 
+// NOTE: Testing our algorithms can be done effectively as:
+//  table = [
+//      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D',
+//      'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
+//      'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+//  ]
+//  def to_string(value, radix):
+//      result = ''
+//      while value >= radix:
+//          r = value % radix
+//          value //= radix
+//          result = table[int(r)] + result
+//
+//      r = value % radix
+//      result = table[int(r)] + result
+//
+//      return result
+
 /// Write integer to string.
 pub trait Compact: UnsignedInteger + FormattedSize {
     /// Write our integer to string without optimizations.

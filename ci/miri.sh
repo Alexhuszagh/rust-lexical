@@ -8,10 +8,11 @@ set -ex
 script_dir=$(dirname "${BASH_SOURCE[0]}")
 script_home=$(realpath "${script_dir}")
 home=$(dirname "${script_home}")
+version="${CARGO_VERSION}"
 cd "${home}"
 
 # Print our cargo version, for debugging.
-cargo --version
+cargo ${version} --version
 
 # Ensure we have all our testing data files
 git submodule update --init
