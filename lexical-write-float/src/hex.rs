@@ -163,7 +163,7 @@ where
     let shl = calculate_shl(exp, bits_per_digit);
     let value = mantissa << shl;
 
-    let count = value.write_mantissa::<M, FORMAT>(&mut bytes[1..]);
+    let count = value.write_mantissa::<FORMAT>(&mut bytes[1..]);
     bytes[0] = bytes[1];
     bytes[1] = decimal_point;
     let zeros = rtrim_char_count(&bytes[2..count + 1], b'0');

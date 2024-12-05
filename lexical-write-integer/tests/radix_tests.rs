@@ -33,7 +33,7 @@ fn u128toa_test() {
     const FORMAT: u128 = from_radix(12);
     let mut buffer = [b'\x00'; BUFFER_SIZE];
     let value = 136551478823710021067381144334863695872u128;
-    let count = value.write_mantissa::<u128, FORMAT>(&mut buffer);
+    let count = value.write_mantissa::<FORMAT>(&mut buffer);
     unsafe {
         let y = u128::from_str_radix(from_utf8_unchecked(&buffer[..count]), 12);
         assert_eq!(y, Ok(value));
@@ -43,7 +43,7 @@ fn u128toa_test() {
 #[cfg(feature = "power-of-two")]
 fn write_integer<T: WriteInteger, const FORMAT: u128>(x: T, actual: &[u8]) {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let count = x.write_mantissa::<T, FORMAT>(&mut buffer);
+    let count = x.write_mantissa::<FORMAT>(&mut buffer);
     assert_eq!(actual.len(), count);
     assert_eq!(actual, &buffer[..count])
 }
@@ -122,14 +122,14 @@ fn issue_169_tests() {
 #[inline(never)]
 fn to_radix_2_9<T: UnsignedInteger + WriteInteger>(x: T, radix: u32, buffer: &mut [u8]) -> usize {
     match radix {
-        2 => x.write_mantissa::<T, { from_radix(2) }>(buffer),
-        3 => x.write_mantissa::<T, { from_radix(3) }>(buffer),
-        4 => x.write_mantissa::<T, { from_radix(4) }>(buffer),
-        5 => x.write_mantissa::<T, { from_radix(5) }>(buffer),
-        6 => x.write_mantissa::<T, { from_radix(6) }>(buffer),
-        7 => x.write_mantissa::<T, { from_radix(7) }>(buffer),
-        8 => x.write_mantissa::<T, { from_radix(8) }>(buffer),
-        9 => x.write_mantissa::<T, { from_radix(9) }>(buffer),
+        2 => x.write_mantissa::<{ from_radix(2) }>(buffer),
+        3 => x.write_mantissa::<{ from_radix(3) }>(buffer),
+        4 => x.write_mantissa::<{ from_radix(4) }>(buffer),
+        5 => x.write_mantissa::<{ from_radix(5) }>(buffer),
+        6 => x.write_mantissa::<{ from_radix(6) }>(buffer),
+        7 => x.write_mantissa::<{ from_radix(7) }>(buffer),
+        8 => x.write_mantissa::<{ from_radix(8) }>(buffer),
+        9 => x.write_mantissa::<{ from_radix(9) }>(buffer),
         _ => unimplemented!(),
     }
 }
@@ -137,15 +137,15 @@ fn to_radix_2_9<T: UnsignedInteger + WriteInteger>(x: T, radix: u32, buffer: &mu
 #[inline(never)]
 fn to_radix_10_18<T: UnsignedInteger + WriteInteger>(x: T, radix: u32, buffer: &mut [u8]) -> usize {
     match radix {
-        10 => x.write_mantissa::<T, { from_radix(10) }>(buffer),
-        11 => x.write_mantissa::<T, { from_radix(11) }>(buffer),
-        12 => x.write_mantissa::<T, { from_radix(12) }>(buffer),
-        13 => x.write_mantissa::<T, { from_radix(13) }>(buffer),
-        14 => x.write_mantissa::<T, { from_radix(14) }>(buffer),
-        15 => x.write_mantissa::<T, { from_radix(15) }>(buffer),
-        16 => x.write_mantissa::<T, { from_radix(16) }>(buffer),
-        17 => x.write_mantissa::<T, { from_radix(17) }>(buffer),
-        18 => x.write_mantissa::<T, { from_radix(18) }>(buffer),
+        10 => x.write_mantissa::<{ from_radix(10) }>(buffer),
+        11 => x.write_mantissa::<{ from_radix(11) }>(buffer),
+        12 => x.write_mantissa::<{ from_radix(12) }>(buffer),
+        13 => x.write_mantissa::<{ from_radix(13) }>(buffer),
+        14 => x.write_mantissa::<{ from_radix(14) }>(buffer),
+        15 => x.write_mantissa::<{ from_radix(15) }>(buffer),
+        16 => x.write_mantissa::<{ from_radix(16) }>(buffer),
+        17 => x.write_mantissa::<{ from_radix(17) }>(buffer),
+        18 => x.write_mantissa::<{ from_radix(18) }>(buffer),
         _ => unimplemented!(),
     }
 }
@@ -153,15 +153,15 @@ fn to_radix_10_18<T: UnsignedInteger + WriteInteger>(x: T, radix: u32, buffer: &
 #[inline(never)]
 fn to_radix_19_27<T: UnsignedInteger + WriteInteger>(x: T, radix: u32, buffer: &mut [u8]) -> usize {
     match radix {
-        19 => x.write_mantissa::<T, { from_radix(19) }>(buffer),
-        20 => x.write_mantissa::<T, { from_radix(20) }>(buffer),
-        21 => x.write_mantissa::<T, { from_radix(21) }>(buffer),
-        22 => x.write_mantissa::<T, { from_radix(22) }>(buffer),
-        23 => x.write_mantissa::<T, { from_radix(23) }>(buffer),
-        24 => x.write_mantissa::<T, { from_radix(24) }>(buffer),
-        25 => x.write_mantissa::<T, { from_radix(25) }>(buffer),
-        26 => x.write_mantissa::<T, { from_radix(26) }>(buffer),
-        27 => x.write_mantissa::<T, { from_radix(27) }>(buffer),
+        19 => x.write_mantissa::<{ from_radix(19) }>(buffer),
+        20 => x.write_mantissa::<{ from_radix(20) }>(buffer),
+        21 => x.write_mantissa::<{ from_radix(21) }>(buffer),
+        22 => x.write_mantissa::<{ from_radix(22) }>(buffer),
+        23 => x.write_mantissa::<{ from_radix(23) }>(buffer),
+        24 => x.write_mantissa::<{ from_radix(24) }>(buffer),
+        25 => x.write_mantissa::<{ from_radix(25) }>(buffer),
+        26 => x.write_mantissa::<{ from_radix(26) }>(buffer),
+        27 => x.write_mantissa::<{ from_radix(27) }>(buffer),
         _ => unimplemented!(),
     }
 }
@@ -169,15 +169,15 @@ fn to_radix_19_27<T: UnsignedInteger + WriteInteger>(x: T, radix: u32, buffer: &
 #[inline(never)]
 fn to_radix_28_36<T: UnsignedInteger + WriteInteger>(x: T, radix: u32, buffer: &mut [u8]) -> usize {
     match radix {
-        28 => x.write_mantissa::<T, { from_radix(28) }>(buffer),
-        29 => x.write_mantissa::<T, { from_radix(29) }>(buffer),
-        30 => x.write_mantissa::<T, { from_radix(30) }>(buffer),
-        31 => x.write_mantissa::<T, { from_radix(31) }>(buffer),
-        32 => x.write_mantissa::<T, { from_radix(32) }>(buffer),
-        33 => x.write_mantissa::<T, { from_radix(33) }>(buffer),
-        34 => x.write_mantissa::<T, { from_radix(34) }>(buffer),
-        35 => x.write_mantissa::<T, { from_radix(35) }>(buffer),
-        36 => x.write_mantissa::<T, { from_radix(36) }>(buffer),
+        28 => x.write_mantissa::<{ from_radix(28) }>(buffer),
+        29 => x.write_mantissa::<{ from_radix(29) }>(buffer),
+        30 => x.write_mantissa::<{ from_radix(30) }>(buffer),
+        31 => x.write_mantissa::<{ from_radix(31) }>(buffer),
+        32 => x.write_mantissa::<{ from_radix(32) }>(buffer),
+        33 => x.write_mantissa::<{ from_radix(33) }>(buffer),
+        34 => x.write_mantissa::<{ from_radix(34) }>(buffer),
+        35 => x.write_mantissa::<{ from_radix(35) }>(buffer),
+        36 => x.write_mantissa::<{ from_radix(36) }>(buffer),
         _ => unimplemented!(),
     }
 }

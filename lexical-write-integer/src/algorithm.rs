@@ -143,7 +143,8 @@ unsafe fn write_digits<T: UnsignedInteger>(
         // SAFETY: this is always safe, since `value < radix`, so it must be < 36.
         write_digit!(buffer, index, r);
     } else {
-        let r = usize::as_cast(T::TWO * value);
+        // NOTE: If this is a `u8`, we need to first widen the type.
+        let r = usize::as_cast(T::TWO) * usize::as_cast(value);
         // SAFETY: this is always safe, since the table is `2*radix^2`, and
         // the value must `<= radix^2`, so rem must be in the range
         // `[0, 2*radix^2-1)`.
@@ -210,8 +211,6 @@ pub fn algorithm<T>(value: T, radix: u32, table: &[u8], buffer: &mut [u8]) -> us
 where
     T: UnsignedInteger + DigitCount,
 {
-    // This is so that `radix^4` does not overflow, since `36^4` overflows a u16.
-    assert!(T::BITS >= 32, "Must have at least 32 bits in the input.");
     // NOTE: These checks should be resolved at compile time, so
     // they're unlikely to add any performance overhead.
     assert!((2..=36).contains(&radix), "radix must be >= 2 and <= 36");

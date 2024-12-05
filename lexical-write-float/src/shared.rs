@@ -139,7 +139,7 @@ pub fn write_exponent<const FORMAT: u128>(
     bytes[*cursor] = exponent_character;
     *cursor += 1;
     let positive_exp: u32 = write_exponent_sign::<FORMAT>(bytes, cursor, exp);
-    *cursor += positive_exp.write_exponent::<u32, FORMAT>(&mut bytes[*cursor..]);
+    *cursor += positive_exp.write_exponent::<FORMAT>(&mut bytes[*cursor..]);
 }
 
 /// Detect the notation to use for the float formatter and call the appropriate

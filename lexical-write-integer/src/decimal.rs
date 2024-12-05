@@ -251,22 +251,6 @@ pub trait Decimal: DecimalCount {
     fn decimal(self, buffer: &mut [u8]) -> usize;
 }
 
-// Don't implement decimal for small types, where we could have an overflow.
-macro_rules! decimal_unimpl {
-    ($($t:ty)*) => ($(
-        impl Decimal for $t {
-            #[inline(always)]
-            fn decimal(self, _: &mut [u8]) -> usize {
-                // Forces a hard error if we have a logic error in our code.
-                // FIXME: Implement these for small type sizes
-                unimplemented!()
-            }
-        }
-    )*);
-}
-
-decimal_unimpl! { u8 u16 usize }
-
 // Implement decimal for type.
 macro_rules! decimal_impl {
     ($($t:ty)*) => ($(
@@ -279,7 +263,7 @@ macro_rules! decimal_impl {
     )*);
 }
 
-decimal_impl! { u32 u64 }
+decimal_impl! { u8 u16 u32 u64 usize }
 
 impl Decimal for u128 {
     #[inline(always)]

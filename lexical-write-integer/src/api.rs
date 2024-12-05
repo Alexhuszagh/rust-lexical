@@ -18,18 +18,17 @@ use crate::write::WriteInteger;
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
 #[cfg_attr(not(feature = "compact"), inline(always))]
-fn unsigned<Narrow, Wide, const FORMAT: u128>(value: Narrow, buffer: &mut [u8]) -> usize
+fn unsigned<T, const FORMAT: u128>(value: T, buffer: &mut [u8]) -> usize
 where
-    Narrow: WriteInteger,
-    Wide: WriteInteger,
+    T: WriteInteger,
 {
     let format = NumberFormat::<FORMAT> {};
     if cfg!(feature = "format") && format.required_mantissa_sign() {
         buffer[0] = b'+';
         let buffer = &mut buffer[1..];
-        value.write_mantissa::<Wide, FORMAT>(buffer) + 1
+        value.write_mantissa::<FORMAT>(buffer) + 1
     } else {
-        value.write_mantissa::<Wide, FORMAT>(buffer)
+        value.write_mantissa::<FORMAT>(buffer)
     }
 }
 
@@ -42,31 +41,29 @@ where
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
 #[cfg_attr(not(feature = "compact"), inline(always))]
-fn signed<Narrow, Wide, Unsigned, const FORMAT: u128>(value: Narrow, buffer: &mut [u8]) -> usize
+fn signed<Signed, Unsigned, const FORMAT: u128>(value: Signed, buffer: &mut [u8]) -> usize
 where
-    Narrow: SignedInteger,
-    Wide: SignedInteger,
+    Signed: SignedInteger,
     Unsigned: WriteInteger,
 {
     let format = NumberFormat::<FORMAT> {};
-    if value < Narrow::ZERO {
+    if value < Signed::ZERO {
         // Need to cast the value to the same size as unsigned type, since if
         // the value is **exactly** `Narrow::MIN`, and it it is then cast
         // as the wrapping negative as the unsigned value, a wider type
         // will have a very different value.
-        let value = Wide::as_cast(value);
         let unsigned = Unsigned::as_cast(value.wrapping_neg());
         buffer[0] = b'-';
         let buffer = &mut buffer[1..];
-        unsigned.write_mantissa::<Unsigned, FORMAT>(buffer) + 1
+        unsigned.write_mantissa::<FORMAT>(buffer) + 1
     } else if cfg!(feature = "format") && format.required_mantissa_sign() {
         let unsigned = Unsigned::as_cast(value);
         buffer[0] = b'+';
         let buffer = &mut buffer[1..];
-        unsigned.write_mantissa::<Unsigned, FORMAT>(buffer) + 1
+        unsigned.write_mantissa::<FORMAT>(buffer) + 1
     } else {
         let unsigned = Unsigned::as_cast(value);
-        unsigned.write_mantissa::<Unsigned, FORMAT>(buffer)
+        unsigned.write_mantissa::<FORMAT>(buffer)
     }
 }
 
@@ -74,18 +71,18 @@ where
 
 // Implement `ToLexical` for numeric type.
 macro_rules! unsigned_to_lexical {
-    ($($narrow:tt $wide:tt ; )*) => ($(
-        impl ToLexical for $narrow {
+    ($($t:tt)*) => ($(
+        impl ToLexical for $t {
             #[cfg_attr(not(feature = "compact"), inline)]
             fn to_lexical(self, bytes: &mut [u8])
                 -> &mut [u8]
             {
-                let len = unsigned::<$narrow, $wide, { STANDARD }>(self, bytes);
+                let len = unsigned::<$t, { STANDARD }>(self, bytes);
                 &mut bytes[..len]
             }
         }
 
-        impl ToLexicalWithOptions for $narrow {
+        impl ToLexicalWithOptions for $t {
             type Options = Options;
 
             #[cfg_attr(not(feature = "compact"), inline)]
@@ -97,7 +94,7 @@ macro_rules! unsigned_to_lexical {
             {
                 _ = options;
                 assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
-                let len = unsigned::<$narrow, $wide, FORMAT>(self, bytes);
+                let len = unsigned::<$t, FORMAT>(self, bytes);
                 &mut bytes[..len]
             }
         }
@@ -106,34 +103,22 @@ macro_rules! unsigned_to_lexical {
 
 to_lexical! {}
 to_lexical_with_options! {}
-unsigned_to_lexical! {
-    u8 u32 ;
-    u16 u32 ;
-    u32 u32 ;
-    u64 u64 ;
-    u128 u128 ;
-}
-
-#[cfg(any(target_pointer_width = "16", target_pointer_width = "32"))]
-unsigned_to_lexical! { usize u32 ; }
-
-#[cfg(target_pointer_width = "64")]
-unsigned_to_lexical! { usize u64 ; }
+unsigned_to_lexical! { u8 u16 u32 u64 u128 usize }
 
 // Implement `ToLexical` for numeric type.
 macro_rules! signed_to_lexical {
-    ($($narrow:tt $wide:tt $unsigned:tt ; )*) => ($(
-        impl ToLexical for $narrow {
+    ($($signed:tt $unsigned:tt ; )*) => ($(
+        impl ToLexical for $signed {
             #[cfg_attr(not(feature = "compact"), inline)]
             fn to_lexical(self, bytes: &mut [u8])
                 -> &mut [u8]
             {
-                let len = signed::<$narrow, $wide, $unsigned, { STANDARD }>(self, bytes);
+                let len = signed::<$signed, $unsigned, { STANDARD }>(self, bytes);
                 &mut bytes[..len]
             }
         }
 
-        impl ToLexicalWithOptions for $narrow {
+        impl ToLexicalWithOptions for $signed {
             type Options = Options;
             #[cfg_attr(not(feature = "compact"), inline)]
             fn to_lexical_with_options<'a, const FORMAT: u128>(
@@ -144,7 +129,7 @@ macro_rules! signed_to_lexical {
             {
                 _ = options;
                 assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
-                let len = signed::<$narrow, $wide, $unsigned, FORMAT>(self, bytes);
+                let len = signed::<$signed, $unsigned, FORMAT>(self, bytes);
                 &mut bytes[..len]
             }
         }
@@ -152,15 +137,18 @@ macro_rules! signed_to_lexical {
 }
 
 signed_to_lexical! {
-    i8 i32 u32 ;
-    i16 i32 u32 ;
-    i32 i32 u32 ;
-    i64 i64 u64 ;
-    i128 i128 u128 ;
+    i8 u8 ;
+    i16 u16 ;
+    i32 u32 ;
+    i64 u64 ;
+    i128 u128 ;
 }
 
-#[cfg(any(target_pointer_width = "16", target_pointer_width = "32"))]
-signed_to_lexical! { isize i32 u32 ; }
+#[cfg(target_pointer_width = "16")]
+signed_to_lexical! { isize u16 ; }
+
+#[cfg(target_pointer_width = "32")]
+signed_to_lexical! { isize u32 ; }
 
 #[cfg(target_pointer_width = "64")]
-signed_to_lexical! { isize i64 u64 ; }
+signed_to_lexical! { isize u64 ; }

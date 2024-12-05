@@ -14,17 +14,14 @@ use crate::radix::Radix;
 
 /// Define the implementation to write significant digits.
 macro_rules! write_mantissa {
-    ($($t:tt)+) => (
+    ($($t:tt)+) => {
         /// Internal implementation to write significant digits for float writers.
         #[doc(hidden)]
         #[inline(always)]
-        fn write_mantissa<U, const FORMAT: u128>(self, buffer: &mut [u8]) -> usize
-        where
-            U: $($t)+,
-        {
-            self.write_integer::<U, FORMAT, { format::RADIX }, { format::RADIX_SHIFT }>(buffer)
+        fn write_mantissa<const FORMAT: u128>(self, buffer: &mut [u8]) -> usize {
+            self.write_integer::<FORMAT, { format::RADIX }, { format::RADIX_SHIFT }>(buffer)
         }
-    )
+    };
 }
 
 /// Define the implementation to write exponent digits.
@@ -33,11 +30,9 @@ macro_rules! write_exponent {
         /// Internal implementation to write exponent digits for float writers.
         #[doc(hidden)]
         #[inline(always)]
-        fn write_exponent<U, const FORMAT: u128>(self, buffer: &mut [u8]) -> usize
-        where
-            U: $($t)+,
+        fn write_exponent<const FORMAT: u128>(self, buffer: &mut [u8]) -> usize
         {
-            self.write_integer::<U, FORMAT, { format::EXPONENT_RADIX }, { format::EXPONENT_RADIX_SHIFT }>(buffer)
+            self.write_integer::<FORMAT, { format::EXPONENT_RADIX }, { format::EXPONENT_RADIX_SHIFT }>(buffer)
         }
     )
 }
@@ -53,16 +48,12 @@ pub trait WriteInteger: Compact {
     ///
     /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
     /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
-    fn write_integer<U, const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
+    fn write_integer<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
         self,
         buffer: &mut [u8],
-    ) -> usize
-    where
-        U: Compact,
-    {
-        let value = U::as_cast(self);
+    ) -> usize {
         let radix = format::radix_from_flags(FORMAT, MASK, SHIFT);
-        value.compact(radix, buffer)
+        self.compact(radix, buffer)
     }
 
     write_mantissa!(Compact);
@@ -81,15 +72,11 @@ pub trait WriteInteger: Decimal {
     ///
     /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
     #[inline(always)]
-    fn write_integer<U, const __: u128, const ___: u128, const ____: i32>(
+    fn write_integer<const __: u128, const ___: u128, const ____: i32>(
         self,
         buffer: &mut [u8],
-    ) -> usize
-    where
-        U: Decimal,
-    {
-        let value = U::as_cast(self);
-        value.decimal(buffer)
+    ) -> usize {
+        self.decimal(buffer)
     }
 
     write_mantissa!(Decimal);
@@ -109,18 +96,14 @@ pub trait WriteInteger: Decimal + Radix {
     /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
     /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
     #[inline(always)]
-    fn write_integer<U, const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
+    fn write_integer<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
         self,
         buffer: &mut [u8],
-    ) -> usize
-    where
-        U: Decimal + Radix,
-    {
-        let value = U::as_cast(self);
+    ) -> usize {
         if format::radix_from_flags(FORMAT, MASK, SHIFT) == 10 {
-            value.decimal(buffer)
+            self.decimal(buffer)
         } else {
-            value.radix::<FORMAT, MASK, SHIFT>(buffer)
+            self.radix::<FORMAT, MASK, SHIFT>(buffer)
         }
     }
 
