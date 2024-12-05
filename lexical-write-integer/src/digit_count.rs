@@ -7,7 +7,11 @@
 #![cfg(not(feature = "compact"))]
 #![doc(hidden)]
 
-use lexical_util::num::UnsignedInteger;
+use lexical_util::{
+    div128::u128_divrem,
+    num::{AsPrimitive, UnsignedInteger},
+    step::u64_step,
+};
 
 use crate::decimal::DecimalCount;
 
@@ -25,6 +29,22 @@ use crate::decimal::DecimalCount;
 #[inline(always)]
 pub fn fast_log2<T: UnsignedInteger>(x: T) -> usize {
     T::BITS - 1 - (x | T::ONE).leading_zeros() as usize
+}
+
+// Uses a naive approach to calculate the number of digits.
+macro_rules! naive_count {
+    ($t:ty, $radix:expr, $x:expr) => {{
+        let radix = <$t as AsPrimitive>::from_u32($radix);
+        let mut digits = 1;
+        // NOTE: For radix 10, 0-9 would be 1 digit while 10-99 would be 2 digits,
+        // so this needs to be `>=` and not `>`.
+        let mut value = $x;
+        while value >= radix {
+            digits += 1;
+            value /= radix;
+        }
+        digits
+    }};
 }
 
 /// Quickly calculate the number of digits in a type.
@@ -49,20 +69,8 @@ pub unsafe trait DigitCount: UnsignedInteger + DecimalCount {
             10 => self.decimal_count(),
             // NOTE: This is currently horribly inefficient and exists just for correctness.
             // FIXME: Optimize for power-of-two radices
-            // FIXME: Optimize for u128
             // FIXME: Optimize for non-power-of-two radices.
-            _ => {
-                let radix = Self::from_u32(radix);
-                let mut digits = 1;
-                // NOTE: For radix 10, 0-9 would be 1 digit while 10-99 would be 2 digits,
-                // so this needs to be >=
-                let mut value = self;
-                while value >= radix {
-                    digits += 1;
-                    value /= radix;
-                }
-                digits
-            },
+            _ => naive_count!(Self, radix, self),
         }
     }
 }
@@ -76,4 +84,42 @@ macro_rules! digit_impl {
     )*);
 }
 
-digit_impl! { u8 u16 usize u32 u64 u128 }
+digit_impl! { u8 u16 usize u32 u64 }
+
+// SAFETY: Safe since it specialized in terms of `div128_rem`, which
+// is the same way the digits are generated.
+unsafe impl DigitCount for u128 {
+    /// Get the number of digits in a value.
+    #[inline(always)]
+    fn digit_count(self, radix: u32) -> usize {
+        assert!((2..=36).contains(&radix), "radix must be >= 2 and <= 36");
+        match radix {
+            10 => self.decimal_count(),
+            // FIXME: Optimize this
+            _ => {
+                // NOTE: This follows the same implementation as the digit count
+                // generation, so this is safe.
+                if self <= u64::MAX as u128 {
+                    return naive_count!(u64, radix, self as u64);
+                }
+
+                // Doesn't fit in 64 bits, let's try our divmod.
+                let step = u64_step(radix);
+                let (value, _) = u128_divrem(self, radix);
+                let mut count = step;
+                if value <= u64::MAX as u128 {
+                    count += naive_count!(u64, radix, value as u64);
+                } else {
+                    // Value has to be greater than 1.8e38
+                    let (value, _) = u128_divrem(value, radix);
+                    count += step;
+                    if value != 0 {
+                        count += naive_count!(u64, radix, value as u64);
+                    }
+                }
+
+                count
+            },
+        }
+    }
+}
