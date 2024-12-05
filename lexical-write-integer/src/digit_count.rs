@@ -34,11 +34,38 @@ pub fn fast_log2<T: UnsignedInteger>(x: T) -> usize {
 // Uses a naive approach to calculate the number of digits.
 macro_rules! naive_count {
     ($t:ty, $radix:expr, $x:expr) => {{
-        let radix = <$t as AsPrimitive>::from_u32($radix);
-        let mut digits = 1;
+        // If we can do multi-digit optimizations, it's ideal,
+        // so we want to check if our type size max value is >=
+        // to the value.
+        let radix = $radix as u32;
+        let radix2 = radix * radix;
+        let radix4 = radix2 * radix2;
+
         // NOTE: For radix 10, 0-9 would be 1 digit while 10-99 would be 2 digits,
         // so this needs to be `>=` and not `>`.
+        let mut digits = 1;
         let mut value = $x;
+
+        // try 4-digit optimizations
+        if <$t>::BITS >= 32 || radix4 < <$t>::MAX.as_u32() {
+            let radix4 = <$t as AsPrimitive>::from_u32(radix4);
+            while value >= radix4 {
+                digits += 4;
+                value /= radix4;
+            }
+        }
+
+        // try 2-digit optimizations
+        if <$t>::BITS >= 16 || radix2 < <$t>::MAX.as_u32() {
+            let radix2 = <$t as AsPrimitive>::from_u32(radix2);
+            while value >= radix2 {
+                digits += 2;
+                value /= radix2;
+            }
+        }
+
+        // can only do a single digit
+        let radix = <$t as AsPrimitive>::from_u32(radix);
         while value >= radix {
             digits += 1;
             value /= radix;
