@@ -4,8 +4,10 @@ mod util;
 
 use lexical_write_integer::decimal::DecimalCount;
 use lexical_write_integer::digit_count::{self, DigitCount};
+#[rustversion::since(1.67)]
 use proptest::prelude::*;
 
+#[rustversion::since(1.67)]
 use crate::util::default_proptest_config;
 
 #[test]
@@ -175,6 +177,7 @@ default_quickcheck! {
     }
 }
 
+#[rustversion::since(1.67)]
 macro_rules! ilog {
     ($x:ident, $radix:expr) => {{
         if $x > 0 {
@@ -185,6 +188,7 @@ macro_rules! ilog {
     }};
 }
 
+#[rustversion::since(1.67)]
 proptest! {
     #![proptest_config(default_proptest_config())]
 
