@@ -91,41 +91,50 @@ unsafe fn write_digits<T: UnsignedInteger>(
     debug_assert_radix(radix);
     debug_assert!(buffer.len() >= count, "buffer must at least be as the digit count");
 
-    // Pre-compute our powers of radix.
-    let radix = T::from_u32(radix);
+    // Calculate if we can do multi-digit optimizations
+    assert!((2..=36).contains(&radix), "radix must be >= 2 and <= 36");
     let radix2 = radix * radix;
     let radix4 = radix2 * radix2;
+
+    // Pre-compute our powers of radix.
+    let radix = T::from_u32(radix);
 
     // SAFETY: All of these are safe for the buffer writes as long as
     // the buffer is large enough to hold `T::MAX` digits in radix `N`.
     // We confirm (which will be compiled out) that the table cannot
     // overflow since it's the indexing is `0..radix^2 * 2`.
-    assert!(radix <= T::from_u32(36), "radix must be <= 36");
-    assert!(table.len() >= radix2.as_usize() * 2, "table must be 2 * radix^2 long");
+    assert!(table.len() >= radix2 as usize * 2, "table must be 2 * radix^2 long");
 
     // Decode 4 digits at a time.
-    while value >= radix4 {
-        let r = value % radix4;
-        value /= radix4;
-        let r1 = usize::as_cast(T::TWO * (r / radix2));
-        let r2 = usize::as_cast(T::TWO * (r % radix2));
+    if T::BITS >= 32 || radix4 < T::MAX.as_u32() {
+        let radix2 = T::from_u32(radix2);
+        let radix4 = T::from_u32(radix4);
+        while value >= radix4 {
+            let r = value % radix4;
+            value /= radix4;
+            let r1 = usize::as_cast(T::TWO * (r / radix2));
+            let r2 = usize::as_cast(T::TWO * (r % radix2));
 
-        // SAFETY: This is always safe, since the table is `2*radix^2`, and
-        // `r1` and `r2` must be in the range `[0, 2*radix^2-1)`, since the maximum
-        // value of r is `radix4-1`, which must have a `div` and `r`
-        // in the range `[0, radix^2-1)`.
-        write_digits!(buffer, index, table, r2);
-        write_digits!(buffer, index, table, r1);
+            // SAFETY: This is always safe, since the table is `2*radix^2`, and
+            // `r1` and `r2` must be in the range `[0, 2*radix^2-1)`, since the maximum
+            // value of r is `radix4-1`, which must have a `div` and `r`
+            // in the range `[0, radix^2-1)`.
+            write_digits!(buffer, index, table, r2);
+            write_digits!(buffer, index, table, r1);
+        }
     }
 
     // Decode 2 digits at a time.
-    while value >= radix2 {
-        let r = usize::as_cast(T::TWO * (value % radix2));
-        value /= radix2;
+    if T::BITS >= 16 || radix2 < T::MAX.as_u32() {
+        let radix2 = T::from_u32(radix2);
+        while value >= radix2 {
+            let r = usize::as_cast(T::TWO * (value % radix2));
+            value /= radix2;
 
-        // SAFETY: this is always safe, since the table is `2*radix^2`, and
-        // `r` must be in the range `[0, 2*radix^2-1)`.
-        write_digits!(buffer, index, table, r);
+            // SAFETY: this is always safe, since the table is `2*radix^2`, and
+            // `r` must be in the range `[0, 2*radix^2-1)`.
+            write_digits!(buffer, index, table, r);
+        }
     }
 
     // Decode last 2 digits.
