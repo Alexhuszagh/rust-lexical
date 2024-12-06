@@ -4,10 +4,8 @@ mod util;
 
 use lexical_write_integer::decimal::DecimalCount;
 use lexical_write_integer::digit_count::{self, DigitCount};
-#[rustversion::since(1.67)]
 use proptest::prelude::*;
 
-#[rustversion::since(1.67)]
 use crate::util::default_proptest_config;
 
 #[test]
@@ -174,6 +172,33 @@ default_quickcheck! {
 
     fn fast_log2_quickcheck(x: u32) -> bool {
         slow_log2(x) == digit_count::fast_log2(x)
+    }
+}
+
+proptest! {
+    #![proptest_config(default_proptest_config())]
+
+    #[test]
+    fn decimal_slow_u64_test(x: u64) {
+        prop_assert_eq!(x.digit_count(10), x.slow_digit_count(10));
+    }
+
+    #[test]
+    fn basen_slow_u64_test(x: u64, power in 1u32..=5) {
+        let radix = 2u32.pow(power);
+        prop_assert_eq!(x.digit_count(radix), x.slow_digit_count(radix));
+    }
+
+    #[test]
+    fn decimal_slow_u128_test(x: u128) {
+        prop_assert_eq!(x.digit_count(10), x.slow_digit_count(10));
+    }
+
+    #[test]
+    #[cfg(feature = "power-of-two")]
+    fn basen_slow_u128_test(x: u128, power in 1u32..=5) {
+        let radix = 2u32.pow(power);
+        prop_assert_eq!(x.digit_count(radix), x.slow_digit_count(radix));
     }
 }
 

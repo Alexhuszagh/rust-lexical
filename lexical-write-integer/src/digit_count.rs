@@ -122,34 +122,46 @@ fn digit_log2<T: UnsignedInteger>(x: T) -> usize {
 
 /// Highly-optimized digit count for base4 values.
 ///
-/// This is very similar to base 2, except we shift right by
-/// 1 and adjust by 1. For example, `fast_log2(3) == 1`, so
-/// `fast_log2(3) >> 1 == 0`, which then gives us our result.
+/// This is very similar to base 2, except we divide by 2
+/// and adjust by 1. For example, `fast_log2(3) == 1`, so
+/// `fast_log2(3) / 2 == 0`, which then gives us our result.
+///
+/// This works because `log2(x) / 2 == log4(x)`. Flooring is
+/// the correct approach since `log2(15) == 3`, which should be
+/// 2 digits (so `3 / 2 + 1`).
 #[inline(always)]
 fn digit_log4<T: UnsignedInteger>(x: T) -> usize {
-    // NOTE: This cannot be `fast_log2(fast_log2())`
-    (fast_log2(x | T::ONE) >> 1) + 1
+    (fast_log2(x) / 2) + 1
 }
 
-/// Specialized digit count for base8 values.
+/// Highly-optimized digit count for base8 values.
+///
+/// This works because `log2(x) / 3 == log8(x)`. Flooring is
+/// the correct approach since `log2(63) == 5`, which should be
+/// 2 digits (so `5 / 3 + 1`).
 #[inline(always)]
 fn digit_log8<T: UnsignedInteger>(x: T) -> usize {
-    // FIXME: Optimize
-    digit_count!(@naive T, 8, x)
+    (fast_log2(x) / 3) + 1
 }
 
-/// Specialized digit count for base16 values.
+/// Highly-optimized digit count for base16 values.
+///
+/// This works because `log2(x) / 4 == log16(x)`. Flooring is
+/// the correct approach since `log2(255) == 7`, which should be
+/// 2 digits (so `7 / 4 + 1`).
 #[inline(always)]
 fn digit_log16<T: UnsignedInteger>(x: T) -> usize {
-    // FIXME: Optimize
-    digit_count!(@naive T, 16, x)
+    (fast_log2(x) / 4) + 1
 }
 
-/// Specialized digit count for base32 values.
+/// Highly-optimized digit count for base32 values.
+///
+/// This works because `log2(x) / 5 == log32(x)`. Flooring is
+/// the correct approach since `log2(1023) == 9`, which should be
+/// 2 digits (so `9 / 5 + 1`).
 #[inline(always)]
 fn digit_log32<T: UnsignedInteger>(x: T) -> usize {
-    // FIXME: Optimize
-    digit_count!(@naive T, 32, x)
+    (fast_log2(x) / 5) + 1
 }
 
 /// Quickly calculate the number of digits in a type.
@@ -182,6 +194,14 @@ pub unsafe trait DigitCount: UnsignedInteger + DecimalCount {
             // fallback
             _ => digit_count!(@naive Self, radix, self),
         }
+    }
+
+    /// Get the number of digits in a value, always using the slow algorithm.
+    ///
+    /// This is exposed for testing purposes.
+    #[inline(always)]
+    fn slow_digit_count(self, radix: u32) -> usize {
+        digit_count!(@naive Self, radix, self)
     }
 }
 
