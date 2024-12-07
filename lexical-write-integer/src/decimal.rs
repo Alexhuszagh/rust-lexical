@@ -16,7 +16,7 @@
 use lexical_util::format::{RADIX, RADIX_SHIFT, STANDARD};
 use lexical_util::num::UnsignedInteger;
 
-use crate::algorithm::{algorithm, algorithm_u128};
+use crate::algorithm::algorithm_u128;
 use crate::digit_count::fast_log2;
 use crate::jeaiii;
 use crate::table::DIGIT_TO_BASE10_SQUARED;
@@ -254,37 +254,21 @@ pub trait Decimal: DecimalCount {
 
 // Implement decimal for type.
 macro_rules! decimal_impl {
-    ($($t:ty)*) => ($(
+    ($($t:ty; $f:ident)*) => ($(
         impl Decimal for $t {
             #[inline(always)]
             fn decimal(self, buffer: &mut [u8]) -> usize {
-                algorithm(self, 10, &DIGIT_TO_BASE10_SQUARED, buffer)
+                jeaiii::$f(self, buffer)
             }
         }
     )*);
 }
 
-decimal_impl! { u64 }
-
-impl Decimal for u8 {
-    #[inline(always)]
-    fn decimal(self, buffer: &mut [u8]) -> usize {
-        jeaiii::from_u8(self, buffer)
-    }
-}
-
-impl Decimal for u16 {
-    #[inline(always)]
-    fn decimal(self, buffer: &mut [u8]) -> usize {
-        jeaiii::from_u16(self, buffer)
-    }
-}
-
-impl Decimal for u32 {
-    #[inline(always)]
-    fn decimal(self, buffer: &mut [u8]) -> usize {
-        jeaiii::from_u32(self, buffer)
-    }
+decimal_impl! {
+    u8; from_u8
+    u16; from_u16
+    u32; from_u32
+    u64; from_u64
 }
 
 impl Decimal for u128 {

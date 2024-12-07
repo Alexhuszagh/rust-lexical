@@ -30,10 +30,9 @@
 use lexical_util::bf16::bf16;
 #[cfg(feature = "f16")]
 use lexical_util::f16::f16;
-use lexical_util::format::{NumberFormat, STANDARD};
+use lexical_util::format::NumberFormat;
 use lexical_util::num::{AsPrimitive, Float};
-use lexical_write_integer::decimal::DecimalCount;
-use lexical_write_integer::write::WriteInteger;
+use lexical_write_integer::decimal::{Decimal, DecimalCount};
 
 use crate::float::{ExtendedFloat80, RawFloat};
 use crate::options::{Options, RoundMode};
@@ -761,7 +760,7 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
 #[allow(clippy::branches_sharing_code)] // reason="could differentiate later"
 pub fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
     debug_assert!(bytes.len() >= 10);
-    mantissa.write_mantissa::<{ STANDARD }>(bytes)
+    mantissa.decimal(bytes)
 }
 
 /// Write the significant digits, when the significant digits cannot fit in a
@@ -774,7 +773,7 @@ pub fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
 #[allow(clippy::branches_sharing_code)] // reason="could differentiate later"
 pub fn write_digits_u64(bytes: &mut [u8], mantissa: u64) -> usize {
     debug_assert!(bytes.len() >= 20);
-    mantissa.write_mantissa::<{ STANDARD }>(bytes)
+    mantissa.decimal(bytes)
 }
 
 // EXTENDED
@@ -1223,6 +1222,7 @@ impl DragonboxFloat for f32 {
 
     #[inline(always)]
     fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize {
+        // NOTE: These digits are after shifting, so it can be 2**32 - 1.
         debug_assert!(mantissa <= u32::MAX as u64);
         write_digits_u32(bytes, mantissa as u32)
     }
@@ -1333,6 +1333,7 @@ impl DragonboxFloat for f64 {
 
     #[inline(always)]
     fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize {
+        // NOTE: These digits are after shifting, so it can be 2**64 - 1.
         write_digits_u64(bytes, mantissa)
     }
 

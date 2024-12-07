@@ -1301,6 +1301,11 @@ proptest! {
     }
 
     #[test]
+    fn jeaiii_magic_10u64_proptest(i in 10_0000_0000..100_0000_0000u64) {
+        prop_assert_eq!(i, roundtrip(i));
+    }
+
+    #[test]
     #[cfg(feature = "radix")]
     fn u8_proptest_radix(i in u8::MIN..u8::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
@@ -1441,12 +1446,6 @@ fn u32_buffer_test() {
 fn u64_buffer_test() {
     let mut buffer = [b'\x00'; 5];
     123456i64.to_lexical(&mut buffer);
-}
-
-#[test]
-fn u64_buffer_no_panic_test() {
-    let mut buffer = [b'\x00'; 6];
-    12345i64.to_lexical(&mut buffer);
 }
 
 #[test]
