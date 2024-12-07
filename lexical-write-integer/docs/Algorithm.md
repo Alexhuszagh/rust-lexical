@@ -1,10 +1,34 @@
 # Algorithm Approach
 
-**Digit Counting**
+Our base algorithms use binary searches with exact digit writing ([Jeaiii Algorithm](https://jk-jeon.github.io/posts/2022/02/jeaiii-algorithm/)) or using tables to write 2 digits at a time (popularized by Andrei Alexandrescu`).
+
+## jeaiii
+
+James Anhalt's itoa algorithm along with Junekey Jeon's performance tweaks have excellent performance, however, this can be further optimized. Both James Anhalt's and Junekey Jeon's use a binary search for determining the correct number of digits to print (for 32-bit integers).
+
+```text
+     /\____________
+    /  \______     \______
+   /\   \     \     \     \
+  0  1  /\    /\    /\    /\
+       2  3  4  5  6  7  8  9
+```
+
+This leads to a max tree depth of 4, and the major performance bottleneck with larger type sizes is the branching. A minor modification can optimize this, leadingg to a max tree depth of 3 while only required 1 extra comparison at the top level. Also, we invert the comparisons: oddly enough, our benchmarks show doing larger comparisons then smaller improves performance for numbers with both large and small numbers of digits.
+
+```text
+          ____________________
+      ___/_       __|__       \
+     /  |  \     /     \      /\
+    /\  1   0   /\     /\    8  9
+   3  2        6  7   4  5
+```
+
+## Digit Counting
 
 Fast digit counting can remove the requirement to use intermediate buffers when writing digits, since the digits are written in reverse order, which can lead to dramatic performance improvements.
 
-For values <= `u32`, we can use a fast digit counting algorithm described [here](https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/). 
+For values <= `u32`, we can use a fast digit counting algorithm described [here](https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/).
 
 This depends on a fast log2 algorithm, which can then be used to compare to a pre-computed table to determine to round-up or down. Note that although all the algorithms are done for `u32`, in the actual implementation they use generic values.
 
@@ -43,7 +67,25 @@ pub fn fallback_digit_count(x: u32) -> usize {
 
 The second algorithm is trivial to explain: we calculate a fast, integral log 10 of the value, which can be off by as much as 1, rounded down. We then therefore have a pre-computed table of all values, as 128-bit integers, and then determine if the value is smaller than the desired value.
 
-**Power-of-4 Reduction**
+For radices with powers-of-two, we can use `log2(x) + 1` to calculate the number of digits required, which can be calculated by the leading digits.
+
+```rust
+pub fn log2(x: u32) -> usize {
+    32 - (x | 1).leading_zeros() as usize
+}
+```
+
+For radices of `2^N` (where `N ∈ [1, 5]`), we can then implement it as:
+
+```rust
+pub fn digits_pow2(x: u32, n: u32) -> usize {
+    log2(x) / n + 1
+}
+```
+
+Since `N` will be known at compile time, this has heavily optimized digit calculation so we do not need to shift the digits into place after writing.
+
+## Power-of-4 Reduction
 
 The fastest algorithm by far seems to be a power-of-4 reduction, using a loop. This reduces the number of operations to 2 division/remainder operations per loop.
 
@@ -91,7 +133,7 @@ if value < radix {
 
 The major performance bottleneck, however, is the intermediate copy, which can slow down the algorithm by ~3x. The solution, of course, is to pre-compute the number of digits and therefore use no intermediate buffer.
 
-**Manually Unrolling**
+## Manually Unrolling
 
 Another approach is to calculate the number of digits, and then to manually unroll the loops for a range of values at the cost of code size. Unfortunately, this isn't very fast in practice, even if it seems good on paper.
 
@@ -165,7 +207,7 @@ fn write_5_10(value: u64, buffer: &mut [u8]) {
 
 This removes any performance benefits of the removed branching, and makes it considerably slower than the simpler approach.
 
-**128-Bit Division**
+## 128-Bit Division
 
 128-bit division is a fundamentally slow part of integer formatting. We therefore pre-computed divisors for 128-bit division, choosing the largest radix power that fits inside a `u64`. Once we have this divisor, we can perform fast division using 1 of 4 different strategies:
 
@@ -220,7 +262,7 @@ Strategies 2. and 3. are generally combined into a single function, allowing a f
 
 Approach 3. only works if `factor` can be represented in 128 bits, which is not true for all values. In the fallback case, we have to rely on true, 128-bit division. Rust, however, for `divrem` calls both division and remainder separately, requiring two, separate calls to `__udivmodti4`. We therefore just combine them into a single call.
 
-**Compact**
+## Compact
 
 For our compact implementation, prioritizing code size at the cost of performance, we use a naive algorithm that writes 1 digit at a time, without any additional optimizations. This algorithm is trivial to verify, and is effectively analogous to the following code:
 
