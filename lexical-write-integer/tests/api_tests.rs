@@ -1301,6 +1301,11 @@ proptest! {
     }
 
     #[test]
+    fn jeaiii_magic_10u64_proptest(i in 10_0000_0000..100_0000_0000u64) {
+        prop_assert_eq!(i, roundtrip(i));
+    }
+
+    #[test]
     #[cfg(feature = "radix")]
     fn u8_proptest_radix(i in u8::MIN..u8::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
