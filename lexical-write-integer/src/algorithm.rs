@@ -3,6 +3,10 @@
 //! These routines are highly optimized: they unroll 4 loops at a time,
 //! using pre-computed base^2 tables.
 //!
+//! This was popularized by Andrei Alexandrescu, and uses 2 digits per
+//! division, which we further optimize in up to 4 digits per division
+//! with a bit shift.
+//!
 //! See [Algorithm.md](/docs/Algorithm.md) for a more detailed description of
 //! the algorithm choice here. See [Benchmarks.md](/docs/Benchmarks.md) for
 //! recent benchmark data.

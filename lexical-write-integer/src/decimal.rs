@@ -18,6 +18,7 @@ use lexical_util::num::UnsignedInteger;
 
 use crate::algorithm::{algorithm, algorithm_u128};
 use crate::digit_count::fast_log2;
+use crate::jeaiii;
 use crate::table::DIGIT_TO_BASE10_SQUARED;
 
 /// Calculate the fast, integral log10 of a value.
@@ -263,7 +264,28 @@ macro_rules! decimal_impl {
     )*);
 }
 
-decimal_impl! { u8 u16 u32 u64 usize }
+decimal_impl! { u64 }
+
+impl Decimal for u8 {
+    #[inline(always)]
+    fn decimal(self, buffer: &mut [u8]) -> usize {
+        jeaiii::from_u8(self, buffer)
+    }
+}
+
+impl Decimal for u16 {
+    #[inline(always)]
+    fn decimal(self, buffer: &mut [u8]) -> usize {
+        jeaiii::from_u16(self, buffer)
+    }
+}
+
+impl Decimal for u32 {
+    #[inline(always)]
+    fn decimal(self, buffer: &mut [u8]) -> usize {
+        jeaiii::from_u32(self, buffer)
+    }
+}
 
 impl Decimal for u128 {
     #[inline(always)]
@@ -273,5 +295,19 @@ impl Decimal for u128 {
             &DIGIT_TO_BASE10_SQUARED,
             buffer,
         )
+    }
+}
+
+impl Decimal for usize {
+    #[inline(always)]
+    fn decimal(self, buffer: &mut [u8]) -> usize {
+        match usize::BITS {
+            8 => (self as u8).decimal(buffer),
+            16 => (self as u16).decimal(buffer),
+            32 => (self as u32).decimal(buffer),
+            64 => (self as u64).decimal(buffer),
+            128 => (self as u128).decimal(buffer),
+            _ => unimplemented!(),
+        }
     }
 }

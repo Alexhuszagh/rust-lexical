@@ -153,6 +153,7 @@ pub mod algorithm;
 pub mod compact;
 pub mod decimal;
 pub mod digit_count;
+pub mod jeaiii;
 pub mod options;
 pub mod radix;
 pub mod table;
