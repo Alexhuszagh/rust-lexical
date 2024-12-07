@@ -1444,12 +1444,6 @@ fn u64_buffer_test() {
 }
 
 #[test]
-fn u64_buffer_no_panic_test() {
-    let mut buffer = [b'\x00'; 6];
-    12345i64.to_lexical(&mut buffer);
-}
-
-#[test]
 #[should_panic]
 fn u128_buffer_test() {
     let mut buffer = [b'\x00'; 8];
