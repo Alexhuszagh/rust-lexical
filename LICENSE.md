@@ -1,9 +1,11 @@
 # Licensing
 
-Lexical is dual licensed under the Apache 2.0 license as well as the MIT
-license. See the LICENCE-MIT and the LICENCE-APACHE files for the licenses.
+Lexical is dual licensed under the Apache 2.0 license as well as the MIT license. See the LICENCE-MIT and the LICENCE-APACHE files for the licenses.
 
-Other licensing terms may apply, as described in depth below for various features and functionality. All assume use of `lexical` or `lexical-core`.
+Other licensing terms may apply, as described in depth below for various features and functionality. All assume use of `lexical` or `lexical-core`. These licenses are all provided below, as well as in standalone files for better clarity:
+- [Boost Software License](/LICENSE-BSL)
+- [Go License](/LICENSE-Go)
+- [Appache2.0 License with LLVM Exceptions](/LICENSE-APACHE-LLVM)
 
 ## `write-floats, not(compact)`
 
