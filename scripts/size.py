@@ -10,7 +10,8 @@
     command can be overrided by the `STRIP` environment variable.
 
     This requires `matplotlib` to be installed. On Windows, this also requires
-    the `python-magic-win64` dependency.
+    the `python-magic-win64` dependency. On *NIX systems, it requires the `magic`
+    dependency.
 
     This requires `binutils` to be installed, which on Windows can be done
     using msys2.
