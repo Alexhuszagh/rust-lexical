@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Improved performance of integer and float formatting using the [jeaiii](https://jk-jeon.github.io/posts/2022/02/jeaiii-algorithm/) algorithm with additional optimizations to minimize branching (#163). This also improves memory safety guarantees, since no unsafe indexing is used when formatting integers.
+- Updated our build timings, binary sizes, and benchmarks.
+
+## [1.0.3] 2024-12-06
+
+### Changed
+
+- Improved performance of number formatting with non-decimal radices (#169).
+
+### Fixed
+
+- Inaccurate number formatting with non-decimal radices (#169).
+
 ## [1.0.2] 2024-09-24
 
 ### Changed
