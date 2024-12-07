@@ -107,36 +107,58 @@ def print_pow2(radix):
     print('')
 
 
-def print_fast(radix, divisor, fast_shr, factor, factor_shr):
+def print_fast(radix, divisor, fast_shr, factor, factor_shr, suffix):
     '''Print the function for the fastest division algorithm.'''
 
     fast = 1 << (64 + fast_shr)
     print('#[inline(always)]')
-    print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64) {{')
+    print(f'fn u128_divrem_{radix}{suffix}(n: u128) -> (u128, u64) {{')
     print(f'    fast_u128_divrem(n, {divisor}, {fast}, {fast_shr}, {factor}, {factor_shr})')
     print('}')
     print('')
 
 
-def print_moderate(radix, divisor, factor, factor_shr):
+def print_moderate(radix, divisor, factor, factor_shr, suffix):
     '''Print the function for the moderate division algorithm.'''
 
     print('#[inline(always)]')
-    print(f'const fn u128_divrem_{radix}(n: u128) -> (u128, u64) {{')
+    print(f'const fn u128_divrem_{radix}{suffix}(n: u128) -> (u128, u64) {{')
     print(f'    moderate_u128_divrem(n, {divisor}, {factor}, {factor_shr})')
     print('}')
     print('')
 
 
-def print_slow(radix, divisor):
+def print_slow(radix, divisor, suffix):
     '''Print the function for the slow division algorithm.'''
 
     ctlz = 66 - len(bin(divisor))
     print('#[inline(always)]')
-    print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64) {{')
+    print(f'fn u128_divrem_{radix}{suffix}(n: u128) -> (u128, u64) {{')
     print(f'    slow_u128_divrem(n, {divisor}, {ctlz})')
     print('}')
     print('')
+
+
+def print_radix(radix, digits=None):
+    '''Print the divisor constant for a single radix.'''
+
+    # Not a power of two, must be slower.
+    if digits is None:
+        digits = find_power(radix)
+        suffix = ''
+    else:
+        suffix = f'_{radix}pow{digits}'
+    divisor = radix**digits
+    fast_shr = fast_shift(divisor)
+    factor, factor_shr, _ = choose_multiplier(divisor, 128)
+
+    if factor >= 2**128:
+        # Cannot fit in a u128, must revert to the slow algorithm.
+        print_slow(radix, divisor, suffix)
+    elif fast_shr != 0:
+        print_fast(radix, divisor, fast_shr, factor, factor_shr, suffix)
+    else:
+        print_moderate(radix, divisor, factor, factor_shr, suffix)
 
 
 def divisor_constants():
@@ -148,20 +170,10 @@ def divisor_constants():
         if is_pow2(radix):
             print_pow2(radix)
             continue
+        print_radix(radix)
 
-        # Not a power of two, must be slower.
-        digits = find_power(radix)
-        divisor = radix**digits
-        fast_shr = fast_shift(divisor)
-        factor, factor_shr, _ = choose_multiplier(divisor, 128)
-
-        if factor >= 2**128:
-            # Cannot fit in a u128, must revert to the slow algorithm.
-            print_slow(radix, divisor)
-        elif fast_shr != 0:
-            print_fast(radix, divisor, fast_shr, factor, factor_shr)
-        else:
-            print_moderate(radix, divisor, factor, factor_shr)
+    # print a special case for 1e10
+    print_radix(10, 10)
 
 # PYTHON LOGIC
 # This is the approach, in Python, for how to do this.

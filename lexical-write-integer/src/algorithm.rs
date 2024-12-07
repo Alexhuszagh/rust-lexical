@@ -12,6 +12,7 @@
 //! recent benchmark data.
 
 #![cfg(not(feature = "compact"))]
+#![cfg(feature = "power-of-two")]
 
 use lexical_util::assert::debug_assert_radix;
 use lexical_util::digit::digit_to_char;
@@ -21,6 +22,25 @@ use lexical_util::num::{AsCast, UnsignedInteger};
 use lexical_util::step::u64_step;
 
 use crate::digit_count::DigitCount;
+
+/// Index a buffer and get a mutable reference, without bounds checking.
+/// The `($x:ident[$i:expr] = $y:ident[$j:expr])` is not used with `compact`.
+/// The newer version of the lint is `unused_macro_rules`, but this isn't
+/// supported until nightly-2022-05-12.
+///
+/// By default, writers tend to be safe, due to Miri, Valgrind,
+/// and other tests and careful validation against a wide range
+/// of randomized input. Parsers are much trickier to validate.
+#[allow(unknown_lints, unused_macro_rules)]
+macro_rules! i {
+    ($x:ident[$i:expr]) => {
+        *$x.get_unchecked_mut($i)
+    };
+
+    ($x:ident[$i:expr] = $y:ident[$j:expr]) => {
+        *$x.get_unchecked_mut($i) = *$y.get_unchecked($j)
+    };
+}
 
 /// Write 2 digits to buffer.
 ///
@@ -34,9 +54,9 @@ macro_rules! write_digits {
         debug_assert!($bytes.len() >= 2);
         debug_assert!($r + 1 < $table.len());
         $index -= 1;
-        unsafe { index_unchecked_mut!($bytes[$index] = $table[$r + 1]) };
+        unsafe { i!($bytes[$index] = $table[$r + 1]) };
         $index -= 1;
-        unsafe { index_unchecked_mut!($bytes[$index] = $table[$r]) };
+        unsafe { i!($bytes[$index] = $table[$r]) };
     }};
 }
 
@@ -53,7 +73,7 @@ macro_rules! write_digit {
         debug_assert!($bytes.len() >= 1);
         debug_assert!($r < 36);
         $index -= 1;
-        unsafe { index_unchecked_mut!($bytes[$index]) = digit_to_char($r) };
+        unsafe { i!($bytes[$index]) = digit_to_char($r) };
     }};
 }
 
@@ -182,7 +202,7 @@ unsafe fn write_step_digits<T: UnsignedInteger>(
     // Write the remaining 0 bytes.
     let end = start.saturating_sub(step);
     // SAFETY: this is always safe since `end < index && index < start`.
-    let zeros = unsafe { &mut index_unchecked_mut!(buffer[end..index]) };
+    let zeros = unsafe { &mut i!(buffer[end..index]) };
     zeros.fill(b'0');
 
     end

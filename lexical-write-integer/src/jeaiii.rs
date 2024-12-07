@@ -25,6 +25,7 @@
 #![doc(hidden)]
 
 use lexical_util::digit::digit_to_char_const;
+use lexical_util::div128::fast_u128_divrem;
 
 use crate::table::DIGIT_TO_BASE10_SQUARED;
 
@@ -36,6 +37,28 @@ const LO32: u64 = u32::MAX as u64;
 fn next2(prod: &mut u64) -> u32 {
     *prod = (*prod & LO32) * 100;
     (*prod >> 32) as u32
+}
+
+/// Quickly calculate `n / 1e10` and `n % 1e10`.
+#[inline(always)]
+fn u128_divrem_10_10pow10(n: u128) -> (u128, u64) {
+    fast_u128_divrem(
+        n,
+        10000000000,
+        18889465931478580854784,
+        10,
+        73075081866545145910184241635814150983,
+        31,
+    )
+}
+
+/// Quickly calculate `n / 1e10` and `n % 1e10`.
+///
+/// We use this for quickly breaking our integer into
+/// chunks of 10 digits for fast u128 formatting.
+#[inline(always)]
+fn div128_rem_1e10(n: u128) -> (u128, u64) {
+    u128_divrem_10_10pow10(n)
 }
 
 // Index a value from a buffer without bounds checking.
@@ -288,7 +311,7 @@ pub fn from_u64(n: u64, buffer: &mut [u8]) -> usize {
         } else {
             write_digits!(@1 buffer, n)
         }
-    } else if n < 100_0000_0000 {
+    } else if n < FACTOR {
         // 5 to 10 digits
         if n >= 10_0000_0000 {
             // NOTE: We DO NOT know if this is >= u32::MAX,
@@ -304,7 +327,7 @@ pub fn from_u64(n: u64, buffer: &mut [u8]) -> usize {
         }
     } else {
         // 11-20 digits, can do in 2 steps
-        // NOTE: `hi` has to be in [0, 2^31], while `lo` is in `[0, 10^11)`
+        // NOTE: `hi` has to be in `[0, 2^31)`, while `lo` is in `[0, 10^11)`
         // So, we can use our `from_u64_small` for hi. For our `lo`, we always
         // need to write 10 digits. However, the `jeaiii` algorithm is too
         // slow, so we use a modified variant of our 2-digit unfolding for
@@ -317,5 +340,73 @@ pub fn from_u64(n: u64, buffer: &mut [u8]) -> usize {
     }
 }
 
-// TODO: Implement for:
-//  from_u128
+/// Optimized jeaiii algorithm for u128.
+#[inline(always)]
+#[allow(clippy::collapsible_else_if)] // reason = "branching is fine-tuned for performance"
+pub fn from_u128(n: u128, buffer: &mut [u8]) -> usize {
+    // NOTE: Like before, this optimizes better for large and small
+    // values if there's a flat comparison with larger values first.
+    let buffer = &mut buffer[..39];
+    if n < 1_0000 {
+        // 1 to 4 digits
+        if n >= 100 {
+            write_digits!(@3-4 buffer, n)
+        } else if n >= 10 {
+            write_digits!(@2 buffer, n)
+        } else {
+            write_digits!(@1 buffer, n)
+        }
+    } else if n < 100_0000_0000 {
+        // 5 to 10 digits
+        if n >= 10_0000_0000 {
+            // NOTE: We DO NOT know if this is >= u32::MAX,
+            // and the `write_digits!(@10)` is only accurate
+            // if `n <= 5.5e9`, which we cannot guarantee.
+            write_digits!(@10u64 buffer, n)
+        } else if n >= 1_0000_0000 {
+            write_digits!(@9 buffer, n)
+        } else if n >= 100_0000 {
+            write_digits!(@7-8 buffer, n)
+        } else {
+            write_digits!(@5-6 buffer, n)
+        }
+    } else {
+        // 11-39 digits, can do in 2-4 steps
+
+        // NOTE: We need to use fast division (`u128_divrem`) for this, which
+        // we can do in 2-4 steps (`2^128 - 1 == ~3.4e38`). So, we need to
+        // calculate the number of digits to avoid shifting into place, then
+        // once we do, we can write 1-3 `lo` digits and the `hi` digits (which
+        // must be in the range `[0, 2^29)`). Our `jeaiii` algorithm is too
+        // slow, so we use a modified variant of our 2-digit unfolding for
+        // exactly 10 digits to read our values. We can optimize this in
+        // 2x 4 digits and 1x 2 digits.
+        if n >= 100_0000_0000_0000_0000_0000_0000_0000 {
+            // 4 steps
+            let (mid, d) = div128_rem_1e10(n);
+            let (mid, c) = div128_rem_1e10(mid);
+            let (hi, b) = div128_rem_1e10(mid);
+            // NOTE: `2^128 == ~3.4e38`, so `a` must be in the
+            // range `[0, 2^29)`)
+            let a = hi as u32;
+            let mut offset = from_u32(a, buffer);
+            offset = write_digits!(@10alex buffer, b, offset);
+            offset = write_digits!(@10alex buffer, c, offset);
+            write_digits!(@10alex buffer, d, offset)
+        } else if n >= 1_0000_0000_0000_0000_0000 {
+            // 3 steps
+            let (mid, lo) = div128_rem_1e10(n);
+            let (hi, mid) = div128_rem_1e10(mid);
+            let hi = hi as u64;
+            let mut offset = from_u64(hi, buffer);
+            offset = write_digits!(@10alex buffer, mid, offset);
+            write_digits!(@10alex buffer, lo, offset)
+        } else {
+            // 2 steps
+            let (hi, lo) = div128_rem_1e10(n);
+            let hi = hi as u64;
+            let offset = from_u64(hi, buffer);
+            write_digits!(@10alex buffer, lo, offset)
+        }
+    }
+}

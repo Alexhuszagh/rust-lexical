@@ -13,13 +13,10 @@
 #![cfg(not(feature = "compact"))]
 #![doc(hidden)]
 
-use lexical_util::format::{RADIX, RADIX_SHIFT, STANDARD};
 use lexical_util::num::UnsignedInteger;
 
-use crate::algorithm::algorithm_u128;
 use crate::digit_count::fast_log2;
 use crate::jeaiii;
-use crate::table::DIGIT_TO_BASE10_SQUARED;
 
 /// Calculate the fast, integral log10 of a value.
 ///
@@ -269,17 +266,7 @@ decimal_impl! {
     u16; from_u16
     u32; from_u32
     u64; from_u64
-}
-
-impl Decimal for u128 {
-    #[inline(always)]
-    fn decimal(self, buffer: &mut [u8]) -> usize {
-        algorithm_u128::<{ STANDARD }, { RADIX }, { RADIX_SHIFT }>(
-            self,
-            &DIGIT_TO_BASE10_SQUARED,
-            buffer,
-        )
-    }
+    u128; from_u128
 }
 
 impl Decimal for usize {

@@ -146,9 +146,6 @@
     clippy::semicolon_inside_block,
 )]
 
-#[macro_use]
-mod index;
-
 pub mod algorithm;
 pub mod compact;
 pub mod decimal;
