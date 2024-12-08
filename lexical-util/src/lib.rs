@@ -163,12 +163,14 @@ pub mod error;
 pub mod extended_float;
 pub mod f16;
 pub mod format;
+pub mod i256;
 pub mod iterator;
 pub mod mul;
 pub mod num;
 pub mod options;
 pub mod result;
 pub mod step;
+pub mod u256;
 
 mod api;
 mod feature_format;

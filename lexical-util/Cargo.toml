@@ -58,6 +58,7 @@ parse-floats = ["parse", "floats"]
 compact = []
 # Add support for the `f16` and `b16` half-point floating point numbers.
 f16 = ["parse-floats", "write-floats"]
+# TODO: Add `u256` and `i256` as `u256` support.
 
 # Internal only features.
 # Enable the lint checks.

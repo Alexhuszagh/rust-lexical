@@ -3,7 +3,6 @@
 //! This defines primarily macros intended to be used when
 //! defining your own types.
 
-#![cfg(feature = "f16")]
 #![doc(hidden)]
 
 /// Implement the reference and op assign variants of a trait.
