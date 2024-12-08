@@ -33,6 +33,7 @@ FEATURES=(
     "compact,radix"
     "format,power-of-two"
     "format,radix"
+    "f16"
 )
 if [ "$SKIP_FEATURES" == "" ]; then
     for features in "${FEATURES[@]}"; do
