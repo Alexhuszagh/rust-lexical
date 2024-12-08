@@ -55,15 +55,15 @@ where
         let unsigned = Unsigned::as_cast(value.wrapping_neg());
         buffer[0] = b'-';
         let buffer = &mut buffer[1..];
-        unsigned.write_mantissa::<FORMAT>(buffer) + 1
+        unsigned.write_mantissa_signed::<FORMAT>(buffer) + 1
     } else if cfg!(feature = "format") && format.required_mantissa_sign() {
         let unsigned = Unsigned::as_cast(value);
         buffer[0] = b'+';
         let buffer = &mut buffer[1..];
-        unsigned.write_mantissa::<FORMAT>(buffer) + 1
+        unsigned.write_mantissa_signed::<FORMAT>(buffer) + 1
     } else {
         let unsigned = Unsigned::as_cast(value);
-        unsigned.write_mantissa::<FORMAT>(buffer)
+        unsigned.write_mantissa_signed::<FORMAT>(buffer)
     }
 }
 
