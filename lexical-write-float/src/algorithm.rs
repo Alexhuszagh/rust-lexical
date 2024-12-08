@@ -1501,7 +1501,7 @@ macro_rules! dragonbox_unimpl {
             }
 
             #[inline(always)]
-            fn compute_round_up(_: &Self::Power, _: i32) -> (u64, bool) {
+            fn compute_round_up(_: &Self::Power, _: i32) -> u64 {
                 unimplemented!()
             }
 
@@ -1537,6 +1537,11 @@ macro_rules! dragonbox_unimpl {
 
             #[inline(always)]
             fn div_pow10(_: u32) -> u32 {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            fn divide_by_pow10(_: u64, _: u32, _: u64) -> u64 {
                 unimplemented!()
             }
         }

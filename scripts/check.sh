@@ -15,6 +15,7 @@ cargo +nightly fmt -- --check
 cargo +nightly clippy --no-default-features -- --deny warnings
 cargo +nightly clippy --features=compact -- --deny warnings
 cargo +nightly clippy --features=format,radix -- --deny warnings
+cargo +nightly clippy --features=f16 -- --deny warnings
 cargo +nightly clippy --all-features -- --deny warnings
 
 # ASM, size, and benchmarks use separate workspaces, do those separately.
