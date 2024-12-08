@@ -18,8 +18,8 @@
 #[derive(Copy, Clone, Default, PartialEq, Eq, Hash)]
 #[repr(C)]
 pub struct i256 {
-    lo: u128,
-    hi: i128,
+    pub(crate) lo: u128,
+    pub(crate) hi: i128,
 }
 
 impl i256 {

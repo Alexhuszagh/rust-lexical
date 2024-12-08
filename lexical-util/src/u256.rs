@@ -8,7 +8,7 @@ use core::cmp::Ordering;
 use core::fmt;
 use core::iter::{Product, Sum};
 use core::ops::*;
-use core::num::{ParseIntError, TryFromIntError};
+use core::num::ParseIntError;
 use core::str::FromStr;
 
 use crate::i256::i256;
@@ -19,6 +19,17 @@ use crate::numtypes::*;
 // FIXME: Add support for [Saturating][core::num::Saturating] and
 // [Wrapping][core::num::Wrapping] when we drop support for <1.74.0.
 
+/// The error type returned when a checked integral type conversion fails.
+pub struct TryFromIntError(());
+
+impl fmt::Display for TryFromIntError {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let msg = "out of range integral type conversion attempted";
+        fmt::Display::fmt(msg, f)
+    }
+}
+
 /// The 256-bit unsigned integer type.
 ///
 /// This has the same binary representation as Apache Arrow's types,
@@ -27,28 +38,16 @@ use crate::numtypes::*;
 #[derive(Copy, Clone, Default, PartialEq, Eq, Hash)]
 #[repr(C)]
 pub struct u256 {
-    lo: u128,
-    hi: u128,
+    pub(crate) lo: u128,
+    pub(crate) hi: u128,
 }
 
 impl u256 {
     /// The smallest value that can be represented by this integer type.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// assert_eq!(u256::MIN, 0);
-    /// ```
     pub const MIN: u256 = u256 { lo: 0, hi: 0 };
 
     /// The largest value that can be represented by this integer type
     /// (2<sup>256</sup> - 1).
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// assert_eq!(u256::MAX, 0);  // TODO, need to negate...
-    /// ```
     pub const MAX: u256 = not(Self::MIN);
 
     /// The size of this integer type in bits.
@@ -61,25 +60,12 @@ impl u256 {
     pub const BITS: u32 = 256;
 
     /// Returns the number of ones in the binary representation of `self`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// assert_eq!(u256::BITS, 256);  // TODO: Fix...
-    /// ```
     #[inline(always)]
     pub const fn count_ones(self) -> u32 {
-        // TODO: `ctpop`
-        todo!();
+        self.hi.count_ones() + self.lo.count_ones()
     }
 
     /// Returns the number of zeros in the binary representation of `self`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// assert_eq!(u256::BITS, 256);  // TODO: Fix...
-    /// ```
     #[inline(always)]
     pub const fn count_zeros(self) -> u32 {
         not(self).count_ones()
@@ -113,19 +99,6 @@ impl u256 {
     }
 
     /// Returns the number of trailing zeros in the binary representation of `self`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// let n = u256::MAX >> 2;  // TODO: This is wrong
-    /// assert_eq!(n.trailing_zeros(), 2);  // TODO: This is wrong
-    ///
-    /// let zero = u256::MIN;
-    /// assert_eq!(zero.trailing_zeros(), 256);
-    ///
-    /// let max = u256::MAX;
-    /// assert_eq!(max.trailing_zeros(), 0);
-    /// ```
     #[inline(always)]
     pub const fn trailing_zeros(self) -> u32 {
         let mut trailing = self.hi.trailing_zeros();
@@ -136,24 +109,12 @@ impl u256 {
     }
 
     /// Returns the number of leading ones in the binary representation of `self`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn leading_ones(self) -> u32 {
        not(self).leading_zeros()
     }
 
     /// Returns the number of trailing ones in the binary representation of `self`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn trailing_ones(self) -> u32 {
        not(self).trailing_zeros()
@@ -163,14 +124,11 @@ impl u256 {
     /// wrapping the truncated bits to the end of the resulting integer.
     ///
     /// Please note this isn't the same operation as the `<<` shifting operator!
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn rotate_left(self, n: u32) -> Self {
+        // 0bXYFFFF -> 0bFFFFXY
+        let n = n % Self::BITS;
+        let mask = Self::MAX.shl_u32(Self::BITS - n);
         // TODO: should just be able to rotate the bits and overflow...
        todo!();
     }
@@ -180,54 +138,33 @@ impl u256 {
     /// integer.
     ///
     /// Please note this isn't the same operation as the `>>` shifting operator!
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn rotate_right(self, n: u32) -> Self {
+        // 0bFFFFXY -> 0bXYFFFF
+        let n = n % Self::BITS;
+        // TODO(is this right?)
+        let mask = Self::MAX.shr_u32(n);
        todo!();
     }
 
-
     /// Reverses the byte order of the integer.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn swap_bytes(self) -> Self {
-        todo!();
+        Self { hi: self.lo.swap_bytes(), lo: self.hi.swap_bytes() }
     }
 
     /// Reverses the order of bits in the integer. The least significant
     /// bit becomes the most significant bit, second least-significant bit
     /// becomes second most-significant bit, etc.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn reverse_bits(self) -> Self {
-        todo!();
+        Self { hi: self.lo.reverse_bits(), lo: self.hi.reverse_bits() }
     }
 
     /// Converts an integer from big endian to the target's endianness.
     ///
     /// On big endian this is a no-op. On little endian the bytes are
     /// swapped.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn from_be(x: Self) -> Self {
         if cfg!(target_endian = "big") {
@@ -241,12 +178,6 @@ impl u256 {
     ///
     /// On little endian this is a no-op. On big endian the bytes are
     /// swapped.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn from_le(x: Self) -> Self {
         if cfg!(target_endian = "little") {
@@ -260,12 +191,6 @@ impl u256 {
     ///
     /// On big endian this is a no-op. On little endian the bytes are
     /// swapped.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn to_be(self) -> Self {
         if cfg!(target_endian = "big") {
@@ -279,12 +204,6 @@ impl u256 {
     ///
     /// On little endian this is a no-op. On big endian the bytes are
     /// swapped.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn to_le(self) -> Self {
         if cfg!(target_endian = "little") {
@@ -296,12 +215,6 @@ impl u256 {
 
     /// Checked integer addition. Computes `self + rhs`, returning `None`
     /// if overflow occurred.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_add(self, rhs: Self) -> Option<Self> {
         todo!();
@@ -309,12 +222,6 @@ impl u256 {
 
     /// Checked addition with a signed integer. Computes `self + rhs`,
     /// returning `None` if overflow occurred.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_add_signed(self, rhs: i256) -> Option<Self> {
         todo!();
@@ -322,12 +229,6 @@ impl u256 {
 
     /// Checked integer subtraction. Computes `self - rhs`, returning `None`
     /// if overflow occurred.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_sub(self, rhs: Self) -> Option<Self> {
         todo!();
@@ -335,12 +236,6 @@ impl u256 {
 
     /// Checked integer multiplication. Computes `self * rhs`, returning `None`
     /// if overflow occurred.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_mul(self, rhs: Self) -> Option<Self> {
         todo!();
@@ -348,12 +243,6 @@ impl u256 {
 
     /// Checked integer division. Computes `self / rhs`, returning `None`
     /// if `rhs == 0`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_div(self, rhs: Self) -> Option<Self> {
         if eq(rhs, Self::MIN) {
@@ -372,12 +261,6 @@ impl u256 {
     /// # Panics
     ///
     /// This function will panic if `rhs` is zero.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn div_euclid(self, rhs: Self) -> Self {
         div(self, rhs)
@@ -385,12 +268,6 @@ impl u256 {
 
     /// Checked Euclidean division. Computes `self.div_euclid(rhs)`,
     /// returning `None` if `rhs == 0`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_div_euclid(self, rhs: Self) -> Option<Self> {
         if eq(rhs, Self::MIN) {
@@ -402,12 +279,6 @@ impl u256 {
 
     /// Checked integer division. Computes `self % rhs`, returning `None`
     /// if `rhs == 0`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_rem(self, rhs: Self) -> Option<Self> {
         if eq(rhs, Self::MIN) {
@@ -426,12 +297,6 @@ impl u256 {
     /// # Panics
     ///
     /// This function will panic if `rhs` is zero.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn rem_euclid(self, rhs: Self) -> Self {
         rem(self, rhs)
@@ -439,12 +304,6 @@ impl u256 {
 
     /// Checked Euclidean modulo. Computes `self.rem_euclid(rhs)`,
     /// returning `None` if `rhs == 0`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_rem_euclid(self, rhs: Self) -> Option<Self> {
         if eq(rhs, Self::MIN) {
@@ -464,12 +323,6 @@ impl u256 {
     /// # Panics
     ///
     /// This function will panic if `self` is zero, or if `base` is less than 2.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn ilog(self, base: Self) -> u32 {
         if let Some(log) = self.checked_ilog(base) {
@@ -484,12 +337,6 @@ impl u256 {
     /// # Panics
     ///
     /// This function will panic if `self` is zero.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn ilog2(self) -> u32 {
         if let Some(log) = self.checked_ilog2() {
@@ -504,12 +351,6 @@ impl u256 {
     /// # Panics
     ///
     /// This function will panic if `self` is zero.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn ilog10(self) -> u32 {
         if let Some(log) = self.checked_ilog10() {
@@ -527,12 +368,6 @@ impl u256 {
     /// This method might not be optimized owing to implementation details;
     /// `checked_ilog2` can produce results more efficiently for base 2, and
     /// `checked_ilog10` can produce results more efficiently for base 10.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_ilog(self, base: Self) -> Option<u32> {
         todo!();
@@ -541,12 +376,6 @@ impl u256 {
     /// Returns the base 2 logarithm of the number, rounded down.
     ///
     /// Returns `None` if the number is zero.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_ilog2(self) -> Option<u32> {
         todo!();
@@ -555,12 +384,6 @@ impl u256 {
     /// Returns the base 10 logarithm of the number, rounded down.
     ///
     /// Returns `None` if the number is zero.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_ilog10(self) -> Option<u32> {
         todo!();
@@ -570,12 +393,6 @@ impl u256 {
     /// 0`.
     ///
     /// Note that negating any positive integer will overflow.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_neg(self) -> Option<Self> {
         if eq(self, Self::MIN) {
@@ -587,12 +404,6 @@ impl u256 {
 
     /// Checked shift left. Computes `self << rhs`, returning `None`
     /// if `rhs` is larger than or equal to the number of bits in `self`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_shl(self, rhs: u32) -> Option<Self> {
         todo!();
@@ -600,12 +411,6 @@ impl u256 {
 
     /// Checked shift right. Computes `self >> rhs`, returning `None`
     /// if `rhs` is larger than or equal to the number of bits in `self`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_shr(self, rhs: u32) -> Option<Self> {
         todo!();
@@ -613,12 +418,6 @@ impl u256 {
 
     /// Checked exponentiation. Computes `self.pow(exp)`, returning `None`
     /// if overflow occurred.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// TODO
-    /// ```
     #[inline(always)]
     pub const fn checked_pow(self, base: u32) -> Option<Self> {
         todo!();
@@ -1232,14 +1031,32 @@ macro_rules! try_from_impl {
             type Error = TryFromIntError;
 
             #[inline(always)]
-            fn try_from(u: $t) -> Result<Self, <Self as TryFrom<$t>>::Error> {
-                todo!();
+            fn try_from(u: $t) -> Result<Self, TryFromIntError> {
+                if u >= 0 {
+                    Ok(Self { hi: 0, lo: u as u128 })
+                } else {
+                    Err(TryFromIntError(()))
+                }
             }
         }
     )*);
 }
 
-try_from_impl! { i8 i16 i32 i64 i128 i256 isize }
+// TODO: Fix for i256
+try_from_impl! { i8 i16 i32 i64 i128 isize }
+
+impl TryFrom<i256> for u256 {
+    type Error = TryFromIntError;
+
+    #[inline(always)]
+    fn try_from(u: i256) -> Result<Self, TryFromIntError> {
+        if u.hi >= 0 {
+            Ok(Self { hi: u.hi as u128, lo: u.lo })
+        } else {
+            Err(TryFromIntError(()))
+        }
+    }
+}
 
 impl fmt::UpperExp for u256 {
     #[inline(always)]
