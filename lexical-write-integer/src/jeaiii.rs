@@ -297,11 +297,16 @@ pub fn from_u32(n: u32, buffer: &mut [u8]) -> usize {
 /// Optimized jeaiii algorithm for u64.
 #[inline(always)]
 #[allow(clippy::collapsible_else_if)] // reason = "branching is fine-tuned for performance"
-pub fn from_u64(n: u64, buffer: &mut [u8]) -> usize {
+fn from_u64_impl(n: u64, buffer: &mut [u8], is_signed: bool) -> usize {
     // NOTE: Like before, this optimizes better for large and small
     // values if there's a flat comparison with larger values first.
     const FACTOR: u64 = 100_0000_0000;
-    let buffer = &mut buffer[..20];
+    // NOTE `i64` takes a max of 19 digits, while `u64` takes a max of 20.
+    let buffer = if is_signed {
+        &mut buffer[..19]
+    } else {
+        &mut buffer[..20]
+    };
     if n < 1_0000 {
         // 1 to 4 digits
         if n >= 100 {
@@ -326,7 +331,7 @@ pub fn from_u64(n: u64, buffer: &mut [u8]) -> usize {
             write_digits!(@5-6 buffer, n)
         }
     } else {
-        // 11-20 digits, can do in 2 steps
+        // 11-20 digits, can do in 2 steps (11-19 if is signed).
         // NOTE: `hi` has to be in `[0, 2^31)`, while `lo` is in `[0, 10^11)`
         // So, we can use our `from_u64_small` for hi. For our `lo`, we always
         // need to write 10 digits. However, the `jeaiii` algorithm is too
@@ -338,6 +343,23 @@ pub fn from_u64(n: u64, buffer: &mut [u8]) -> usize {
         let offset = from_u32(hi, buffer);
         write_digits!(@10alex buffer, lo, offset)
     }
+}
+
+/// Optimized jeaiii algorithm for u64.
+#[inline(always)]
+pub fn from_u64(n: u64, buffer: &mut [u8]) -> usize {
+    from_u64_impl(n, buffer, false)
+}
+
+/// Optimized jeaiii algorithm for i64, which must be positive.
+///
+/// This value **MUST** have originally been from an `i64`, since it
+/// uses `19` for the bounds checked, so this will panic if `>= 10^19`
+/// is passed to the function.
+#[inline(always)]
+pub fn from_i64(n: u64, buffer: &mut [u8]) -> usize {
+    debug_assert!(n <= 1000_0000_0000_0000_0000u64);
+    from_u64_impl(n, buffer, true)
 }
 
 /// Optimized jeaiii algorithm for u128.
