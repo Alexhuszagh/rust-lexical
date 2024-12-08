@@ -239,14 +239,19 @@ unsafe impl DecimalCount for usize {
 
 /// Write integer to decimal string.
 pub trait Decimal: DecimalCount {
-    /// # Safety
-    ///
-    /// Safe as long as buffer is at least [`FORMATTED_SIZE`] elements long,
-    /// (or [`FORMATTED_SIZE_DECIMAL`] for decimal), and the radix is valid.
-    ///
-    /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
-    /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
     fn decimal(self, buffer: &mut [u8]) -> usize;
+
+    /// Specialized overload is the type is sized.
+    ///
+    /// # Panics
+    ///
+    /// If the data original provided was unsigned and therefore
+    /// has more digits than the signed variant. This only affects
+    /// `i64` (see #191).
+    #[inline(always)]
+    fn decimal_signed(self, buffer: &mut [u8]) -> usize {
+        self.decimal(buffer)
+    }
 }
 
 // Implement decimal for type.
@@ -265,8 +270,19 @@ decimal_impl! {
     u8; from_u8
     u16; from_u16
     u32; from_u32
-    u64; from_u64
     u128; from_u128
+}
+
+impl Decimal for u64 {
+    #[inline(always)]
+    fn decimal(self, buffer: &mut [u8]) -> usize {
+        jeaiii::from_u64(self, buffer)
+    }
+
+    #[inline(always)]
+    fn decimal_signed(self, buffer: &mut [u8]) -> usize {
+        jeaiii::from_i64(self, buffer)
+    }
 }
 
 impl Decimal for usize {
@@ -278,6 +294,18 @@ impl Decimal for usize {
             32 => (self as u32).decimal(buffer),
             64 => (self as u64).decimal(buffer),
             128 => (self as u128).decimal(buffer),
+            _ => unimplemented!(),
+        }
+    }
+
+    #[inline(always)]
+    fn decimal_signed(self, buffer: &mut [u8]) -> usize {
+        match usize::BITS {
+            8 => (self as u8).decimal_signed(buffer),
+            16 => (self as u16).decimal_signed(buffer),
+            32 => (self as u32).decimal_signed(buffer),
+            64 => (self as u64).decimal_signed(buffer),
+            128 => (self as u128).decimal_signed(buffer),
             _ => unimplemented!(),
         }
     }

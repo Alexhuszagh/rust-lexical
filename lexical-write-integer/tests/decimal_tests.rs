@@ -48,6 +48,21 @@ fn u64_decimal_count_test() {
 }
 
 #[test]
+fn i64_19digit_test() {
+    let mut buffer = [0u8; 19];
+    assert_eq!((5i64 as u64).decimal_signed(&mut buffer), 1);
+    assert_eq!(&buffer[..1], b"5");
+}
+
+#[test]
+#[should_panic]
+fn u64_19digit_test() {
+    let mut buffer = [0u8; 19];
+    assert_eq!(5u64.decimal(&mut buffer), 1);
+    assert_eq!(&buffer[..1], b"5");
+}
+
+#[test]
 fn u128_decimal_count_test() {
     assert_eq!(u128::decimal_count(u128::MAX), 39);
 }

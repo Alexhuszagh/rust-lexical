@@ -21,18 +21,38 @@ macro_rules! write_mantissa {
         fn write_mantissa<const FORMAT: u128>(self, buffer: &mut [u8]) -> usize {
             self.write_integer::<FORMAT, { format::RADIX }, { format::RADIX_SHIFT }>(buffer)
         }
+
+        /// Internal implementation to write significant digits for float writers.
+        #[doc(hidden)]
+        #[inline(always)]
+        fn write_mantissa_signed<const FORMAT: u128>(self, buffer: &mut [u8]) -> usize {
+            self.write_integer_signed::<FORMAT, { format::RADIX }, { format::RADIX_SHIFT }>(buffer)
+        }
     };
 }
 
 /// Define the implementation to write exponent digits.
 macro_rules! write_exponent {
     ($($t:tt)+) => (
+        // NOTE: This should always be signed, but for backwards compatibility as
+        // a precaution we keep the original just in case someone uses the private API.
+
         /// Internal implementation to write exponent digits for float writers.
+        // NOTE: This is not part of the public API.
         #[doc(hidden)]
         #[inline(always)]
+        #[deprecated = "use `write_exponent_signed`, since exponents are always signed."]
         fn write_exponent<const FORMAT: u128>(self, buffer: &mut [u8]) -> usize
         {
             self.write_integer::<FORMAT, { format::EXPONENT_RADIX }, { format::EXPONENT_RADIX_SHIFT }>(buffer)
+        }
+
+        /// Internal implementation to write exponent digits for float writers.
+        #[doc(hidden)]
+        #[inline(always)]
+        fn write_exponent_signed<const FORMAT: u128>(self, buffer: &mut [u8]) -> usize
+        {
+            self.write_integer_signed::<FORMAT, { format::EXPONENT_RADIX }, { format::EXPONENT_RADIX_SHIFT }>(buffer)
         }
     )
 }
@@ -54,6 +74,23 @@ pub trait WriteInteger: Compact {
     ) -> usize {
         let radix = format::radix_from_flags(FORMAT, MASK, SHIFT);
         self.compact(radix, buffer)
+    }
+
+    /// Forward write integer parameters to an optimized backend.
+    ///
+    /// This requires a type that was previously signed.
+    ///
+    /// # Preconditions
+    ///
+    /// `self` must be non-negative but is `>= 0` and `<= Signed::MAX`.
+    ///
+    /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
+    #[inline(always)]
+    fn write_integer_signed<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
+        self,
+        buffer: &mut [u8],
+    ) -> usize {
+        self.write_integer::<FORMAT, MASK, SHIFT>(buffer)
     }
 
     write_mantissa!(Compact);
@@ -79,6 +116,23 @@ pub trait WriteInteger: Decimal {
         self.decimal(buffer)
     }
 
+    /// Forward write integer parameters to an optimized backend.
+    ///
+    /// This requires a type that was previously signed.
+    ///
+    /// # Preconditions
+    ///
+    /// `self` must be non-negative but is `>= 0` and `<= Signed::MAX`.
+    ///
+    /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
+    #[inline(always)]
+    fn write_integer_signed<const __: u128, const ___: u128, const ____: i32>(
+        self,
+        buffer: &mut [u8],
+    ) -> usize {
+        self.decimal_signed(buffer)
+    }
+
     write_mantissa!(Decimal);
     write_exponent!(Decimal);
 }
@@ -102,6 +156,27 @@ pub trait WriteInteger: Decimal + Radix {
     ) -> usize {
         if format::radix_from_flags(FORMAT, MASK, SHIFT) == 10 {
             self.decimal(buffer)
+        } else {
+            self.radix::<FORMAT, MASK, SHIFT>(buffer)
+        }
+    }
+
+    /// Forward write integer parameters to an optimized backend.
+    ///
+    /// This requires a type that was previously signed.
+    ///
+    /// # Preconditions
+    ///
+    /// `self` must be non-negative but is `>= 0` and `<= Signed::MAX`.
+    ///
+    /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
+    #[inline(always)]
+    fn write_integer_signed<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
+        self,
+        buffer: &mut [u8],
+    ) -> usize {
+        if format::radix_from_flags(FORMAT, MASK, SHIFT) == 10 {
+            self.decimal_signed(buffer)
         } else {
             self.radix::<FORMAT, MASK, SHIFT>(buffer)
         }
