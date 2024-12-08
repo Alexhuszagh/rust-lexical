@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Additional trait impls for `f16` and `bf16` to better match Rust's interface.
 
+## [1.0.5] 2024-12-08
+
+### Fixed
+
+- Only require 19 digits for writing `i64` and not 20 (#191).
+
 ## [1.0.4] 2024-12-07
 
 ### Changed
