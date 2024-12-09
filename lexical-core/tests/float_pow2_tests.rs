@@ -103,6 +103,7 @@ macro_rules! test_all {
         test_radix!($f, 8, $buffer, $data);
         test_radix!($f, 16, $buffer, $data);
         test_radix!($f, 32, $buffer, $data);
+        #[cfg(feature = "radix")]
         test_radix!($f, 36, $buffer, $data);
     }};
 }

@@ -38,11 +38,9 @@ impl Number<'_> {
     #[inline(always)]
     pub fn is_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> bool {
         let format = NumberFormat::<FORMAT> {};
-        debug_assert!(
-            format.mantissa_radix() == format.exponent_base(),
-            "fast path requires same radix"
-        );
-        F::min_exponent_fast_path(format.radix()) <= self.exponent
+
+        format.mantissa_radix() == format.exponent_base()
+            && F::min_exponent_fast_path(format.radix()) <= self.exponent
             && self.exponent <= F::max_exponent_disguised_fast_path(format.radix())
             && self.mantissa <= F::MAX_MANTISSA_FAST_PATH
             && !self.many_digits
@@ -63,10 +61,12 @@ impl Number<'_> {
     #[allow(clippy::let_unit_value)] // reason = "intentional ASM drop for X87 FPUs"
     pub fn try_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> Option<F> {
         let format = NumberFormat::<FORMAT> {};
-        debug_assert!(
-            format.mantissa_radix() == format.exponent_base(),
-            "fast path requires same radix"
-        );
+
+        // fast path requires same radix
+        if format.mantissa_radix() != format.exponent_base() {
+            return None;
+        }
+
         // The fast path crucially depends on arithmetic being rounded to the correct
         // number of bits without any intermediate rounding. On x86 (without SSE
         // or SSE2) this requires the precision of the x87 FPU stack to be
@@ -113,6 +113,7 @@ impl Number<'_> {
     #[allow(clippy::let_unit_value)] // reason = "intentional ASM drop for X87 FPUs"
     pub fn force_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> F {
         let format = NumberFormat::<FORMAT> {};
+
         debug_assert!(
             format.mantissa_radix() == format.exponent_base(),
             "fast path requires same radix"
