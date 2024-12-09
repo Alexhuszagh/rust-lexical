@@ -142,8 +142,6 @@ proptest! {
     #[test]
     #[cfg(feature = "f16")]
     fn f16_proptest(bits in u16::MIN..u16::MAX) {
-        use lexical_util::num::Float;
-
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let f = f16::from_bits(bits);
         let actual = unsafe { std::str::from_utf8_unchecked(f.to_lexical(&mut buffer)) };
@@ -158,8 +156,6 @@ proptest! {
     #[test]
     #[cfg(feature = "f16")]
     fn bf16_proptest(bits in u16::MIN..u16::MAX) {
-        use lexical_util::num::Float;
-
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let f = bf16::from_bits(bits);
         let actual = unsafe { std::str::from_utf8_unchecked(f.to_lexical(&mut buffer)) };
