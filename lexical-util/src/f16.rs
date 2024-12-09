@@ -168,7 +168,9 @@ impl f16 {
     #[must_use]
     #[inline(always)]
     pub const fn is_nan(self) -> bool {
-        !eq(self, self)
+        let bits = self.to_bits();
+        let is_special = bits & Self::EXPONENT_MASK == Self::EXPONENT_MASK;
+        is_special && (bits & Self::MANTISSA_MASK) != 0
     }
 
     /// Computes the absolute value of `self`.
