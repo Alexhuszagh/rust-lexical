@@ -412,7 +412,10 @@ impl u256 {
     /// Returns `None` if the number is zero.
     #[inline(always)]
     pub const fn checked_ilog2(self) -> Option<u32> {
-        todo!();
+        match eq(self, Self::from_u8(0)) {
+            true => None,
+            false => Some(Self::BITS - 1 - self.leading_zeros()),
+        }
     }
 
     /// Returns the base 10 logarithm of the number, rounded down.
@@ -1130,10 +1133,8 @@ impl u256 {
     /// Convert the 256-bit unsigned integer to an `i256`, as if by an `as` cast.
     #[inline(always)]
     pub const fn as_i256(&self) -> i256 {
-        // TODO: Validate this is true...
-        // NOTE: This should be valid since we just want the same
-        // bitwise representation as it.
-        i256 { hi: self.hi as i128, lo: self.lo }
+        let (lo, hi) = math::wide_cast_u128(self.lo, self.hi);
+        i256 { lo, hi }
     }
 }
 
@@ -1155,7 +1156,13 @@ op_impl!(u256, Add, AddAssign, add, add_assign);
 impl fmt::Binary for u256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        todo!();
+        // NOTE: This works for binary, since the value as always divisible.
+        if f.alternate() {
+            write!(f, "{:#b}", self.hi)?;
+        } else {
+            write!(f, "{:b}", self.hi)?;
+        }
+        write!(f, "{:b}", self.lo)
     }
 }
 
@@ -1265,7 +1272,13 @@ impl fmt::LowerExp for u256 {
 impl fmt::LowerHex for u256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        todo!();
+        // NOTE: This works for hex, since the value as always divisible.
+        if f.alternate() {
+            write!(f, "{:#x}", self.hi)?;
+        } else {
+            write!(f, "{:x}", self.hi)?;
+        }
+        write!(f, "{:x}", self.lo)
     }
 }
 
@@ -1668,7 +1681,13 @@ impl fmt::UpperExp for u256 {
 impl fmt::UpperHex for u256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        todo!();
+        // NOTE: This works for hex, since the value as always divisible.
+        if f.alternate() {
+            write!(f, "{:#X}", self.hi)?;
+        } else {
+            write!(f, "{:X}", self.hi)?;
+        }
+        write!(f, "{:X}", self.lo)
     }
 }
 

@@ -192,7 +192,8 @@ macro_rules! unsigned_primitive_cast {
         $as_uwide:ident,as_unarrow =>
         $as_unarrow:ident,as_iwide =>
         $as_iwide:ident,as_inarrow =>
-        $as_inarrow:ident
+        $as_inarrow:ident,wide_cast =>
+        $wide_cast:ident
     ) => {
         /// Convert an unsigned, narrow type to the wide type.
         #[inline(always)]
@@ -227,8 +228,12 @@ macro_rules! unsigned_primitive_cast {
             x0 as $s
         }
 
-        // TODO: Need cast_wide (wide to wide)
-        //  Easy to test
+        /// Do a wide cast from unsigned to signed.
+        #[inline(always)]
+        pub const fn $wide_cast(x0:$u, x1: $u) -> ($u, $s) {
+            debug_assert!(<$u>::BITS == <$s>::BITS);
+            (x0, x1 as $s)
+        }
     };
 }
 
@@ -316,7 +321,8 @@ unsigned_primitive_cast!(
     as_uwide => as_uwide_u8,
     as_unarrow => as_unarrow_u8,
     as_iwide => as_iwide_u8,
-    as_inarrow => as_inarrow_u8
+    as_inarrow => as_inarrow_u8,
+    wide_cast => wide_cast_u8
 );
 unsigned_primitive_cast!(
     u16,
@@ -324,7 +330,8 @@ unsigned_primitive_cast!(
     as_uwide => as_uwide_u16,
     as_unarrow => as_unarrow_u16,
     as_iwide => as_iwide_u16,
-    as_inarrow => as_inarrow_u16
+    as_inarrow => as_inarrow_u16,
+    wide_cast => wide_cast_u16
 );
 unsigned_primitive_cast!(
     u32,
@@ -332,7 +339,8 @@ unsigned_primitive_cast!(
     as_uwide => as_uwide_u32,
     as_unarrow => as_unarrow_u32,
     as_iwide => as_iwide_u32,
-    as_inarrow => as_inarrow_u32
+    as_inarrow => as_inarrow_u32,
+    wide_cast => wide_cast_u32
 );
 unsigned_primitive_cast!(
     u64,
@@ -340,7 +348,8 @@ unsigned_primitive_cast!(
     as_uwide => as_uwide_u64,
     as_unarrow => as_unarrow_u64,
     as_iwide => as_iwide_u64,
-    as_inarrow => as_inarrow_u64
+    as_inarrow => as_inarrow_u64,
+    wide_cast => wide_cast_u64
 );
 unsigned_primitive_cast!(
     u128,
@@ -348,7 +357,8 @@ unsigned_primitive_cast!(
     as_uwide => as_uwide_u128,
     as_unarrow => as_unarrow_u128,
     as_iwide => as_iwide_u128,
-    as_inarrow => as_inarrow_u128
+    as_inarrow => as_inarrow_u128,
+    wide_cast => wide_cast_u128
 );
 unsigned_primitive_cast!(
     usize,
@@ -356,7 +366,8 @@ unsigned_primitive_cast!(
     as_uwide => as_uwide_usize,
     as_unarrow => as_unarrow_usize,
     as_iwide => as_iwide_usize,
-    as_inarrow => as_inarrow_usize
+    as_inarrow => as_inarrow_usize,
+    wide_cast => wide_cast_usize
 );
 
 macro_rules! signed_impl {
@@ -521,7 +532,8 @@ macro_rules! signed_primitive_cast {
         $as_uwide:ident,as_unarrow =>
         $as_unarrow:ident,as_iwide =>
         $as_iwide:ident,as_inarrow =>
-        $as_inarrow:ident
+        $as_inarrow:ident,wide_cast =>
+        $wide_cast:ident
     ) => {
         // NOTE: This code was all test with the same algorithms in C++,
         // compiling for both little and big endian to ensure the logic
@@ -663,7 +675,12 @@ macro_rules! signed_primitive_cast {
             x0 as $s
         }
 
-        // TODO: Need cast_wide (wide to wide)
+        /// Do a wide cast from signed to unsigned.
+        #[inline(always)]
+        pub const fn $wide_cast(x0:$u, x1: $s) -> ($u, $u) {
+            debug_assert!(<$u>::BITS == <$s>::BITS);
+            (x0, x1 as $u)
+        }
     };
 }
 
@@ -763,7 +780,8 @@ signed_primitive_cast!(
     as_uwide => as_uwide_i8,
     as_unarrow => as_unarrow_i8,
     as_iwide => as_iwide_i8,
-    as_inarrow => as_inarrow_i8
+    as_inarrow => as_inarrow_i8,
+    wide_cast => wide_cast_i8
 );
 signed_primitive_cast!(
     u16,
@@ -771,7 +789,8 @@ signed_primitive_cast!(
     as_uwide => as_uwide_i16,
     as_unarrow => as_unarrow_i16,
     as_iwide => as_iwide_i16,
-    as_inarrow => as_inarrow_i16
+    as_inarrow => as_inarrow_i16,
+    wide_cast => wide_cast_i16
 );
 signed_primitive_cast!(
     u32,
@@ -779,7 +798,8 @@ signed_primitive_cast!(
     as_uwide => as_uwide_i32,
     as_unarrow => as_unarrow_i32,
     as_iwide => as_iwide_i32,
-    as_inarrow => as_inarrow_i32
+    as_inarrow => as_inarrow_i32,
+    wide_cast => wide_cast_i32
 );
 signed_primitive_cast!(
     u64,
@@ -787,7 +807,8 @@ signed_primitive_cast!(
     as_uwide => as_uwide_i64,
     as_unarrow => as_unarrow_i64,
     as_iwide => as_iwide_i64,
-    as_inarrow => as_inarrow_i64
+    as_inarrow => as_inarrow_i64,
+    wide_cast => wide_cast_i64
 );
 signed_primitive_cast!(
     u128,
@@ -795,7 +816,8 @@ signed_primitive_cast!(
     as_uwide => as_uwide_i128,
     as_unarrow => as_unarrow_i128,
     as_iwide => as_iwide_i128,
-    as_inarrow => as_inarrow_i128
+    as_inarrow => as_inarrow_i128,
+    wide_cast => wide_cast_i128
 );
 signed_primitive_cast!(
     usize,
@@ -803,7 +825,8 @@ signed_primitive_cast!(
     as_uwide => as_uwide_isize,
     as_unarrow => as_unarrow_isize,
     as_iwide => as_iwide_isize,
-    as_inarrow => as_inarrow_isize
+    as_inarrow => as_inarrow_isize,
+    wide_cast => wide_cast_isize
 );
 
 #[cfg(test)]
@@ -958,6 +981,14 @@ mod tests {
             expected == actual && x as i16 == actual as i16
         }
 
+        fn wide_cast_u32_quickcheck(x: u64) -> bool {
+            let lo = x as u32;
+            let hi = (x >> 32) as u32;
+            let expected = (x as u32, hi as i32);
+            let actual = wide_cast_u32(lo, hi);
+            expected == actual
+        }
+
         fn as_uwide_i32_quickcheck(x: u32) -> bool {
             let expected = x as i64;
             let (lo, hi) = as_uwide_i32(x);
@@ -990,6 +1021,14 @@ mod tests {
             let expected = x as i32;
             let actual = as_inarrow_i32(lo, hi);
             expected == actual && x as i16 == actual as i16
+        }
+
+        fn wide_cast_i32_quickcheck(x: i64) -> bool {
+            let lo = x as u32;
+            let hi = (x >> 32) as i32;
+            let expected = (x as u32, hi as u32);
+            let actual = wide_cast_i32(lo, hi);
+            expected == actual
         }
     }
 }

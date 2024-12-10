@@ -749,7 +749,11 @@ impl i256 {
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
     pub const fn overflowing_rem_euclid(self, rhs: Self) -> (Self, bool) {
-        todo!();
+        if eq(self, Self::from_i8(-1)) {
+            (Self::from_u8(0), eq(self, Self::MIN))
+        } else {
+            (self.rem_euclid(rhs), false)
+        }
     }
 
     /// Negates self, overflowing if this is equal to the minimum value.
@@ -762,8 +766,7 @@ impl i256 {
         if eq(self, Self::MIN) {
             (Self::MIN, true)
         } else {
-            // (-self, false)
-            todo!();
+            (self.wrapping_neg(), false)
         }
     }
 
@@ -818,7 +821,10 @@ impl i256 {
     /// This function will panic if `self` is negative.
     #[inline]
     pub const fn isqrt(self) -> Self {
-        todo!();
+        match self.checked_isqrt() {
+            Some(sqrt) => sqrt,
+            None => panic!("argument of integer square root cannot be negative"),
+        }
     }
 
     /// Calculates the quotient of Euclidean division of `self` by `rhs`.
@@ -839,9 +845,13 @@ impl i256 {
     /// and `rhs` is -1. This behavior is not affected by the `overflow-checks` flag.
     #[inline(always)]
     pub const fn div_euclid(self, rhs: Self) -> Self {
-        let q = div(self, rhs);
+        let mut q = div(self, rhs);
         if lt(rem(self, rhs), Self::from_u8(0)) {
-            todo!();
+            if gt(rhs, Self::from_u8(0)) {
+                q = sub(q, Self::from_u8(1));
+            } else {
+                q = add(q, Self::from_u8(1));
+            }
         }
         q
     }
@@ -882,6 +892,23 @@ impl i256 {
     /// and `rhs` is -1. This behavior is not affected by the `overflow-checks` flag.
     #[inline(always)]
     pub const fn div_floor(self, rhs: Self) -> Self {
+        let d = div(self, rhs);
+        let r = rem(self, rhs);
+
+        // If the remainder is non-zero, we need to subtract one if the
+        // signs of self and rhs differ, as this means we rounded upwards
+        // instead of downwards. We do this branchlessly by creating a mask
+        // which is all-ones iff the signs differ, and 0 otherwise. Then by
+        // adding this mask (which corresponds to the signed value -1), we
+        // get our correction.
+        // TODO: Implement shr for the correction
+//        let correction = bitxor(self, rhs) >> (Self::BITS - 1);
+//        if !eq(r, Self::from_u8(0)) {
+//            add(d, correction)
+//        } else {
+//            d
+//        }
+
         todo!();
     }
 
@@ -893,6 +920,18 @@ impl i256 {
     /// and `rhs` is -1. This behavior is not affected by the `overflow-checks` flag.
     #[inline(always)]
     pub const fn div_ceil(self, rhs: Self) -> Self {
+        let d = div(self, rhs);
+        let r = rem(self, rhs);
+
+        // When remainder is non-zero we have a.div_ceil(b) == 1 + a.div_floor(b),
+        // so we can re-use the algorithm from div_floor, just adding 1.
+//        let correction = 1 + ((self ^ rhs) >> (Self::BITS - 1));
+//        if !eq(r, Self::from_u8(0)) {
+//            add(d, correction)
+//        } else {
+//            d
+//        }
+
         todo!();
     }
 
@@ -996,8 +1035,7 @@ impl i256 {
     pub const fn checked_ilog2(self) -> Option<u32> {
         match le(self, Self::from_u8(0)) {
             true => None,
-            // TODO: Implement as let log = (Self::BITS - 1) - unsafe { intrinsics::ctlz_nonzero(self) as u32 };
-            false => Some(todo!()),
+            false => Some(Self::BITS - 1 - self.leading_zeros()),
         }
     }
 
@@ -1277,10 +1315,8 @@ impl i256 {
     /// Convert the 256-bit signed integer to an `u256`, as if by an `as` cast.
     #[inline(always)]
     pub const fn as_u256(&self) -> u256 {
-        // TODO: Validate...
-        // NOTE: This should be valid since we just want the same
-        // bitwise representation as it.
-        u256 { hi: self.hi as u128, lo: self.lo }
+        let (lo, hi) = math::wide_cast_i128(self.lo, self.hi);
+        u256 { lo, hi }
     }
 
     /// Convert the 256-bit signed integer to an `i8`, as if by an `as` cast.
@@ -1332,7 +1368,8 @@ op_impl!(i256, Add, AddAssign, add, add_assign);
 impl fmt::Binary for i256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        todo!();
+        // NOTE: Binary for negative numbers uses wrapping formats.
+        fmt::Binary::fmt(&self.as_u256(), f)
     }
 }
 
@@ -1448,7 +1485,8 @@ impl fmt::LowerExp for i256 {
 impl fmt::LowerHex for i256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        todo!();
+        // NOTE: LowerHex for negative numbers uses wrapping formats.
+        fmt::LowerHex::fmt(&self.as_u256(), f)
     }
 }
 
@@ -1492,7 +1530,8 @@ ref_impl!(i256, Not, not);
 impl fmt::Octal for i256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        todo!();
+        // NOTE: Octal for negative numbers uses wrapping formats.
+        fmt::Octal::fmt(&self.as_u256(), f)
     }
 }
 
@@ -1600,7 +1639,8 @@ impl fmt::UpperExp for i256 {
 impl fmt::UpperHex for i256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        todo!();
+        // NOTE: UpperHex for negative numbers uses wrapping formats.
+        fmt::UpperHex::fmt(&self.as_u256(), f)
     }
 }
 
