@@ -536,7 +536,7 @@ impl bf16 {
     /// ```
     #[must_use]
     #[inline(always)]
-    pub fn clamp(self, min: bf16, max: bf16) -> bf16 {
+    pub fn clamp(self, min: Self, max: Self) -> Self {
         assert!(min <= max);
         let mut x = self;
         if x < min {
@@ -562,70 +562,70 @@ macro_rules! from_int_impl {
 // Non-standard extensions to simplify working with `f16`.
 impl bf16 {
     /// [`bf16`] 1
-    pub const ONE: bf16 = bf16(0x3F80u16);
+    pub const ONE: Self = Self(0x3F80u16);
 
     /// [`bf16`] 0
-    pub const ZERO: bf16 = bf16(0x0000u16);
+    pub const ZERO: Self = Self(0x0000u16);
 
     /// [`bf16`] -0
-    pub const NEG_ZERO: bf16 = bf16(0x8000u16);
+    pub const NEG_ZERO: Self = Self(0x8000u16);
 
     /// [`bf16`] -1
-    pub const NEG_ONE: bf16 = bf16(0xBF80u16);
+    pub const NEG_ONE: Self = Self(0xBF80u16);
 
     /// [`bf16`] Euler's number (ℯ)
-    pub const E: bf16 = bf16(0x402Eu16);
+    pub const E: Self = Self(0x402Eu16);
 
     /// [`bf16`] Archimedes' constant (π)
-    pub const PI: bf16 = bf16(0x4049u16);
+    pub const PI: Self = Self(0x4049u16);
 
     /// [`bf16`] 1/π
-    pub const FRAC_1_PI: bf16 = bf16(0x3EA3u16);
+    pub const FRAC_1_PI: Self = Self(0x3EA3u16);
 
     /// [`bf16`] 1/√2
-    pub const FRAC_1_SQRT_2: bf16 = bf16(0x3F35u16);
+    pub const FRAC_1_SQRT_2: Self = Self(0x3F35u16);
 
     /// [`bf16`] 2/π
-    pub const FRAC_2_PI: bf16 = bf16(0x3F23u16);
+    pub const FRAC_2_PI: Self = Self(0x3F23u16);
 
     /// [`bf16`] 2/√π
-    pub const FRAC_2_SQRT_PI: bf16 = bf16(0x3F90u16);
+    pub const FRAC_2_SQRT_PI: Self = Self(0x3F90u16);
 
     /// [`bf16`] π/2
-    pub const FRAC_PI_2: bf16 = bf16(0x3FC9u16);
+    pub const FRAC_PI_2: Self = Self(0x3FC9u16);
 
     /// [`bf16`] π/3
-    pub const FRAC_PI_3: bf16 = bf16(0x3F86u16);
+    pub const FRAC_PI_3: Self = Self(0x3F86u16);
 
     /// [`bf16`] π/4
-    pub const FRAC_PI_4: bf16 = bf16(0x3F49u16);
+    pub const FRAC_PI_4: Self = Self(0x3F49u16);
 
     /// [`bf16`] π/6
-    pub const FRAC_PI_6: bf16 = bf16(0x3F06u16);
+    pub const FRAC_PI_6: Self = Self(0x3F06u16);
 
     /// [`bf16`] π/8
-    pub const FRAC_PI_8: bf16 = bf16(0x3EC9u16);
+    pub const FRAC_PI_8: Self = Self(0x3EC9u16);
 
     /// [`bf16`] 𝗅𝗇 10
-    pub const LN_10: bf16 = bf16(0x4013u16);
+    pub const LN_10: Self = Self(0x4013u16);
 
     /// [`bf16`] 𝗅𝗇 2
-    pub const LN_2: bf16 = bf16(0x3F31u16);
+    pub const LN_2: Self = Self(0x3F31u16);
 
     /// [`bf16`] 𝗅𝗈𝗀₁₀ℯ
-    pub const LOG10_E: bf16 = bf16(0x3EDEu16);
+    pub const LOG10_E: Self = Self(0x3EDEu16);
 
     /// [`bf16`] 𝗅𝗈𝗀₁₀2
-    pub const LOG10_2: bf16 = bf16(0x3E9Au16);
+    pub const LOG10_2: Self = Self(0x3E9Au16);
 
     /// [`bf16`] 𝗅𝗈𝗀₂ℯ
-    pub const LOG2_E: bf16 = bf16(0x3FB9u16);
+    pub const LOG2_E: Self = Self(0x3FB9u16);
 
     /// [`bf16`] 𝗅𝗈𝗀₂10
-    pub const LOG2_10: bf16 = bf16(0x4055u16);
+    pub const LOG2_10: Self = Self(0x4055u16);
 
     /// [`bf16`] √2
-    pub const SQRT_2: bf16 = bf16(0x3FB5u16);
+    pub const SQRT_2: Self = Self(0x3FB5u16);
 
     #[inline(always)]
     pub const fn as_f32(self) -> f32 {
@@ -680,22 +680,22 @@ impl PartialOrd for bf16 {
     }
 
     #[inline(always)]
-    fn lt(&self, other: &bf16) -> bool {
+    fn lt(&self, other: &Self) -> bool {
         lt(*self, *other)
     }
 
     #[inline(always)]
-    fn le(&self, other: &bf16) -> bool {
+    fn le(&self, other: &Self) -> bool {
         le(*self, *other)
     }
 
     #[inline(always)]
-    fn gt(&self, other: &bf16) -> bool {
+    fn gt(&self, other: &Self) -> bool {
         gt(*self, *other)
     }
 
     #[inline(always)]
-    fn ge(&self, other: &bf16) -> bool {
+    fn ge(&self, other: &Self) -> bool {
         ge(*self, *other)
     }
 }
