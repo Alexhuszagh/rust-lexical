@@ -1,9 +1,7 @@
-//! Arithmetic utilities.
+//! Arithmetic utilities from small, native integer components.
 //!
-//! This is used for logic to create larger type sizes, allowing
-//! multiplication and more from smaller components, while also
-//! making testing easier (so the data can be tested from smaller
-//! components to known reference values).
+//! This allows the construction of larger type sizes from native,
+//! fast integers.
 
 #![doc(hidden)]
 #![allow(unused_variables)] // TODO: Remove
@@ -81,7 +79,7 @@ macro_rules! unsigned_impl {
         #[inline(always)]
         pub const fn $div(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
-            todo!();
+            panic!("Arbitrary large-precision division is not supported. See div.rs for Knuth division.");
         }
 
         /// Const implementation of `Rem` for internal algorithm use.
@@ -93,7 +91,7 @@ macro_rules! unsigned_impl {
         #[inline(always)]
         pub const fn $rem(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
-            todo!();
+            panic!("Arbitrary large-precision division is not supported. See div.rs for Knuth division.");
         }
 
         /// Const implementation of `Shl` for internal algorithm use.
@@ -439,7 +437,7 @@ macro_rules! signed_impl {
         #[inline(always)]
         pub const fn $div(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
-            todo!();
+            panic!("Arbitrary large-precision division is not supported. See div.rs for Knuth division.");
         }
 
         /// Const implementation of `Rem` for internal algorithm use.
@@ -451,7 +449,7 @@ macro_rules! signed_impl {
         #[inline(always)]
         pub const fn $rem(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
-            todo!();
+            panic!("Arbitrary large-precision division is not supported. See div.rs for Knuth division.");
         }
 
         /// Const implementation of `Shl` for internal algorithm use.

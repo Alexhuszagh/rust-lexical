@@ -7,22 +7,24 @@ Other licensing terms may apply, as described in depth below for various feature
 
 ## `write-floats, not(compact)`
 
-`lexical-write-float/src/algorithm.rs` is a direct port of the reference C++ implementation of Dragonbox, found [here](https://github.com/jk-jeon/dragonbox/).
+[lexical-write-float/src/algorithm.rs](/lexical-write-float/src/algorithm.rs) is a direct port of the reference C++ implementation of Dragonbox, found [here](https://github.com/jk-jeon/dragonbox/).
 This code (used if the `write-floats` feature is enabled and the `compact` feature is disabled) is subject to a [Boost Software License](https://github.com/jk-jeon/dragonbox/blob/71993f55067a89f4b4e27591605e21521f5c61be/LICENSE-Boost) and a modified [Apache2 license](https://github.com/jk-jeon/dragonbox/blob/71993f55067a89f4b4e27591605e21521f5c61be/LICENSE-Apache2-LLVM), shown in the [Boost Software License](#boost-software-license) and [Apache2 With LLVM Exceptions](#apache2-with-llvm-exceptions) sections below.
 
 ## `write-floats, compact`
 
-`lexical-write-float/src/compact.rs` is a direct port of a C++ implementation of the Grisu algorithm, found [here](https://github.com/night-shift/fpconv/).
-This code (used if both the `write-floats` and `compact` features are enabled) is subject to a [MIT License](https://github.com/night-shift/fpconv/blob/dfeb7e938fb85fb5eca130b84f856705ced75012/license), shown in the [fpconv License](#fpconv-license) section below.
+[compact](/lexical-write-float/src/compact.rs) is a direct port of a C++ implementation of the Grisu algorithm, found [here](https://github.com/night-shift/fpconv/). This code (used if both the `write-floats` and `compact` features are enabled) is subject to a [MIT License](https://github.com/night-shift/fpconv/blob/dfeb7e938fb85fb5eca130b84f856705ced75012/license), shown in the [fpconv License](#fpconv-license) section below.
 
 ## `write-floats, radix`
 
-`lexical-write-float/src/radix.rs` is adapted from the V8 implementation found [here](). This code (used if both the `parse-floats` and `radix` features are enabled) is subject to a [3-clause BSD license](https://github.com/v8/v8/blob/f80bfeaf0792652bfbc1f174d5a7b8ab8bc0cbbd/LICENSE.v8), shown in the [V8 License](#v8-license) section below.
+[radix](/lexical-write-float/src/radix.rs) is adapted from the V8 implementation found [here](https://github.com/v8/v8/blob/9ee58d91adc4f7d83882133941a3b7a2862059db/src/numbers/conversions.cc#L1232). This code (used if both the `parse-floats` and `radix` features are enabled) is subject to a [3-clause BSD license](https://github.com/v8/v8/blob/f80bfeaf0792652bfbc1f174d5a7b8ab8bc0cbbd/LICENSE.v8), shown in the [V8 License](#v8-license) section below.
 
 ## `parse-floats, compact`
 
-`lexical-parse-float/src/bellerophon.rs` is loosely based off the Golang implementation,
-found [here](https://github.com/golang/go/blob/b10849fbb97a2244c086991b4623ae9f32c212d0/src/strconv/extfloat.go). This code (used if both the `parse-floats` and `compact` features are enabled) is subject to a [3-clause BSD license](https://github.com/golang/go/blob/b10849fbb97a2244c086991b4623ae9f32c212d0/LICENSE), shown in the [Go License](#go-license) section below.
+[bellerophon](/lexical-parse-float/src/bellerophon.rs) is loosely based off the Golang implementation, found [here](https://github.com/golang/go/blob/b10849fbb97a2244c086991b4623ae9f32c212d0/src/strconv/extfloat.go). This code (used if both the `parse-floats` and `compact` features are enabled) is subject to a [3-clause BSD license](https://github.com/golang/go/blob/b10849fbb97a2244c086991b4623ae9f32c212d0/LICENSE), shown in the [Go License](#go-license) section below.
+
+## `i256`
+
+[div](/lexical-util/src/math/div.rs) is modified from [arrow-rs](https://github.com/apache/arrow-rs/blob/fcf4aa4cfb258903daab0029277ddfed1883bd90/arrow-buffer/src/lib.rs) This code (enabled only if `i256` is enabled) is subject to an [Apache 2.0 License](https://github.com/apache/arrow-rs/blob/fcf4aa4cfb258903daab0029277ddfed1883bd90/LICENSE.txt).
 
 # License Terms
 
