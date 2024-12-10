@@ -29,10 +29,17 @@ use crate::math;
 /// [`to_le_bytes`] and [`to_be_bytes`], or using [`get_high`]
 /// and [`get_low`].
 ///
+/// Our formatting specifications are limited: we ignore a
+/// lot of settings, and only respect [`alternate`] among the
+/// formatter flags. So, we implement all the main formatters
+/// ([`Binary`], etc.), but ignore all flags like `width`.
+///
 /// [`to_le_bytes`]: [u256::to_le_bytes]
 /// [`to_be_bytes`]: [u256::to_be_bytes]
 /// [`get_high`]: [u256::get_high]
 /// [`get_low`]: [u256::get_low]
+/// ['alternate`]: [fmt::Formatter::alternate]
+/// [`Binary`]: [fmt::Binary]
 #[repr(C)]
 #[cfg(target_endian = "little")]
 #[allow(non_camel_case_types)]
@@ -1209,8 +1216,9 @@ impl fmt::Debug for u256 {
 impl fmt::Display for u256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        fmt::Display::fmt(&self.hi, f)?;
-        fmt::Display::fmt(&self.lo, f)
+        // NOTE: We need to break it into chunks of like 20 digits, since
+        // the max number of digits that can be written is 78.
+        todo!();
     }
 }
 
@@ -1311,7 +1319,37 @@ ref_impl!(u256, Not, not);
 impl fmt::Octal for u256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        todo!();
+        // NOTE: This is **NOT** divisible by 8, so `log(128, 8)` is not integral.
+        // So, we can break it into pairs of u64.
+        let hi1 = (self.hi >> 64) as u64;
+        let hi0 = self.hi as u64;
+        let lo1 = (self.lo >> 64) as u64;
+        let lo0 = self.lo as u64;
+
+        let alternate = f.alternate();
+        let mut write = | x: u64, alt: bool | {
+            if alt {
+                write!(f, "{:#o}", x)
+            } else {
+                write!(f, "{:o}", x)
+            }
+        };
+        if hi1 != 0 {
+            write(hi1, alternate)?;
+            write(hi0, false)?;
+            write(lo1, false)?;
+            write(lo0, false)
+        } else if hi0 != 0 {
+            write(hi0, alternate)?;
+            write(lo1, false)?;
+            write(lo0, false)
+        } else if lo1 != 0 {
+            write(lo1, alternate)?;
+            write(lo0, false)
+        } else {
+            // NOTE: Always write at least a 0
+            write(lo0, alternate)
+        }
     }
 }
 

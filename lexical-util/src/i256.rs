@@ -37,10 +37,17 @@ use crate::math;
 /// as if it were a native, signed integer, as
 /// two's complement.
 ///
+/// Our formatting specifications are limited: we ignore a
+/// lot of settings, and only respect [`alternate`] among the
+/// formatter flags. So, we implement all the main formatters
+/// ([`Binary`], etc.), but ignore all flags like `width`.
+///
 /// [`to_le_bytes`]: [i256::to_le_bytes]
 /// [`to_be_bytes`]: [i256::to_be_bytes]
 /// [`get_high`]: [i256::get_high]
 /// [`get_low`]: [i256::get_low]
+/// ['alternate`]: [fmt::Formatter::alternate]
+/// [`Binary`]: [fmt::Binary]
 #[repr(C)]
 #[cfg(target_endian = "little")]
 #[allow(non_camel_case_types)]
@@ -1416,7 +1423,12 @@ impl fmt::Debug for i256 {
 impl fmt::Display for i256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        todo!();  // This is 2's complement, can't just do hi and lo
+        if self.is_negative() {
+            write!(f, "-")?;
+        } else if f.sign_plus() {
+            write!(f, "-")?;
+        }
+        fmt::Display::fmt(&self.abs().as_u256(), f)
     }
 }
 
@@ -1478,7 +1490,12 @@ impl FromStr for i256 {
 impl fmt::LowerExp for i256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        todo!();
+        if self.is_negative() {
+            write!(f, "-")?;
+        } else if f.sign_plus() {
+            write!(f, "-")?;
+        }
+        fmt::LowerExp::fmt(&self.abs().as_u256(), f)
     }
 }
 
@@ -1632,7 +1649,12 @@ impl TryFrom<u256> for i256 {
 impl fmt::UpperExp for i256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        todo!();
+        if self.is_negative() {
+            write!(f, "-")?;
+        } else if f.sign_plus() {
+            write!(f, "-")?;
+        }
+        fmt::UpperExp::fmt(&self.abs().as_u256(), f)
     }
 }
 
