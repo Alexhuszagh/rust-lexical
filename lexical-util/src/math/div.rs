@@ -31,7 +31,7 @@ use core::slice;
 /// # Panics
 ///
 /// Panics if divisor is zero
-pub fn div_rem<const N: usize>(numerator: &[u64; N], divisor: &[u64; N]) -> ([u64; N], [u64; N]) {
+pub fn div_rem_big<const N: usize>(numerator: &[u64; N], divisor: &[u64; N]) -> ([u64; N], [u64; N]) {
     let numerator_bits = bits(numerator);
     let divisor_bits = bits(divisor);
     assert_ne!(divisor_bits, 0, "division by zero");
@@ -53,6 +53,7 @@ pub fn div_rem<const N: usize>(numerator: &[u64; N], divisor: &[u64; N]) -> ([u6
 }
 
 /// Return the least number of bits needed to represent the number
+#[inline]
 fn bits(arr: &[u64]) -> usize {
     for (idx, v) in arr.iter().enumerate().rev() {
         if *v > 0 {
@@ -63,7 +64,7 @@ fn bits(arr: &[u64]) -> usize {
 }
 
 /// Division of numerator by a u64 divisor
-fn div_rem_small<const N: usize>(numerator: &[u64; N], divisor: u64) -> ([u64; N], [u64; N]) {
+pub fn div_rem_small<const N: usize>(numerator: &[u64; N], divisor: u64) -> ([u64; N], [u64; N]) {
     let mut rem = 0u64;
     let mut numerator = *numerator;
     numerator.iter_mut().rev().for_each(|d| {

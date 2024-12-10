@@ -1735,17 +1735,19 @@ const fn add(lhs: u256, rhs: u256) -> u256 {
     u256 { lo, hi }
 }
 
-
 // NOTE: Our algorithm assumes little-endian order, which we might not have.
 // So, we transmute to LE order prior to the call.
+/// Large division/remainder calculation. This will panic if rhs is 0.
 fn div_rem(lhs: u256, rhs: u256) -> (u256, u256) {
     // SAFETY: Safe since these are plain old data.
     unsafe {
-        let lhs: [u64; 4] = mem::transmute(lhs.to_le_bytes());
-        let rhs: [u64; 4] = mem::transmute(rhs.to_le_bytes());
-        let (div, rem) = math::big_div_rem(&lhs, &rhs);
+        let x: [u64; 4] = mem::transmute(lhs.to_le_bytes());
+        let y: [u64; 4] = mem::transmute(rhs.to_le_bytes());
+
+        let (div, rem) = math::div_rem_big(&x, &y);
         let div = u256::from_le_bytes(mem::transmute(div));
         let rem = u256::from_le_bytes(mem::transmute(rem));
+
         (div, rem)
     }
 }

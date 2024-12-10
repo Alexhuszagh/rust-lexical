@@ -313,7 +313,7 @@ impl i256 {
     /// Checked integer division. Computes `self / rhs`, returning `None` if `rhs == 0`
     /// or the division results in overflow.
     #[inline(always)]
-    pub const fn checked_div(self, rhs: Self) -> Option<Self> {
+    pub fn checked_div(self, rhs: Self) -> Option<Self> {
         if self.is_div_none(rhs) {
             None
         } else {
@@ -324,7 +324,7 @@ impl i256 {
     /// Checked Euclidean division. Computes `self.div_euclid(rhs)`,
     /// returning `None` if `rhs == 0` or the division results in overflow.
     #[inline(always)]
-    pub const fn checked_div_euclid(self, rhs: Self) -> Option<Self> {
+    pub fn checked_div_euclid(self, rhs: Self) -> Option<Self> {
         if self.is_div_none(rhs) {
             None
         } else {
@@ -335,7 +335,7 @@ impl i256 {
     /// Checked integer remainder. Computes `self % rhs`, returning `None` if
     /// `rhs == 0` or the division results in overflow.
     #[inline(always)]
-    pub const fn checked_rem(self, rhs: Self) -> Option<Self> {
+    pub fn checked_rem(self, rhs: Self) -> Option<Self> {
         if self.is_div_none(rhs) {
             None
         } else {
@@ -346,7 +346,7 @@ impl i256 {
     /// Checked Euclidean remainder. Computes `self.rem_euclid(rhs)`, returning `None`
     /// if `rhs == 0` or the division results in overflow.
     #[inline(always)]
-    pub const fn checked_rem_euclid(self, rhs: Self) -> Option<Self> {
+    pub fn checked_rem_euclid(self, rhs: Self) -> Option<Self> {
         if self.is_div_none(rhs) {
             None
         } else {
@@ -544,7 +544,7 @@ impl i256 {
     ///
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
-    pub const fn wrapping_div(self, rhs: Self) -> Self {
+    pub fn wrapping_div(self, rhs: Self) -> Self {
         div(self, rhs)
     }
 
@@ -559,7 +559,7 @@ impl i256 {
     ///
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
-    pub const fn wrapping_div_euclid(self, rhs: Self) -> Self {
+    pub fn wrapping_div_euclid(self, rhs: Self) -> Self {
         self.overflowing_div_euclid(rhs).0
     }
 
@@ -574,7 +574,7 @@ impl i256 {
     ///
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
-    pub const fn wrapping_rem(self, rhs: Self) -> Self {
+    pub fn wrapping_rem(self, rhs: Self) -> Self {
         rem(self, rhs)
     }
 
@@ -584,7 +584,7 @@ impl i256 {
     /// Wrapping will only occur in `MIN % -1` on a signed type (where `MIN` is the negative minimal value
     /// for the type). In this case, this method returns 0.
     #[inline(always)]
-    pub const fn wrapping_rem_euclid(self, rhs: Self) -> Self {
+    pub fn wrapping_rem_euclid(self, rhs: Self) -> Self {
         self.overflowing_rem_euclid(rhs).0
     }
 
@@ -741,7 +741,7 @@ impl i256 {
     ///
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
-    pub const fn overflowing_rem(self, rhs: Self) -> (Self, bool) {
+    pub fn overflowing_rem(self, rhs: Self) -> (Self, bool) {
         let (lo, hi, overflowed) = math::rem_i128(self.lo, self.hi, rhs.lo, rhs.hi);
         (Self { lo, hi }, overflowed)
     }
@@ -755,7 +755,7 @@ impl i256 {
     ///
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
-    pub const fn overflowing_rem_euclid(self, rhs: Self) -> (Self, bool) {
+    pub fn overflowing_rem_euclid(self, rhs: Self) -> (Self, bool) {
         if eq(self, Self::from_i8(-1)) {
             (Self::from_u8(0), eq(self, Self::MIN))
         } else {
@@ -851,7 +851,7 @@ impl i256 {
     /// This function will panic if `rhs` is zero or if `self` is `Self::MIN`
     /// and `rhs` is -1. This behavior is not affected by the `overflow-checks` flag.
     #[inline(always)]
-    pub const fn div_euclid(self, rhs: Self) -> Self {
+    pub fn div_euclid(self, rhs: Self) -> Self {
         let mut q = div(self, rhs);
         if lt(rem(self, rhs), Self::from_u8(0)) {
             if gt(rhs, Self::from_u8(0)) {
@@ -874,7 +874,7 @@ impl i256 {
     /// This function will panic if `rhs` is zero or if `self` is `Self::MIN` and
     /// `rhs` is -1. This behavior is not affected by the `overflow-checks` flag.
     #[inline(always)]
-    pub const fn rem_euclid(self, rhs: Self) -> Self {
+    pub fn rem_euclid(self, rhs: Self) -> Self {
         let r = rem(self, rhs);
         if lt(r, Self::from_u8(0)) {
             // Semantically equivalent to `if rhs < 0 { r - rhs } else { r + rhs }`.
@@ -898,7 +898,7 @@ impl i256 {
     /// This function will panic if `rhs` is zero or if `self` is `Self::MIN`
     /// and `rhs` is -1. This behavior is not affected by the `overflow-checks` flag.
     #[inline(always)]
-    pub const fn div_floor(self, rhs: Self) -> Self {
+    pub fn div_floor(self, rhs: Self) -> Self {
         let d = div(self, rhs);
         let r = rem(self, rhs);
 
@@ -926,7 +926,7 @@ impl i256 {
     /// This function will panic if `rhs` is zero or if `self` is `Self::MIN`
     /// and `rhs` is -1. This behavior is not affected by the `overflow-checks` flag.
     #[inline(always)]
-    pub const fn div_ceil(self, rhs: Self) -> Self {
+    pub fn div_ceil(self, rhs: Self) -> Self {
         let d = div(self, rhs);
         let r = rem(self, rhs);
 
@@ -1672,10 +1672,38 @@ const fn add(lhs: i256, rhs: i256) -> i256 {
     i256 { lo, hi }
 }
 
+// NOTE: Our algorithm assumes little-endian order, which we might not have.
+// So, we transmute to LE order prior to the call.
+/// Large division/remainder calculation. This will panic if `rhs == 0` or if
+/// `rhs == -1 && lhs == i256::MIN`.
+fn div_rem(lhs: i256, rhs: i256) -> (i256, i256) {
+    // SAFETY: Safe since these are plain old data.
+    unsafe {
+        // Do division as positive numbers, and if `lhs.is_sign_negative() ^ rhs.is_sign_negative()`,
+        // then we can inver the sign
+        let x: [u64; 4] = mem::transmute(lhs.wrapping_abs().as_u256().to_le_bytes());
+        let y: [u64; 4] = mem::transmute(rhs.wrapping_abs().as_u256().to_le_bytes());
+
+        // get our unsigned division product
+        let (div, rem) = math::div_rem_big(&x, &y);
+        let mut div = u256::from_le_bytes(mem::transmute(div)).as_i256();
+        let mut rem = u256::from_le_bytes(mem::transmute(rem)).as_i256();
+
+        // convert to our correct signs, get the product
+        if lhs.is_negative() != rhs.is_negative() {
+            div = div.wrapping_neg();
+        }
+        if lhs.is_negative() {
+            rem = rem.wrapping_neg();
+        }
+
+        (div, rem)
+    }
+}
+
 /// Const implementation of `Div` for internal algorithm use.
-const fn div(lhs: i256, rhs: i256) -> i256 {
-    let (lo, hi, _) = math::div_i128(lhs.lo, lhs.hi, rhs.lo, rhs.hi);
-    i256 { lo, hi }
+fn div(lhs: i256, rhs: i256) -> i256 {
+    div_rem(lhs, rhs).0
 }
 
 /// Const implementation of `Mul` for internal algorithm use.
@@ -1685,9 +1713,8 @@ const fn mul(lhs: i256, rhs: i256) -> i256 {
 }
 
 /// Const implementation of `Rem` for internal algorithm use.
-const fn rem(lhs: i256, rhs: i256) -> i256 {
-    let (lo, hi, _) = math::rem_i128(lhs.lo, lhs.hi, rhs.lo, rhs.hi);
-    i256 { lo, hi }
+fn rem(lhs: i256, rhs: i256) -> i256 {
+    div_rem(lhs, rhs).1
 }
 
 /// Const implementation of `Sub` for internal algorithm use.
