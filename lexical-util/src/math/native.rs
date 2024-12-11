@@ -5,27 +5,15 @@
 
 #![doc(hidden)]
 
-macro_rules! unsigned_impl {
-    (
-        // The unsigned type for the low and high bits.
-        $u:ty,
-        // The signed type for specific conversions.
-        $s:ty,add =>
-        $add:ident,sub =>
-        $sub:ident,mul =>
-        $mul:ident,mul_narrow =>
-        $mul_narrow:ident,mul_small =>
-        $mul_small:ident,shl =>
-        $shl:ident,shr =>
-        $shr:ident,swap_bytes =>
-        $swap_bytes:ident,reverse_bits =>
-        $reverse_bits:ident,rotate_left =>
-        $rotate_left:ident,rotate_right =>
-        $rotate_right:ident
-    ) => {
-        // NOTE: Division and remainders aren't supported due to the difficulty in implementation.
-        // See `div.rs` for the implementation.
+// NOTE: We use the `wrapping`, etc. functions instead of the op
+// traits because for non-primitive types, if we ever want to
+// use this for wider types, then we don't have to rewrite this all.
 
+// NOTE: Division and remainders aren't supported due to the difficulty in implementation.
+// See `div.rs` for the implementation.
+
+macro_rules! add_unsigned_impl {
+    ($($u:ty => $fn:ident,)*) => ($(
         /// Const implementation of `Add` for internal algorithm use.
         ///
         /// Returns the value and if the add overflowed.
@@ -35,16 +23,28 @@ macro_rules! unsigned_impl {
         /// * `y0` - The lower half of y.
         /// * `y1` - The upper half of y.
         #[inline(always)]
-        pub const fn $add(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u, bool) {
+        pub const fn $fn(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u, bool) {
             // NOTE: When we ignore the carry in the caller, this optimizes the same.
             // This is super efficient, it becomes an `add` and an `adc` (add carry).
-            debug_assert!(<$u>::BITS == <$s>::BITS);
             let (v0, c0) = x0.overflowing_add(y0);
             let (v1, c1) = x1.overflowing_add(y1);
             let (v1, c2) = v1.overflowing_add(c0 as $u);
             (v0, v1, c1 || c2)
         }
+    )*);
+}
 
+add_unsigned_impl! {
+    u8 => add_u8,
+    u16 => add_u16,
+    u32 => add_u32,
+    u64 => add_u64,
+    u128 => add_u128,
+    usize => add_usize,
+}
+
+macro_rules! sub_unsigned_impl {
+    ($($u:ty => $fn:ident,)*) => ($(
         /// Const implementation of `Sub` for internal algorithm use.
         ///
         /// Returns the value and if the sub underflowed.
@@ -54,15 +54,27 @@ macro_rules! unsigned_impl {
         /// * `y0` - The lower half of y.
         /// * `y1` - The upper half of y.
         #[inline(always)]
-        pub const fn $sub(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u, bool) {
+        pub const fn $fn(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u, bool) {
             // NOTE: When we ignore the carry in the caller, this optimizes the same.
-            debug_assert!(<$u>::BITS == <$s>::BITS);
             let (v0, c0) = x0.overflowing_sub(y0);
             let (v1, c1) = x1.overflowing_sub(y1);
             let (v1, c2) = v1.overflowing_sub(c0 as $u);
             (v0, v1, c1 || c2)
         }
+    )*);
+}
 
+sub_unsigned_impl! {
+    u8 => sub_u8,
+    u16 => sub_u16,
+    u32 => sub_u32,
+    u64 => sub_u64,
+    u128 => sub_u128,
+    usize => sub_usize,
+}
+
+macro_rules! mul_unsigned_impl {
+    ($($u:ty => $full:ident, $narrow:ident, $small:ident,)*) => ($(
         /// Const implementation of `Mul` for internal algorithm use.
         ///
         /// Returns the value and the carry.
@@ -75,11 +87,10 @@ macro_rules! unsigned_impl {
         /// It returns the lower and higher bits, and if it overflowed in
         /// 1 step. The results can then be used by the caller is desired.
         #[inline(always)]
-        pub const fn $mul(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u, bool) {
+        pub const fn $full(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u, bool) {
             // NOTE: When we ignore the carry in the caller, this optimizes the same.
             // This optimizes down to ~6 muls and 6 adds, which really isn't bad.
-            debug_assert!(<$u>::BITS == <$s>::BITS);
-            let (lo, hi) = $mul_narrow(x0, y0);
+            let (lo, hi) = $narrow(x0, y0);
             let (x0_y1, c1) = x0.overflowing_mul(y1);
             let (x1_y0, c2) = x1.overflowing_mul(y0);
             let (hi, c3) = hi.overflowing_add(x0_y1);
@@ -96,33 +107,32 @@ macro_rules! unsigned_impl {
         /// without larger scalars (`u128`) and get the result in two scalars.
         /// This can never overflow.
         #[inline(always)]
-        pub const fn $mul_narrow(x: $u, y: $u) -> ($u, $u) {
+        pub const fn $narrow(x: $u, y: $u) -> ($u, $u) {
             // This mimics multiplying 2 numbers from native limbs. It's not
             // that efficient but it emulates those faster instructions.
 
-            debug_assert!(<$u>::BITS == <$s>::BITS);
             const HALF: u32 = <$u>::BITS / 2;
             const LO: $u = <$u>::MAX >> HALF;
 
-            let (x0, x1) = (x & LO, x >> HALF);
-            let (y0, y1) = (y & LO, y >> HALF);
+            let (x0, x1) = (x & LO, x.wrapping_shr(HALF));
+            let (y0, y1) = (y & LO, y.wrapping_shr(HALF));
 
             let x0_y0 = x0 * y0;
             let x0_y1 = x0 * y1;
             let x1_y0 = x1 * y0;
             let x1_y1 = x1 * y1;
-            let (mut lo, mut c) = (x0_y0 & LO, x0_y0 >> HALF);
+            let (mut lo, mut c) = (x0_y0 & LO, x0_y0.wrapping_shr(HALF));
 
             c += x1_y0;
-            lo += c << HALF;
-            let mut hi = c >> HALF;
+            lo += c.wrapping_shl(HALF);
+            let mut hi = c.wrapping_shr(HALF);
 
-            c = lo >> HALF;
+            c = lo.wrapping_shr(HALF);
             lo &= LO;
             c += x0_y1;
 
-            lo += c << HALF;
-            hi += c >> HALF;
+            lo += c.wrapping_shl(HALF);
+            hi += c.wrapping_shr(HALF);
             hi += x1_y1;
 
             (lo, hi)
@@ -140,13 +150,52 @@ macro_rules! unsigned_impl {
         /// pairs by a small value (`u32`) which can add optimizations
         /// for scalar word processing.
         #[inline(always)]
-        pub const fn $mul_small(x0: $u, x1: $u, n:$u) -> ($u, $u, bool) {
-            debug_assert!(<$u>::BITS == <$s>::BITS);
+        pub const fn $small(x0: $u, x1: $u, n:$u) -> ($u, $u, bool) {
             // TODO: Need the small div...
             // TODO: Here, need a primitive only version
             todo!();
         }
+    )*);
+}
 
+mul_unsigned_impl! {
+    u8 => mul_u8, mul_narrow_u8, mul_small_u8,
+    u16 => mul_u16, mul_narrow_u16, mul_small_u16,
+    u32 => mul_u32, mul_narrow_u32, mul_small_u32,
+    u64 => mul_u64, mul_narrow_u64, mul_small_u64,
+    u128 => mul_u128, mul_narrow_u128, mul_small_u128,
+    usize => mul_usize, mul_narrow_usize, mul_small_usize,
+}
+
+macro_rules! swap_unsigned_impl {
+    ($($u:ty => $swap_bytes:ident, $reverse_bits:ident,)*) => ($(
+        /// Reverses the byte order of the integer.
+        #[inline(always)]
+        pub const fn $swap_bytes(x0: $u, x1: $u) -> ($u, $u) {
+            (x1.swap_bytes(), x0.swap_bytes())
+        }
+
+        /// Reverses the order of bits in the integer. The least significant
+        /// bit becomes the most significant bit, second least-significant bit
+        /// becomes second most-significant bit, etc.
+        #[inline(always)]
+        pub const fn $reverse_bits(x0: $u, x1: $u) -> ($u, $u) {
+            (x1.reverse_bits(), x0.reverse_bits())
+        }
+    )*);
+}
+
+swap_unsigned_impl! {
+    u8 => swap_bytes_u8, reverse_bits_u8,
+    u16 => swap_bytes_u16, reverse_bits_u16,
+    u32 => swap_bytes_u32, reverse_bits_u32,
+    u64 => swap_bytes_u64, reverse_bits_u64,
+    u128 => swap_bytes_u128, reverse_bits_u128,
+    usize => swap_bytes_usize, reverse_bits_usize,
+}
+
+macro_rules! shift_unsigned_impl {
+    ($($u:ty => $shl:ident, $shr:ident,)*) => ($(
         /// Const implementation of `Shl` for internal algorithm use.
         ///
         /// * `x0` - The lower half of x.
@@ -154,12 +203,11 @@ macro_rules! unsigned_impl {
         /// * `shift` - The number of bits to shift.
         #[inline(always)]
         pub const fn $shl(x0: $u, x1: $u, shift: u32) -> ($u, $u) {
-            debug_assert!(<$u>::BITS == <$s>::BITS);
             const BITS: u32 = <$u>::BITS as u32;
             debug_assert!(shift < 2 * BITS, "attempt to shift left with overflow");
             let shift = shift % (2 * BITS);
             if shift >= BITS {
-                (0, x0 << (shift - BITS))
+                (0, x0.wrapping_shl(shift - BITS))
             } else if shift == 0 {
                 (x0, x1)
             } else {
@@ -167,9 +215,9 @@ macro_rules! unsigned_impl {
                 // so to `0xBCDE_FGH0`, or we need to carry the `D`. So,
                 // our mask needs to be `0x000X`, or `0xXXXX >> (4 - 1)`,
                 // and then the value needs to be shifted left `<< (4 - 1)`.
-                let hi = x1 << shift;
-                let lo = x0 << shift;
-                let carry = x0 >> (BITS - shift);
+                let hi = x1.wrapping_shl(shift);
+                let lo = x0.wrapping_shl(shift);
+                let carry = x0.wrapping_shr(BITS - shift);
                 (lo, hi | carry)
             }
         }
@@ -210,12 +258,11 @@ macro_rules! unsigned_impl {
             // .LBB2_3:
             //     ret
             // ```
-            debug_assert!(<$u>::BITS == <$s>::BITS);
             const BITS: u32 = <$u>::BITS as u32;
             debug_assert!(shift < 2 * BITS, "attempt to shift right with overflow");
             let shift = shift % (2 * BITS);
             if shift >= BITS {
-                (x1 >> (shift - BITS), 0)
+                (x1.wrapping_shr(shift - BITS), 0)
             } else if shift == 0 {
                 (x0, x1)
             } else {
@@ -223,79 +270,32 @@ macro_rules! unsigned_impl {
                 // so to `0x0ABC_DEFG`, or we need to carry the `D`. So,
                 // our mask needs to be `0x000X`, or `0xXXXX >> (4 - 1)`,
                 // and then the value needs to be shifted left `<< (4 - 1)`.
-                let hi = x1 >> shift;
-                let lo = x0 >> shift;
-                let carry = x1 << (BITS - shift);
+                let hi = x1.wrapping_shr(shift);
+                let lo = x0.wrapping_shr(shift);
+                let carry = x1.wrapping_shl(BITS - shift);
                 (lo | carry, hi)
             }
         }
+    )*);
+}
 
-        /// Reverses the byte order of the integer.
-        ///
-        /// This is just a bswap instruction, for `u32`, for example, an
-        /// optimized implementation could be:
-        ///
-        /// ```rust
-        /// pub const fn bswap(v: u32) -> u32 {
-        ///     let v1 = (v & 0x000000FF) << 24;
-        ///     let v2 = (v & 0x0000FF00) << 8;
-        ///     let v3 = (v & 0x00FF0000) >> 8;
-        ///     let v4 = (v & 0xFFFF0000) >> 24;
-        ///     v1 | v2 | v3 | v4
-        /// }
-        /// ```
-        ///
-        /// The slow method looks quite ugly but is actually identical
-        /// when optimized.
-        ///
-        /// ```rust
-        /// #[inline(never)]
-        /// pub const fn bswap_generic(v: u32) -> u32 {
-        ///     const BYTES: usize = u32::BITS as usize / 8;
-        ///     let mut i = 0;
-        ///     let mut buffer: [u8; BYTES] = [0; BYTES];
-        ///     while i < BYTES {
-        ///         let vi = v >> (8 * i);
-        ///         buffer[BYTES - i - 1] = vi as u8;
-        ///         i += 1;
-        ///     }
-        ///     unsafe { std::mem::transmute(buffer) }
-        /// }
-        /// ```
-        #[inline(always)]
-        pub const fn $swap_bytes(x0: $u, x1: $u) -> ($u, $u) {
-            debug_assert!(<$u>::BITS == <$s>::BITS);
+shift_unsigned_impl! {
+    u8 => shl_u8, shr_u8,
+    u16 => shl_u16, shr_u16,
+    u32 => shl_u32, shr_u32,
+    u64 => shl_u64, shr_u64,
+    u128 => shl_u128, shr_u128,
+    usize => shl_usize, shr_usize,
+}
 
-            const BYTES: usize = <$u>::BITS as usize / 8;
-            let mut buffer = ([0u8; BYTES], [0u8; BYTES]);
-
-            let mut i = 0;
-            while i < BYTES {
-                buffer.1[BYTES - i - 1] = (x0 >> (8 * i)) as u8;
-                buffer.0[BYTES - i - 1] = (x1 >> (8 * i)) as u8;
-                i += 1;
-            }
-
-            // SAFETY: Safe since this is POD
-            unsafe { (std::mem::transmute(buffer)) }
-        }
-
-        /// Reverses the order of bits in the integer. The least significant
-        /// bit becomes the most significant bit, second least-significant bit
-        /// becomes second most-significant bit, etc.
-        #[inline(always)]
-        pub const fn $reverse_bits(x0: $u, x1: $u) -> ($u, $u) {
-            debug_assert!(<$u>::BITS == <$s>::BITS);
-            (x1.reverse_bits(), x0.reverse_bits())
-        }
-
+macro_rules! rotate_unsigned_impl {
+    ($($u:ty => $left:ident, $right:ident,)*) => ($(
         /// Shifts the bits to the left by a specified amount, `n`,
         /// wrapping the truncated bits to the end of the resulting integer.
         ///
         /// Please note this isn't the same operation as the `<<` shifting operator!
         #[inline(always)]
-        pub const fn $rotate_left(x0:$u, x1: $u, n: u32) -> ($u, $u) {
-            debug_assert!(<$u>::BITS == <$s>::BITS);
+        pub const fn $left(x0:$u, x1: $u, n: u32) -> ($u, $u) {
             // 0bXYFFFF -> 0bFFFFXY
             const BITS: u32 = <$u>::BITS;
             // First, 0 out all bits above as if we did a narrowing case.
@@ -352,8 +352,8 @@ macro_rules! unsigned_impl {
             if n == 0 {
                 (x0, x1)
             } else {
-                let hi = (x1 << n) | (x0 >> (BITS - n));
-                let lo = (x0 << n) | (x1 >> (BITS - n));
+                let hi = (x1.wrapping_shl(n)) | (x0.wrapping_shr(BITS - n));
+                let lo = (x0.wrapping_shl(n)) | (x1.wrapping_shr(BITS - n));
                 (lo, hi)
             }
         }
@@ -364,9 +364,8 @@ macro_rules! unsigned_impl {
         ///
         /// Please note this isn't the same operation as the `>>` shifting operator!
         #[inline(always)]
-        pub const fn $rotate_right(x0:$u, x1: $u, n: u32) -> ($u, $u) {
+        pub const fn $right(x0:$u, x1: $u, n: u32) -> ($u, $u) {
             // See rotate_left for the description
-            debug_assert!(<$u>::BITS == <$s>::BITS);
             // 0bFFFFXY -> 0bXYFFFF
             const BITS: u32 = <$u>::BITS;
             let n = n % (2 * BITS);
@@ -380,12 +379,21 @@ macro_rules! unsigned_impl {
             if n == 0 {
                 (x0, x1)
             } else {
-                let hi = (x1 >> n) | (x0 << (BITS - n));
-                let lo = (x0 >> n) | (x1 << (BITS - n));
+                let hi = (x1.wrapping_shr(n)) | (x0.wrapping_shl(BITS - n));
+                let lo = (x0.wrapping_shr(n)) | (x1.wrapping_shl(BITS - n));
                 (lo, hi)
             }
         }
-    };
+    )*);
+}
+
+rotate_unsigned_impl! {
+    u8 => rotate_left_u8, rotate_right_u8,
+    u16 => rotate_left_u16, rotate_right_u16,
+    u32 => rotate_left_u32, rotate_right_u32,
+    u64 => rotate_left_u64, rotate_right_u64,
+    u128 => rotate_left_u128, rotate_right_u128,
+    usize => rotate_left_usize, rotate_right_usize,
 }
 
 // Widening and narrowing conversions for primitive types.
@@ -445,96 +453,6 @@ macro_rules! unsigned_primitive_cast {
     };
 }
 
-unsigned_impl!(
-    u8,
-    i8,
-    add => add_u8,
-    sub => sub_u8,
-    mul => mul_u8,
-    mul_narrow => mul_narrow_u8,
-    mul_small => mul_small_u8,
-    shl => shl_u8,
-    shr => shr_u8,
-    swap_bytes => swap_bytes_u8,
-    reverse_bits => reverse_bits_u8,
-    rotate_left => rotate_left_u8,
-    rotate_right => rotate_right_u8
-);
-unsigned_impl!(
-    u16,
-    i16,
-    add => add_u16,
-    sub => sub_u16,
-    mul => mul_u16,
-    mul_narrow => mul_narrow_u16,
-    mul_small => mul_small_u16,
-    shl => shl_u16,
-    shr => shr_u16,
-    swap_bytes => swap_bytes_u16,
-    reverse_bits => reverse_bits_u16,
-    rotate_left => rotate_left_u16,
-    rotate_right => rotate_right_u16
-);
-unsigned_impl!(
-    u32,
-    i32,
-    add => add_u32,
-    sub => sub_u32,
-    mul => mul_u32,
-    mul_narrow => mul_narrow_u32,
-    mul_small => mul_small_u32,
-    shl => shl_u32,
-    shr => shr_u32,
-    swap_bytes => swap_bytes_u32,
-    reverse_bits => reverse_bits_u32,
-    rotate_left => rotate_left_u32,
-    rotate_right => rotate_right_u32
-);
-unsigned_impl!(
-    u64,
-    i64,
-    add => add_u64,
-    sub => sub_u64,
-    mul => mul_u64,
-    mul_narrow => mul_narrow_u64,
-    mul_small => mul_small_u64,
-    shl => shl_u64,
-    shr => shr_u64,
-    swap_bytes => swap_bytes_u64,
-    reverse_bits => reverse_bits_u64,
-    rotate_left => rotate_left_u64,
-    rotate_right => rotate_right_u64
-);
-unsigned_impl!(
-    u128,
-    i128,
-    add => add_u128,
-    sub => sub_u128,
-    mul => mul_u128,
-    mul_narrow => mul_narrow_u128,
-    mul_small => mul_small_u128,
-    shl => shl_u128,
-    shr => shr_u128,
-    swap_bytes => swap_bytes_u128,
-    reverse_bits => reverse_bits_u128,
-    rotate_left => rotate_left_u128,
-    rotate_right => rotate_right_u128
-);
-unsigned_impl!(
-    usize,
-    isize,
-    add => add_usize,
-    sub => sub_usize,
-    mul => mul_usize,
-    mul_narrow => mul_narrow_usize,
-    mul_small => mul_small_usize,
-    shl => shl_usize,
-    shr => shr_usize,
-    swap_bytes => swap_bytes_usize,
-    reverse_bits => reverse_bits_usize,
-    rotate_left => rotate_left_usize,
-    rotate_right => rotate_right_usize
-);
 unsigned_primitive_cast!(
     u8,
     i8,
@@ -590,30 +508,8 @@ unsigned_primitive_cast!(
     wide_cast => wide_cast_usize
 );
 
-macro_rules! signed_impl {
-    (
-        // The unsigned type for the low bits.
-        $u:ty,
-        // The signed type for the high bits.
-        $s:ty,add =>
-        $add:ident,sub =>
-        $sub:ident,mul =>
-        $mul:ident,mul_narrow =>
-        // This does not define it's own `mul_narrow`, since it
-        // always used the unsigned variant.
-        $mul_narrow:ident,mul_usmall =>
-        $mul_usmall:ident,mul_ismall =>
-        $mul_ismall:ident,shl =>
-        $shl:ident,shr =>
-        $shr:ident,swap_bytes =>
-        $swap_bytes:ident,reverse_bits =>
-        $reverse_bits:ident,rotate_left =>
-        $rotate_left:ident,rotate_right =>
-        $rotate_right:ident
-    ) => {
-        // NOTE: Division and remainders aren't supported due to the difficulty in implementation.
-        // See `div.rs` for the implementation.
-
+macro_rules! add_signed_impl {
+    ($($u:ty, $s:ty => $fn:ident,)*) => ($(
         /// Const implementation of `Add` for internal algorithm use.
         ///
         /// Returns the value and if the add overflowed.
@@ -623,7 +519,7 @@ macro_rules! signed_impl {
         /// * `y0` - The lower half of y.
         /// * `y1` - The upper half of y.
         #[inline(always)]
-        pub const fn $add(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
+        pub const fn $fn(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
             // NOTE: When we ignore the carry in the caller, this optimizes the same.
             debug_assert!(<$u>::BITS == <$s>::BITS);
             let (v0, c0) = x0.overflowing_add(y0);
@@ -631,7 +527,20 @@ macro_rules! signed_impl {
             let (v1, c2) = v1.overflowing_add(c0 as $s);
             (v0, v1, c1 || c2)
         }
+    )*);
+}
 
+add_signed_impl! {
+    u8, i8 => add_i8,
+    u16, i16 => add_i16,
+    u32, i32 => add_i32,
+    u64, i64 => add_i64,
+    u128, i128 => add_i128,
+    usize, isize => add_isize,
+}
+
+macro_rules! sub_signed_impl {
+    ($($u:ty, $s:ty => $fn:ident,)*) => ($(
         /// Const implementation of `Sub` for internal algorithm use.
         ///
         /// Returns the value and if the sub underflowed.
@@ -641,7 +550,7 @@ macro_rules! signed_impl {
         /// * `y0` - The lower half of y.
         /// * `y1` - The upper half of y.
         #[inline(always)]
-        pub const fn $sub(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
+        pub const fn $fn(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
             // NOTE: When we ignore the carry in the caller, this optimizes the same.
             debug_assert!(<$u>::BITS == <$s>::BITS);
             let (v0, c0) = x0.overflowing_sub(y0);
@@ -649,7 +558,20 @@ macro_rules! signed_impl {
             let (v1, c2) = v1.overflowing_sub(c0 as $s);
             (v0, v1, c1 || c2)
         }
+    )*);
+}
 
+sub_signed_impl! {
+    u8, i8 => sub_i8,
+    u16, i16 => sub_i16,
+    u32, i32 => sub_i32,
+    u64, i64 => sub_i64,
+    u128, i128 => sub_i128,
+    usize, isize => sub_isize,
+}
+
+macro_rules! mul_signed_impl {
+    ($($u:ty, $s:ty => $full:ident, $narrow:ident, $usmall:ident, $ismall:ident,)*) => ($(
         /// Const implementation of `Sub` for internal algorithm use.
         ///
         /// Returns the value and the carry.
@@ -659,11 +581,11 @@ macro_rules! signed_impl {
         /// * `y0` - The lower half of y.
         /// * `y1` - The upper half of y.
         #[inline(always)]
-        pub const fn $mul(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
+        pub const fn $full(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
             // NOTE: When we ignore the carry in the caller, this optimizes the same.
             // This optimizes down to ~6 muls and 6 adds, which really isn't bad.
             debug_assert!(<$u>::BITS == <$s>::BITS);
-            let (lo, hi) = $mul_narrow(x0, y0);
+            let (lo, hi) = $narrow(x0, y0);
             let (x0_y1, c1) = (x0 as $s).overflowing_mul(y1);
             let (x1_y0, c2) = x1.overflowing_mul(y0 as $s);
             let (hi, c3) = (hi as $s).overflowing_add(x0_y1);
@@ -683,7 +605,7 @@ macro_rules! signed_impl {
         /// pairs by a small value (`u32`) which can add optimizations
         /// for scalar word processing.
         #[inline(always)]
-        pub const fn $mul_usmall(x0: $u, x1: $s, n:$u) -> ($u, $s, bool) {
+        pub const fn $usmall(x0: $u, x1: $s, n:$u) -> ($u, $s, bool) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
             // TODO: Need the small div...
             // TODO: Here, need a primitive only version
@@ -702,13 +624,26 @@ macro_rules! signed_impl {
         /// pairs by a small value (`u32`) which can add optimizations
         /// for scalar word processing.
         #[inline(always)]
-        pub const fn $mul_ismall(x0: $u, x1: $s, n:$s) -> ($u, $s, bool) {
+        pub const fn $ismall(x0: $u, x1: $s, n:$s) -> ($u, $s, bool) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
             // TODO: Need the small div...
             // TODO: Here, need a primitive only version
             todo!();
         }
+    )*);
+}
 
+mul_signed_impl! {
+    u8, i8 => mul_i8, mul_narrow_u8, mul_usmall_i8, mul_ismall_i8,
+    u16, i16 => mul_i16, mul_narrow_u16, mul_usmall_i16, mul_ismall_i16,
+    u32, i32 => mul_i32, mul_narrow_u32, mul_usmall_i32, mul_ismall_i32,
+    u64, i64 => mul_i64, mul_narrow_u64, mul_usmall_i64, mul_ismall_i64,
+    u128, i128 => mul_i128, mul_narrow_u128, mul_usmall_i128, mul_ismall_i128,
+    usize, isize => mul_isize, mul_narrow_usize, mul_usmall_isize, mul_ismall_isize,
+}
+
+macro_rules! shift_signed_impl {
+    ($($u:ty, $s:ty => $shl:ident, $shr:ident,)*) => ($(
         /// Const implementation of `Shl` for internal algorithm use.
         ///
         /// Rust follows the C++20 semantics for this: `a << b` is equal to
@@ -731,14 +666,14 @@ macro_rules! signed_impl {
             debug_assert!(shift < 2 * BITS, "attempt to shift right with overflow");
             let shift = shift % (2 * BITS);
             if shift >= BITS {
-                let hi = x0 << (shift - BITS);
+                let hi = x0.wrapping_shl(shift - BITS);
                 (0, hi as $s)
             } else if shift == 0 {
                 (x0, x1)
             } else {
-                let hi = x1 << shift;
-                let lo = x0 << shift;
-                let carry = x0 >> (BITS - shift);
+                let hi = x1.wrapping_shl(shift);
+                let lo = x0.wrapping_shl(shift);
+                let carry = x0.wrapping_shr(BITS - shift);
                 (lo, hi | carry as $s)
             }
         }
@@ -763,36 +698,37 @@ macro_rules! signed_impl {
             if shift >= BITS {
                 // NOTE: The MSB is 0 if positive and 1 if negative, so this will
                 // always shift to 0 if positive and `-1` if negative.
-                let hi = x1 >> (BITS - 1);
-                let lo = x1 >> (shift - BITS);
+                let hi = x1.wrapping_shr(BITS - 1);
+                let lo = x1.wrapping_shr(shift - BITS);
                 (lo as $u, hi)
             } else if shift == 0 {
                 (x0, x1)
             } else {
-                let hi = x1 >> shift;
-                let lo = x0 >> shift;
-                let carry = (x1 as $u) << (BITS - shift);
+                let hi = x1.wrapping_shr(shift);
+                let lo = x0.wrapping_shr(shift);
+                let carry = (x1 as $u).wrapping_shl(BITS - shift);
                 (lo | carry, hi)
             }
         }
+    )*);
+}
 
+shift_signed_impl! {
+    u8, i8 => shl_i8, shr_i8,
+    u16, i16 => shl_i16, shr_i16,
+    u32, i32 => shl_i32, shr_i32,
+    u64, i64 => shl_i64, shr_i64,
+    u128, i128 => shl_i128, shr_i128,
+    usize, isize => shl_isize, shr_isize,
+}
+
+macro_rules! swap_signed_impl {
+    ($($u:ty, $s:ty => $swap_bytes:ident, $reverse_bits:ident,)*) => ($(
         /// Reverses the byte order of the integer.
         #[inline(always)]
         pub const fn $swap_bytes(x0: $u, x1: $s) -> ($u, $s) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
-
-            const BYTES: usize = <$u>::BITS as usize / 8;
-            let mut buffer = ([0u8; BYTES], [0u8; BYTES]);
-
-            let mut i = 0;
-            while i < BYTES {
-                buffer.1[BYTES - i - 1] = (x0 >> (8 * i)) as u8;
-                buffer.0[BYTES - i - 1] = (x1 >> (8 * i)) as u8;
-                i += 1;
-            }
-
-            // SAFETY: Safe since this is POD
-            unsafe { (std::mem::transmute(buffer)) }
+            (x1.swap_bytes() as $u, x0.swap_bytes() as $s)
         }
 
         /// Reverses the order of bits in the integer. The least significant
@@ -804,7 +740,20 @@ macro_rules! signed_impl {
             // NOTE: Reversing bits is identical to unsigned.
             ((x1 as $u).reverse_bits(), x0.reverse_bits() as $s)
         }
+    )*);
+}
 
+swap_signed_impl! {
+    u8, i8 =>swap_bytesi8, reverse_bits_i8,
+    u16, i16 => swap_bytes_i16, reverse_bits_i16,
+    u32, i32 => swap_bytes_i32, reverse_bits_i32,
+    u64, i64 => swap_bytes_i64, reverse_bits_i64,
+    u128, i128 => swap_bytes_i128, reverse_bits_i128,
+    usize, isize => swap_bytes_isize, reverse_bits_isize,
+}
+
+macro_rules! rotate_signed_impl {
+    ($($u:ty, $s:ty => $left:ident, $right:ident,)*) => ($(
         /// Shifts the bits to the left by a specified amount, `n`,
         /// wrapping the truncated bits to the end of the resulting integer.
         ///
@@ -812,7 +761,7 @@ macro_rules! signed_impl {
         /// 0: 0b00000001000000000000000010110011
         /// 8: 0b        00000000000000001011001100000001
         #[inline(always)]
-        pub const fn $rotate_left(x0:$u, x1: $s, n: u32) -> ($u, $s) {
+        pub const fn $left(x0:$u, x1: $s, n: u32) -> ($u, $s) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
             // 0bXYFFFF -> 0bFFFFXY
             const BITS: u32 = <$u>::BITS;
@@ -840,14 +789,23 @@ macro_rules! signed_impl {
         ///
         /// Please note this isn't the same operation as the `>>` shifting operator!
         #[inline(always)]
-        pub const fn $rotate_right(x0:$u, x1: $s, n: u32) -> ($u, $s) {
+        pub const fn $right(x0:$u, x1: $s, n: u32) -> ($u, $s) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
             // 0bFFFFXY -> 0bXYFFFF
             const BITS: u32 = <$u>::BITS * 2;
             let n = n % BITS;
             todo!();
         }
-    };
+    )*);
+}
+
+rotate_signed_impl! {
+    u8, i8 => rotate_left_i8, rotate_right_i8,
+    u16, i16 => rotate_left_i16, rotate_right_i16,
+    u32, i32 => rotate_left_i32, rotate_right_i32,
+    u64, i64 => rotate_left_i64, rotate_right_i64,
+    u128, i128 => rotate_left_i128, rotate_right_i128,
+    usize, isize => rotate_left_isize, rotate_right_isize,
 }
 
 // Widening and narrowing conversions for primitive types.
@@ -1012,102 +970,6 @@ macro_rules! signed_primitive_cast {
     };
 }
 
-signed_impl!(
-    u8,
-    i8,
-    add => add_i8,
-    sub => sub_i8,
-    mul => mul_i8,
-    mul_narrow => mul_narrow_u8,
-    mul_usmall => mul_usmall_i8,
-    mul_ismall => mul_ismall_i8,
-    shl => shl_i8,
-    shr => shr_i8,
-    swap_bytes => swap_bytes_i8,
-    reverse_bits => reverse_bits_i8,
-    rotate_left => rotate_left_i8,
-    rotate_right => rotate_right_i8
-);
-signed_impl!(
-    u16,
-    i16,
-    add => add_i16,
-    sub => sub_i16,
-    mul => mul_i16,
-    mul_narrow => mul_narrow_u16,
-    mul_usmall => mul_usmall_i16,
-    mul_ismall => mul_ismall_i16,
-    shl => shl_i16,
-    shr => shr_i16,
-    swap_bytes => swap_bytes_i16,
-    reverse_bits => reverse_bits_i16,
-    rotate_left => rotate_left_i16,
-    rotate_right => rotate_right_i16
-);
-signed_impl!(
-    u32,
-    i32,
-    add => add_i32,
-    sub => sub_i32,
-    mul => mul_i32,
-    mul_narrow => mul_narrow_u32,
-    mul_usmall => mul_usmall_i32,
-    mul_ismall => mul_ismall_i32,
-    shl => shl_i32,
-    shr => shr_i32,
-    swap_bytes => swap_bytes_i32,
-    reverse_bits => reverse_bits_i32,
-    rotate_left => rotate_left_i32,
-    rotate_right => rotate_right_i32
-);
-signed_impl!(
-    u64,
-    i64,
-    add => add_i64,
-    sub => sub_i64,
-    mul => mul_i64,
-    mul_narrow => mul_narrow_u64,
-    mul_usmall => mul_usmall_i64,
-    mul_ismall => mul_ismall_i64,
-    shl => shl_i64,
-    shr => shr_i64,
-    swap_bytes => swap_bytes_i64,
-    reverse_bits => reverse_bits_i64,
-    rotate_left => rotate_left_i64,
-    rotate_right => rotate_right_i64
-);
-signed_impl!(
-    u128,
-    i128,
-    add => add_i128,
-    sub => sub_i128,
-    mul => mul_i128,
-    mul_narrow => mul_narrow_u128,
-    mul_usmall => mul_usmall_i128,
-    mul_ismall => mul_ismall_i128,
-    shl => shl_i128,
-    shr => shr_i128,
-    swap_bytes => swap_bytes_i128,
-    reverse_bits => reverse_bits_i128,
-    rotate_left => rotate_left_i128,
-    rotate_right => rotate_right_i128
-);
-signed_impl!(
-    usize,
-    isize,
-    add => add_isize,
-    sub => sub_isize,
-    mul => mul_isize,
-    mul_narrow => mul_narrow_usize,
-    mul_usmall => mul_usmall_isize,
-    mul_ismall => mul_ismall_isize,
-    shl => shl_isize,
-    shr => shr_isize,
-    swap_bytes => swap_bytes_isize,
-    reverse_bits => reverse_bits_isize,
-    rotate_left => rotate_left_isize,
-    rotate_right => rotate_right_isize
-);
 signed_primitive_cast!(
     u8,
     i8,
