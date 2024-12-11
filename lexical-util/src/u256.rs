@@ -1610,7 +1610,8 @@ macro_rules! shift_impl {
 
             #[inline(always)]
             fn shl(self, other: $t) -> Self::Output {
-                let shift = rem(other, Self::from_u16(256));
+                let shift = other % i256::from_u16(256);
+                let shift = shift.as_u32();
                 shift_const_impl!(@shl self, shift)
             }
         }
@@ -1620,7 +1621,8 @@ macro_rules! shift_impl {
 
             #[inline(always)]
             fn shr(self, other: $t) -> Self::Output {
-                let shift = rem(other, Self::from_u16(256));
+                let shift = other % i256::from_u16(256);
+                let shift = shift.as_u32();
                 shift_const_impl!(@shr self, shift)
             }
         }
@@ -1677,7 +1679,8 @@ macro_rules! shift_impl {
 
 shift_impl! { @nomod i8 u8 }
 shift_impl! { @mod i16 i32 i64 i128 isize u16 u32 u64 u128 usize }
-shift_impl! { i8 i16 i32 i64 i128 isize u8 u16 u32 u64 u128 usize } //  TODO: restore i256
+shift_impl! { @256 i256 }
+shift_impl! { i8 i16 i32 i64 i128 i256 isize u8 u16 u32 u64 u128 usize }
 
 impl Sub for u256 {
     type Output = u256;

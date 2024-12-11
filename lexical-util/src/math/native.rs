@@ -4,7 +4,6 @@
 //! fast integers.
 
 #![doc(hidden)]
-#![allow(unused_variables)] // TODO: Remove
 
 macro_rules! unsigned_impl {
     (
@@ -425,6 +424,7 @@ macro_rules! unsigned_primitive_cast {
         #[inline(always)]
         pub const fn $as_unarrow(x0:$u, x1: $u) -> $u {
             debug_assert!(<$u>::BITS == <$s>::BITS);
+            let _ = x1;
             x0
         }
 
@@ -432,6 +432,7 @@ macro_rules! unsigned_primitive_cast {
         #[inline(always)]
         pub const fn $as_inarrow(x0:$u, x1: $u) -> $s {
             debug_assert!(<$u>::BITS == <$s>::BITS);
+            let _ = x1;
             x0 as $s
         }
 

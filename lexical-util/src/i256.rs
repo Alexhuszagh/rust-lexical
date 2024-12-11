@@ -418,7 +418,11 @@ impl i256 {
     /// bounds instead of overflowing.
     #[inline(always)]
     pub const fn saturating_add(self, rhs: Self) -> Self {
-        todo!();
+        if self.is_negative() {
+            self.saturating_sub_unsigned(rhs.wrapping_abs().as_u256())
+        } else {
+            self.saturating_add_unsigned(rhs.as_u256())
+        }
     }
 
     /// Saturating addition with an unsigned integer. Computes `self + rhs`,
@@ -437,7 +441,11 @@ impl i256 {
     /// numeric bounds instead of overflowing.
     #[inline(always)]
     pub const fn saturating_sub(self, rhs: Self) -> Self {
-        todo!();
+        if self.is_negative() {
+            self.saturating_add_unsigned(rhs.wrapping_abs().as_u256())
+        } else {
+            self.saturating_sub_unsigned(rhs.as_u256())
+        }
     }
 
     /// Saturating subtraction with an unsigned integer. Computes `self - rhs`,
@@ -608,7 +616,8 @@ impl i256 {
     /// which may be what you want instead.
     #[inline(always)]
     pub const fn wrapping_shl(self, rhs: u32) -> Self {
-        todo!();
+        let (lo, hi) = math::shl_i128(self.lo, self.hi, rhs % 256);
+        Self { hi, lo }
     }
 
     /// Panic-free bitwise shift-right; yields `self >> mask(rhs)`, where `mask`
@@ -620,7 +629,8 @@ impl i256 {
     /// which may be what you want instead.
     #[inline(always)]
     pub const fn wrapping_shr(self, rhs: u32) -> Self {
-        todo!();
+        let (lo, hi) = math::shr_i128(self.lo, self.hi, rhs % 256);
+        Self { hi, lo }
     }
 
     /// Wrapping (modular) absolute value. Computes `self.abs()`, wrapping around at
@@ -670,7 +680,9 @@ impl i256 {
     /// have occurred then the wrapped value is returned.
     #[inline(always)]
     pub const fn overflowing_add_unsigned(self, rhs: u256) -> (Self, bool) {
-        todo!();
+        let rhs = rhs.as_i256();
+        let (res, overflowed) = self.overflowing_add(rhs);
+        (res, overflowed ^ lt(rhs, Self::from_u8(0)))
     }
 
     /// Calculates `self` - `rhs`.
@@ -691,7 +703,9 @@ impl i256 {
     /// have occurred then the wrapped value is returned.
     #[inline(always)]
     pub const fn overflowing_sub_unsigned(self, rhs: u256) -> (Self, bool) {
-        todo!();
+        let rhs = rhs.as_i256();
+        let (res, overflowed) = self.overflowing_sub(rhs);
+        (res, overflowed ^ lt(rhs, Self::from_u8(0)))
     }
 
     /// Calculates the multiplication of `self` and `rhs`.
@@ -918,15 +932,12 @@ impl i256 {
         // which is all-ones iff the signs differ, and 0 otherwise. Then by
         // adding this mask (which corresponds to the signed value -1), we
         // get our correction.
-        // TODO: Implement shr for the correction
         let correction = bitxor(self, rhs) >> (Self::BITS - 1);
-//        if !eq(r, Self::from_u8(0)) {
-//            add(d, correction)
-//        } else {
-//            d
-//        }
-
-        todo!();
+        if !eq(r, Self::from_u8(0)) {
+            add(d, correction)
+        } else {
+            d
+        }
     }
 
     /// Calculates the quotient of `self` and `rhs`, rounding the result towards positive infinity.
@@ -942,14 +953,12 @@ impl i256 {
 
         // When remainder is non-zero we have a.div_ceil(b) == 1 + a.div_floor(b),
         // so we can re-use the algorithm from div_floor, just adding 1.
-//        let correction = 1 + ((self ^ rhs) >> (Self::BITS - 1));
-//        if !eq(r, Self::from_u8(0)) {
-//            add(d, correction)
-//        } else {
-//            d
-//        }
-
-        todo!();
+        let correction = Self::from_u8(1) + ((self ^ rhs) >> (Self::BITS - 1));
+        if !eq(r, Self::from_u8(0)) {
+            add(d, correction)
+        } else {
+            d
+        }
     }
 
     /// If `rhs` is positive, calculates the smallest value greater than or
@@ -966,8 +975,24 @@ impl i256 {
     /// On overflow, this function will panic if overflow checks are enabled (default in debug
     /// mode) and wrap if overflow checks are disabled (default in release mode).
     #[inline]
-    pub const fn next_multiple_of(self, rhs: Self) -> Self {
-        todo!();
+    pub fn next_multiple_of(self, rhs: Self) -> Self {
+        if eq(rhs, Self::from_i8(-1)) {
+            return self;
+        }
+
+        let zero = Self::from_u8(0);
+        let r = rem(self, rhs);
+        let m = if (r > zero && rhs < zero) || (r < zero && rhs > zero) {
+            r + rhs
+        } else {
+            r
+        };
+
+        if eq(m, zero) {
+            self
+        } else {
+            self + (rhs - m)
+        }
     }
 
     /// If `rhs` is positive, calculates the smallest value greater than or
@@ -976,8 +1001,27 @@ impl i256 {
     /// multiple of `rhs`. Returns `None` if `rhs` is zero or the operation
     /// would result in overflow.
     #[inline]
-    pub const fn checked_next_multiple_of(self, rhs: Self) -> Option<Self> {
-        todo!();
+    pub fn checked_next_multiple_of(self, rhs: Self) -> Option<Self> {
+        // This would otherwise fail when calculating `r` when self == T::MIN.
+        if eq(rhs, Self::from_i8(-1)) {
+            return Some(self);
+        }
+
+        let zero = Self::from_u8(0);
+        let r = self.checked_rem(rhs)?;
+        let m = if (r > zero && rhs < zero) || (r < zero && rhs > zero) {
+            // r + rhs cannot overflow because they have opposite signs
+            r + rhs
+        } else {
+            r
+        };
+
+        if eq(m, zero) {
+            Some(self)
+        } else {
+            // rhs - m cannot overflow because m has the same sign as rhs
+            self.checked_add(rhs - m)
+        }
     }
 
     /// Returns the logarithm of the number with respect to an arbitrary base,
@@ -1846,7 +1890,8 @@ macro_rules! shift_impl {
 
             #[inline(always)]
             fn shl(self, other: $t) -> Self::Output {
-                let shift = rem(other, Self::from_u16(256));
+                let shift = other % u256::from_u16(256);
+                let shift = shift.as_u32();
                 shift_const_impl!(@shl self, shift)
             }
         }
@@ -1856,7 +1901,8 @@ macro_rules! shift_impl {
 
             #[inline(always)]
             fn shr(self, other: $t) -> Self::Output {
-                let shift = rem(other, Self::from_u16(256));
+                let shift = other % u256::from_u16(256);
+                let shift = shift.as_u32();
                 shift_const_impl!(@shr self, shift)
             }
         }
@@ -1912,8 +1958,9 @@ macro_rules! shift_impl {
 }
 
 shift_impl! { @nomod i8 u8 }
-shift_impl! { @mod i16 i32 i64 i128 isize u16 u32 u64 u128 usize }//  TODO: restore u256
-shift_impl! { i8 i16 i32 i64 i128 isize u8 u16 u32 u64 u128 usize }
+shift_impl! { @mod i16 i32 i64 i128 isize u16 u32 u64 u128 usize }
+shift_impl! { @256 u256 }
+shift_impl! { i8 i16 i32 i64 i128 isize u8 u16 u32 u64 u128 u256 usize }
 
 impl Sub for i256 {
     type Output = i256;
