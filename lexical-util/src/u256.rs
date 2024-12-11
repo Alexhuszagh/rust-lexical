@@ -1251,8 +1251,16 @@ impl fmt::Debug for u256 {
 impl fmt::Display for u256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        // NOTE: We need to break it into chunks of like 20 digits, since
-        // the max number of digits that can be written is 78.
+        // We're not optimizing for this at all, since we'll implement
+        // it well in the integer writers (max 78 digits).
+        if self.hi == 0 {
+            return fmt::Display::fmt(&self.hi, f);
+        }
+
+        // only want to write until
+        let mut buffer = [0u8; 78];
+        let mut index = buffer.len();
+        //let radix = buffer.
         todo!();
     }
 }
@@ -1308,6 +1316,10 @@ impl FromStr for u256 {
 impl fmt::LowerExp for u256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        if self.hi == 0 {
+            return fmt::LowerExp::fmt(&self.hi, f);
+        }
+
         todo!();
     }
 }
@@ -1739,6 +1751,10 @@ impl TryFrom<i256> for u256 {
 impl fmt::UpperExp for u256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        if self.hi == 0 {
+            return fmt::UpperExp::fmt(&self.hi, f);
+        }
+
         todo!();
     }
 }
