@@ -16,9 +16,7 @@ macro_rules! unsigned_impl {
         $sub:ident,mul =>
         $mul:ident,mul_narrow =>
         $mul_narrow:ident,mul_small =>
-        $mul_small:ident,div =>
-        $div:ident,rem =>
-        $rem:ident,shl =>
+        $mul_small:ident,shl =>
         $shl:ident,shr =>
         $shr:ident,swap_bytes =>
         $swap_bytes:ident,reverse_bits =>
@@ -26,6 +24,9 @@ macro_rules! unsigned_impl {
         $rotate_left:ident,rotate_right =>
         $rotate_right:ident
     ) => {
+        // NOTE: Division and remainders aren't supported due to the difficulty in implementation.
+        // See `div.rs` for the implementation.
+
         /// Const implementation of `Add` for internal algorithm use.
         ///
         /// Returns the value and if the add overflowed.
@@ -145,30 +146,6 @@ macro_rules! unsigned_impl {
             // TODO: Need the small div...
             // TODO: Here, need a primitive only version
             todo!();
-        }
-
-        /// Const implementation of `Div` for internal algorithm use.
-        ///
-        /// * `x0` - The lower half of x.
-        /// * `x1` - The upper half of x.
-        /// * `y0` - The lower half of y.
-        /// * `y1` - The upper half of y.
-        #[inline(always)]
-        pub const fn $div(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u) {
-            debug_assert!(<$u>::BITS == <$s>::BITS);
-            panic!("Arbitrary large-precision division is not supported. See div.rs for Knuth division.");
-        }
-
-        /// Const implementation of `Rem` for internal algorithm use.
-        ///
-        /// * `x0` - The lower half of x.
-        /// * `x1` - The upper half of x.
-        /// * `y0` - The lower half of y.
-        /// * `y1` - The upper half of y.
-        #[inline(always)]
-        pub const fn $rem(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u) {
-            debug_assert!(<$u>::BITS == <$s>::BITS);
-            panic!("Arbitrary large-precision division is not supported. See div.rs for Knuth division.");
         }
 
         /// Const implementation of `Shl` for internal algorithm use.
@@ -475,8 +452,6 @@ unsigned_impl!(
     mul => mul_u8,
     mul_narrow => mul_narrow_u8,
     mul_small => mul_small_u8,
-    div => div_u8,
-    rem => rem_u8,
     shl => shl_u8,
     shr => shr_u8,
     swap_bytes => swap_bytes_u8,
@@ -492,8 +467,6 @@ unsigned_impl!(
     mul => mul_u16,
     mul_narrow => mul_narrow_u16,
     mul_small => mul_small_u16,
-    div => div_u16,
-    rem => rem_u16,
     shl => shl_u16,
     shr => shr_u16,
     swap_bytes => swap_bytes_u16,
@@ -509,8 +482,6 @@ unsigned_impl!(
     mul => mul_u32,
     mul_narrow => mul_narrow_u32,
     mul_small => mul_small_u32,
-    div => div_u32,
-    rem => rem_u32,
     shl => shl_u32,
     shr => shr_u32,
     swap_bytes => swap_bytes_u32,
@@ -526,8 +497,6 @@ unsigned_impl!(
     mul => mul_u64,
     mul_narrow => mul_narrow_u64,
     mul_small => mul_small_u64,
-    div => div_u64,
-    rem => rem_u64,
     shl => shl_u64,
     shr => shr_u64,
     swap_bytes => swap_bytes_u64,
@@ -543,8 +512,6 @@ unsigned_impl!(
     mul => mul_u128,
     mul_narrow => mul_narrow_u128,
     mul_small => mul_small_u128,
-    div => div_u128,
-    rem => rem_u128,
     shl => shl_u128,
     shr => shr_u128,
     swap_bytes => swap_bytes_u128,
@@ -560,8 +527,6 @@ unsigned_impl!(
     mul => mul_usize,
     mul_narrow => mul_narrow_usize,
     mul_small => mul_small_usize,
-    div => div_usize,
-    rem => rem_usize,
     shl => shl_usize,
     shr => shr_usize,
     swap_bytes => swap_bytes_usize,
@@ -637,9 +602,7 @@ macro_rules! signed_impl {
         // always used the unsigned variant.
         $mul_narrow:ident,mul_usmall =>
         $mul_usmall:ident,mul_ismall =>
-        $mul_ismall:ident,div =>
-        $div:ident,rem =>
-        $rem:ident,shl =>
+        $mul_ismall:ident,shl =>
         $shl:ident,shr =>
         $shr:ident,swap_bytes =>
         $swap_bytes:ident,reverse_bits =>
@@ -647,6 +610,9 @@ macro_rules! signed_impl {
         $rotate_left:ident,rotate_right =>
         $rotate_right:ident
     ) => {
+        // NOTE: Division and remainders aren't supported due to the difficulty in implementation.
+        // See `div.rs` for the implementation.
+
         /// Const implementation of `Add` for internal algorithm use.
         ///
         /// Returns the value and if the add overflowed.
@@ -740,30 +706,6 @@ macro_rules! signed_impl {
             // TODO: Need the small div...
             // TODO: Here, need a primitive only version
             todo!();
-        }
-
-        /// Const implementation of `Div` for internal algorithm use.
-        ///
-        /// * `x0` - The lower half of x.
-        /// * `x1` - The upper half of x.
-        /// * `y0` - The lower half of y.
-        /// * `y1` - The upper half of y.
-        #[inline(always)]
-        pub const fn $div(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
-            debug_assert!(<$u>::BITS == <$s>::BITS);
-            panic!("Arbitrary large-precision division is not supported. See div.rs for Knuth division.");
-        }
-
-        /// Const implementation of `Rem` for internal algorithm use.
-        ///
-        /// * `x0` - The lower half of x.
-        /// * `x1` - The upper half of x.
-        /// * `y0` - The lower half of y.
-        /// * `y1` - The upper half of y.
-        #[inline(always)]
-        pub const fn $rem(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
-            debug_assert!(<$u>::BITS == <$s>::BITS);
-            panic!("Arbitrary large-precision division is not supported. See div.rs for Knuth division.");
         }
 
         /// Const implementation of `Shl` for internal algorithm use.
@@ -1078,8 +1020,6 @@ signed_impl!(
     mul_narrow => mul_narrow_u8,
     mul_usmall => mul_usmall_i8,
     mul_ismall => mul_ismall_i8,
-    div =>div_i8,
-    rem => rem_i8,
     shl => shl_i8,
     shr => shr_i8,
     swap_bytes => swap_bytes_i8,
@@ -1096,8 +1036,6 @@ signed_impl!(
     mul_narrow => mul_narrow_u16,
     mul_usmall => mul_usmall_i16,
     mul_ismall => mul_ismall_i16,
-    div =>div_i16,
-    rem => rem_i16,
     shl => shl_i16,
     shr => shr_i16,
     swap_bytes => swap_bytes_i16,
@@ -1114,8 +1052,6 @@ signed_impl!(
     mul_narrow => mul_narrow_u32,
     mul_usmall => mul_usmall_i32,
     mul_ismall => mul_ismall_i32,
-    div =>div_i32,
-    rem => rem_i32,
     shl => shl_i32,
     shr => shr_i32,
     swap_bytes => swap_bytes_i32,
@@ -1132,8 +1068,6 @@ signed_impl!(
     mul_narrow => mul_narrow_u64,
     mul_usmall => mul_usmall_i64,
     mul_ismall => mul_ismall_i64,
-    div =>div_i64,
-    rem => rem_i64,
     shl => shl_i64,
     shr => shr_i64,
     swap_bytes => swap_bytes_i64,
@@ -1150,8 +1084,6 @@ signed_impl!(
     mul_narrow => mul_narrow_u128,
     mul_usmall => mul_usmall_i128,
     mul_ismall => mul_ismall_i128,
-    div =>div_i128,
-    rem => rem_i128,
     shl => shl_i128,
     shr => shr_i128,
     swap_bytes => swap_bytes_i128,
@@ -1168,8 +1100,6 @@ signed_impl!(
     mul_narrow => mul_narrow_usize,
     mul_usmall => mul_usmall_isize,
     mul_ismall => mul_ismall_isize,
-    div =>div_isize,
-    rem => rem_isize,
     shl => shl_isize,
     shr => shr_isize,
     swap_bytes => swap_bytes_isize,

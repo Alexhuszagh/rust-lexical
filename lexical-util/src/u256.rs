@@ -73,7 +73,7 @@ impl u256 {
 
     /// The largest value that can be represented by this integer type
     /// (2<sup>256</sup> - 1).
-    pub const MAX: Self = not(Self::MIN);
+    pub const MAX: Self = Self { lo: u128::MAX, hi: u128::MAX };
 
     /// The size of this integer type in bits.
     ///
@@ -756,9 +756,8 @@ impl u256 {
     ///
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
-    pub const fn overflowing_div(self, rhs: Self) -> (Self, bool) {
-        let (lo, hi) = math::div_u128(self.lo, self.hi, rhs.lo, rhs.hi);
-        (Self { lo, hi }, false)
+    pub fn overflowing_div(self, rhs: Self) -> (Self, bool) {
+        (div(self, rhs), false)
     }
 
     /// Calculates the quotient of Euclidean division `self.div_euclid(rhs)`.
@@ -775,7 +774,7 @@ impl u256 {
     ///
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
-    pub const fn overflowing_div_euclid(self, rhs: Self) -> (Self, bool) {
+    pub fn overflowing_div_euclid(self, rhs: Self) -> (Self, bool) {
         self.overflowing_div(rhs)
     }
 
@@ -790,9 +789,8 @@ impl u256 {
     ///
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
-    pub const fn overflowing_rem(self, rhs: Self) -> (Self, bool) {
-        let (lo, hi) = math::rem_u128(self.lo, self.hi, rhs.lo, rhs.hi);
-        (Self { lo, hi }, false)
+    pub fn overflowing_rem(self, rhs: Self) -> (Self, bool) {
+        (rem(self, rhs), false)
     }
 
     /// Calculates the remainder `self.rem_euclid(rhs)` as if by Euclidean division.
@@ -809,7 +807,7 @@ impl u256 {
     ///
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
-    pub const fn overflowing_rem_euclid(self, rhs: Self) -> (Self, bool) {
+    pub fn overflowing_rem_euclid(self, rhs: Self) -> (Self, bool) {
         self.overflowing_rem(rhs)
     }
 

@@ -82,7 +82,7 @@ impl i256 {
 
     /// The largest value that can be represented by this integer type
     /// (2<sup>256</sup> - 1).
-    pub const MAX: Self = not(Self::MIN);
+    pub const MAX: Self = Self { lo: u128::MAX, hi: i128::MAX };
 
     /// The size of this integer type in bits.
     ///
@@ -117,17 +117,17 @@ impl i256 {
     /// ```rust
     /// # use lexical_util::i256::i256;
     /// let n = i256::MAX >> 2i32;
-    /// assert_eq!(n.leading_zeros(), 2);
+    /// assert_eq!(n.leading_zeros(), 3);
     ///
     /// let zero = i256::MIN;
     /// assert_eq!(zero.leading_zeros(), 256);
     ///
     /// let max = i256::MAX;
-    /// assert_eq!(max.leading_zeros(), 0);
+    /// assert_eq!(max.leading_zeros(), 1);
     /// ```
     #[inline(always)]
     pub const fn leading_zeros(self) -> u32 {
-        let mut leading = self.hi.leading_zeros();
+        let mut leading = (self.hi as u128).leading_zeros();
         if leading == u128::BITS {
             leading += self.lo.leading_zeros()
         }
@@ -491,7 +491,7 @@ impl i256 {
     ///
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
-    pub const fn saturating_div(self, rhs: Self) -> Self {
+    pub fn saturating_div(self, rhs: Self) -> Self {
         match self.overflowing_div(rhs) {
             (result, false) => result,
             (_result, true) => Self::MAX, // MIN / -1 is the only possible saturating overflow
@@ -714,9 +714,12 @@ impl i256 {
     ///
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
-    pub const fn overflowing_div(self, rhs: Self) -> (Self, bool) {
-        let (lo, hi, overflowed) = math::div_i128(self.lo, self.hi, rhs.lo, rhs.hi);
-        (Self { lo, hi }, overflowed)
+    pub fn overflowing_div(self, rhs: Self) -> (Self, bool) {
+        if eq(self, Self::MIN) & eq(rhs, Self::from_i8(-1)) {
+            (self, true)
+        } else {
+            (div(self, rhs), false)
+        }
     }
 
     /// Calculates the quotient of Euclidean division `self.div_euclid(rhs)`.
@@ -728,8 +731,12 @@ impl i256 {
     ///
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
-    pub const fn overflowing_div_euclid(self, rhs: Self) -> (Self, bool) {
-        todo!();
+    pub fn overflowing_div_euclid(self, rhs: Self) -> (Self, bool) {
+        if eq(self, Self::MIN) & eq(rhs, Self::from_i8(-1)) {
+            (self, true)
+        } else {
+            (self.div_euclid(rhs), false)
+        }
     }
 
     /// Calculates the remainder when `self` is divided by `rhs`.
@@ -742,8 +749,11 @@ impl i256 {
     /// This function will panic if `rhs` is zero.
     #[inline(always)]
     pub fn overflowing_rem(self, rhs: Self) -> (Self, bool) {
-        let (lo, hi, overflowed) = math::rem_i128(self.lo, self.hi, rhs.lo, rhs.hi);
-        (Self { lo, hi }, overflowed)
+        if eq(rhs, Self::from_i8(-1)) {
+            (Self::from_u8(0), eq(self, Self::MIN))
+        } else {
+            (rem(self, rhs), false)
+        }
     }
 
     /// Overflowing Euclidean remainder. Calculates `self.rem_euclid(rhs)`.
@@ -909,7 +919,7 @@ impl i256 {
         // adding this mask (which corresponds to the signed value -1), we
         // get our correction.
         // TODO: Implement shr for the correction
-//        let correction = bitxor(self, rhs) >> (Self::BITS - 1);
+        let correction = bitxor(self, rhs) >> (Self::BITS - 1);
 //        if !eq(r, Self::from_u8(0)) {
 //            add(d, correction)
 //        } else {
@@ -1770,6 +1780,140 @@ impl Shl for i256 {
         shift_const_impl!(@shl self, shift)
     }
 }
+
+ref_impl!(i256, Shl, shl, other: &i256);
+ref_t_impl!(i256, Shl, shl);
+
+impl Shr for i256 {
+    type Output = Self;
+
+    #[inline(always)]
+    fn shr(self, other: Self) -> Self::Output {
+        let shift = other.lo & (u32::MAX as u128);
+        shift_const_impl!(@shr self, shift)
+    }
+}
+
+ref_impl!(i256, Shr, shr, other: &i256);
+ref_t_impl!(i256, Shr, shr);
+
+macro_rules! shift_impl {
+    (@mod $($t:ty)*) => ($(
+        impl Shl<$t> for i256 {
+            type Output = Self;
+
+            #[inline(always)]
+            fn shl(self, other: $t) -> Self::Output {
+                let shift = other % 256;
+                shift_const_impl!(@shl self, shift)
+            }
+        }
+
+        impl Shr<$t> for i256 {
+            type Output = Self;
+
+            #[inline(always)]
+            fn shr(self, other: $t) -> Self::Output {
+                let shift = other % 256;
+                shift_const_impl!(@shr self, shift)
+            }
+        }
+    )*);
+
+    (@nomod $($t:ty)*) => ($(
+        impl Shl<$t> for i256 {
+            type Output = Self;
+
+            #[inline(always)]
+            fn shl(self, other: $t) -> Self::Output {
+                shift_const_impl!(@shl self, other)
+            }
+        }
+
+        impl Shr<$t> for i256 {
+            type Output = Self;
+
+            #[inline(always)]
+            fn shr(self, other: $t) -> Self::Output {
+                shift_const_impl!(@shr self, other)
+            }
+        }
+    )*);
+
+    (@256 $($t:ty)*) => ($(
+        impl Shl<$t> for i256 {
+            type Output = Self;
+
+            #[inline(always)]
+            fn shl(self, other: $t) -> Self::Output {
+                let shift = rem(other, Self::from_u16(256));
+                shift_const_impl!(@shl self, shift)
+            }
+        }
+
+        impl Shr<$t> for i256 {
+            type Output = Self;
+
+            #[inline(always)]
+            fn shr(self, other: $t) -> Self::Output {
+                let shift = rem(other, Self::from_u16(256));
+                shift_const_impl!(@shr self, shift)
+            }
+        }
+    )*);
+
+    ($($t:ty)*) => ($(
+        impl Shl<&$t> for i256 {
+            type Output = <Self as Shl>::Output;
+
+            #[inline(always)]
+            fn shl(self, other: &$t) -> Self::Output {
+                self.shl(*other)
+            }
+        }
+
+        impl ShlAssign<$t> for i256 {
+            #[inline(always)]
+            fn shl_assign(&mut self, other: $t) {
+                *self = self.shl(other);
+            }
+        }
+
+        impl ShlAssign<&$t> for i256 {
+            #[inline(always)]
+            fn shl_assign(&mut self, other: &$t) {
+                *self = self.shl(other);
+            }
+        }
+
+        impl Shr<&$t> for i256 {
+            type Output = <Self as Shr>::Output;
+
+            #[inline(always)]
+            fn shr(self, other: &$t) -> Self::Output {
+                self.shr(*other)
+            }
+        }
+
+        impl ShrAssign<$t> for i256 {
+            #[inline(always)]
+            fn shr_assign(&mut self, other: $t) {
+                *self = self.shr(other);
+            }
+        }
+
+        impl ShrAssign<&$t> for i256 {
+            #[inline(always)]
+            fn shr_assign(&mut self, other: &$t) {
+                *self = self.shr(other);
+            }
+        }
+    )*);
+}
+
+shift_impl! { @nomod i8 u8 }
+shift_impl! { @mod i16 i32 i64 i128 isize u16 u32 u64 u128 usize }//  TODO: restore u256
+shift_impl! { i8 i16 i32 i64 i128 isize u8 u16 u32 u64 u128 usize }
 
 impl Sub for i256 {
     type Output = i256;
