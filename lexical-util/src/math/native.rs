@@ -34,6 +34,8 @@ macro_rules! unsigned_impl {
         /// * `y1` - The upper half of y.
         #[inline(always)]
         pub const fn $add(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u, bool) {
+            // NOTE: When we ignore the carry in the caller, this optimizes the same.
+            // This is super efficient, it becomes an `add` and an `adc` (add carry).
             debug_assert!(<$u>::BITS == <$s>::BITS);
             let (v0, c0) = x0.overflowing_add(y0);
             let (v1, c1) = x1.overflowing_add(y1);
@@ -51,6 +53,7 @@ macro_rules! unsigned_impl {
         /// * `y1` - The upper half of y.
         #[inline(always)]
         pub const fn $sub(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u, bool) {
+            // NOTE: When we ignore the carry in the caller, this optimizes the same.
             debug_assert!(<$u>::BITS == <$s>::BITS);
             let (v0, c0) = x0.overflowing_sub(y0);
             let (v1, c1) = x1.overflowing_sub(y1);
@@ -71,31 +74,56 @@ macro_rules! unsigned_impl {
         /// 1 step. The results can then be used by the caller is desired.
         #[inline(always)]
         pub const fn $mul(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u, bool) {
+            // NOTE: When we ignore the carry in the caller, this optimizes the same.
+            // This optimizes down to ~6 muls and 6 adds, which really isn't bad.
             debug_assert!(<$u>::BITS == <$s>::BITS);
-            // TODO: Need the small div...
-            // TODO: Here, need a primitive only version
-            todo!();
+            let (lo, hi) = $mul_narrow(x0, y0);
+            let (x0_y1, c1) = x0.overflowing_mul(y1);
+            let (x1_y0, c2) = x1.overflowing_mul(y0);
+            let (hi, c3) = hi.overflowing_add(x0_y1);
+            let (hi, c4) = hi.overflowing_add(x1_y0);
+            (lo, hi, c1 | c2 | c3 | c4 | (x1 != 0 && y1 != 0))
         }
 
         /// Const implementation of `Mul` for internal algorithm use.
         ///
         /// Returns the value and the carry.
         ///
-        /// * `x0` - The lower half of x.
-        /// * `x1` - The upper half of x.
-        ///
-        /// It returns the lower and higher bits, and if it overflowed in
-        /// 1 step. The results can then be used by the caller is desired.
-        /// This is used when chaining together wider multiplications,
-        /// so we can multiply large types without larger scalars (`u128`)
-        /// and get the result in two scalars.
+        /// It returns the lower and higher bits. This is used when chaining
+        /// together wider multiplications, so we can multiply large types
+        /// without larger scalars (`u128`) and get the result in two scalars.
+        /// This can never overflow.
         #[inline(always)]
-        pub const fn $mul_narrow(x0: $u, x1: $u) -> ($u, $u, bool) {
+        pub const fn $mul_narrow(x: $u, y: $u) -> ($u, $u) {
+            // This mimics multiplying 2 numbers from native limbs. It's not
+            // that efficient but it emulates those faster instructions.
+
             debug_assert!(<$u>::BITS == <$s>::BITS);
-            // FIXME: Is this type signature valid?
-            // TODO: Need the small div...
-            // TODO: Here, need a primitive only version
-            todo!();
+            const HALF: u32 = <$u>::BITS / 2;
+            const LO: $u = <$u>::MAX >> HALF;
+
+            let (x0, x1) = (x & LO, x >> HALF);
+            let (y0, y1) = (y & LO, y >> HALF);
+
+            let x0_y0 = x0 * y0;
+            let x0_y1 = x0 * y1;
+            let x1_y0 = x1 * y0;
+            let x1_y1 = x1 * y1;
+            let (mut lo, mut c) = (x0_y0 & LO, x0_y0 >> HALF);
+
+            c += x1_y0;
+            lo += c << HALF;
+            let mut hi = c >> HALF;
+
+            c = lo >> HALF;
+            lo &= LO;
+            c += x0_y1;
+
+            lo += c << HALF;
+            hi += c >> HALF;
+            hi += x1_y1;
+
+            (lo, hi)
         }
 
         /// Const implementation of `Mul` for internal algorithm use.
@@ -532,6 +560,8 @@ macro_rules! signed_impl {
         $add:ident,sub =>
         $sub:ident,mul =>
         $mul:ident,mul_narrow =>
+        // This does not define it's own `mul_narrow`, since it
+        // always used the unsigned variant.
         $mul_narrow:ident,mul_usmall =>
         $mul_usmall:ident,mul_ismall =>
         $mul_ismall:ident,div =>
@@ -554,8 +584,12 @@ macro_rules! signed_impl {
         /// * `y1` - The upper half of y.
         #[inline(always)]
         pub const fn $add(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
+            // NOTE: When we ignore the carry in the caller, this optimizes the same.
             debug_assert!(<$u>::BITS == <$s>::BITS);
-            todo!();
+            let (v0, c0) = x0.overflowing_add(y0);
+            let (v1, c1) = x1.overflowing_add(y1);
+            let (v1, c2) = v1.overflowing_add(c0 as $s);
+            (v0, v1, c1 || c2)
         }
 
         /// Const implementation of `Sub` for internal algorithm use.
@@ -568,8 +602,12 @@ macro_rules! signed_impl {
         /// * `y1` - The upper half of y.
         #[inline(always)]
         pub const fn $sub(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
+            // NOTE: When we ignore the carry in the caller, this optimizes the same.
             debug_assert!(<$u>::BITS == <$s>::BITS);
-            todo!();
+            let (v0, c0) = x0.overflowing_sub(y0);
+            let (v1, c1) = x1.overflowing_sub(y1);
+            let (v1, c2) = v1.overflowing_sub(c0 as $s);
+            (v0, v1, c1 || c2)
         }
 
         /// Const implementation of `Sub` for internal algorithm use.
@@ -582,28 +620,15 @@ macro_rules! signed_impl {
         /// * `y1` - The upper half of y.
         #[inline(always)]
         pub const fn $mul(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
+            // NOTE: When we ignore the carry in the caller, this optimizes the same.
+            // This optimizes down to ~6 muls and 6 adds, which really isn't bad.
             debug_assert!(<$u>::BITS == <$s>::BITS);
-            todo!();
-        }
-
-        /// Const implementation of `Mul` for internal algorithm use.
-        ///
-        /// Returns the value and the carry.
-        ///
-        /// * `x0` - The lower half of x.
-        /// * `x1` - The upper half of x.
-        ///
-        /// It returns the lower and higher bits, and if it overflowed in
-        /// 1 step. The results can then be used by the caller is desired.
-        /// This is used when chaining together wider multiplications,
-        /// so we can multiply large types without larger scalars (`u128`)
-        /// and get the result in two scalars.
-        #[inline(always)]
-        pub const fn $mul_narrow(x0: $u, x1: $s) -> ($u, $s, bool) {
-            debug_assert!(<$u>::BITS == <$s>::BITS);
-            // TODO: Need the small div...
-            // TODO: Here, need a primitive only version
-            todo!();
+            let (lo, hi) = $mul_narrow(x0, y0);
+            let (x0_y1, c1) = (x0 as $s).overflowing_mul(y1);
+            let (x1_y0, c2) = x1.overflowing_mul(y0 as $s);
+            let (hi, c3) = (hi as $s).overflowing_add(x0_y1);
+            let (hi, c4) = hi.overflowing_add(x1_y0);
+            (lo, hi, c1 | c2 | c3 | c4 | (x1 != 0 && y1 != 0))
         }
 
         /// Const implementation of `Mul` for internal algorithm use.
@@ -964,7 +989,7 @@ signed_impl!(
     add => add_i8,
     sub => sub_i8,
     mul => mul_i8,
-    mul_narrow => mul_narrow_i8,
+    mul_narrow => mul_narrow_u8,
     mul_usmall => mul_usmall_i8,
     mul_ismall => mul_ismall_i8,
     div =>div_i8,
@@ -982,7 +1007,7 @@ signed_impl!(
     add => add_i16,
     sub => sub_i16,
     mul => mul_i16,
-    mul_narrow => mul_narrow_i16,
+    mul_narrow => mul_narrow_u16,
     mul_usmall => mul_usmall_i16,
     mul_ismall => mul_ismall_i16,
     div =>div_i16,
@@ -1000,7 +1025,7 @@ signed_impl!(
     add => add_i32,
     sub => sub_i32,
     mul => mul_i32,
-    mul_narrow => mul_narrow_i32,
+    mul_narrow => mul_narrow_u32,
     mul_usmall => mul_usmall_i32,
     mul_ismall => mul_ismall_i32,
     div =>div_i32,
@@ -1018,7 +1043,7 @@ signed_impl!(
     add => add_i64,
     sub => sub_i64,
     mul => mul_i64,
-    mul_narrow => mul_narrow_i64,
+    mul_narrow => mul_narrow_u64,
     mul_usmall => mul_usmall_i64,
     mul_ismall => mul_ismall_i64,
     div =>div_i64,
@@ -1036,7 +1061,7 @@ signed_impl!(
     add => add_i128,
     sub => sub_i128,
     mul => mul_i128,
-    mul_narrow => mul_narrow_i128,
+    mul_narrow => mul_narrow_u128,
     mul_usmall => mul_usmall_i128,
     mul_ismall => mul_ismall_i128,
     div =>div_i128,
@@ -1054,7 +1079,7 @@ signed_impl!(
     add => add_isize,
     sub => sub_isize,
     mul => mul_isize,
-    mul_narrow => mul_narrow_isize,
+    mul_narrow => mul_narrow_usize,
     mul_usmall => mul_usmall_isize,
     mul_ismall => mul_ismall_isize,
     div =>div_isize,
@@ -1149,13 +1174,13 @@ mod tests {
 
     #[test]
     fn mul_u32_test() {
-        //assert_eq!(mul_u32(u32::MAX, u32::MAX, u32::MAX, u32::MAX), (1, 0, true));
+        assert_eq!(mul_u32(u32::MAX, u32::MAX, u32::MAX, u32::MAX), (1, 0, true));
         assert_eq!(mul_u32(1, 0, u32::MAX, 1), (u32::MAX, 1, false));
-        assert_eq!(mul_u32(2, 0, 2147483648, 0), (u32::MAX, 1, false));
-        //assert_eq!(mul_u32(1, 0, 1, 0), (0, 0, false));
-        //assert_eq!(mul_u32(1, 0, 0, 0), (1, 0, false));
-        //assert_eq!(mul_u32(u32::MAX, 1, 0, 2), (u32::MAX, u32::MAX, true));
-        //assert_eq!(mul_u32(0, 1, 0, 2), (0, 4294967295, true));
+        assert_eq!(mul_u32(2, 0, 2147483648, 0), (0, 1, false));
+        assert_eq!(mul_u32(1, 0, 1, 0), (1, 0, false));
+        assert_eq!(mul_u32(1, 0, 0, 0), (0, 0, false));
+        assert_eq!(mul_u32(u32::MAX, 1, 0, 2), (0, u32::MAX - 1, true));
+        assert_eq!(mul_u32(0, 1, 0, 2), (0, 0, true));
     }
 
     // TODO: Div, rem
@@ -1217,8 +1242,6 @@ mod tests {
             let actual = lo as u64 + ((hi as u64) << 32);
             expected == (actual, overflowed)
         }
-
-        // TODO: Div, rem
 
         fn shl_u32_quickcheck(x: u64, n: u32) -> bool {
             let x0 = (x & LO32) as u32;
@@ -1299,6 +1322,39 @@ mod tests {
         }
 
         // TODO: Add more here, this is the i32 start
+
+        fn add_i32_quickcheck(x: i64, y: i64) -> bool {
+            let x0 = ((x as u64) & LO32) as u32;
+            let x1 = (x >> 32) as u32;
+            let y0 = ((y as u64) & LO32) as u32;
+            let y1 = (y >> 32) as u32;
+            let (lo, hi, overflowed) = add_i32(x0, x1 as i32, y0, y1 as i32);
+            let expected = x.overflowing_add(y);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == (actual as i64, overflowed)
+        }
+
+        fn sub_i32_quickcheck(x: i64, y: i64) -> bool {
+            let x0 = ((x as u64) & LO32) as u32;
+            let x1 = (x >> 32) as u32;
+            let y0 = ((y as u64) & LO32) as u32;
+            let y1 = (y >> 32) as u32;
+            let (lo, hi, overflowed) = sub_i32(x0, x1 as i32, y0, y1 as i32);
+            let expected = x.overflowing_sub(y);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == (actual as i64, overflowed)
+        }
+
+        fn mul_i32_quickcheck(x: i64, y: i64) -> bool {
+            let x0 = ((x as u64) & LO32) as u32;
+            let x1 = (x >> 32) as u32;
+            let y0 = ((y as u64) & LO32) as u32;
+            let y1 = (y >> 32) as u32;
+            let (lo, hi, overflowed) = mul_i32(x0, x1 as i32, y0, y1 as i32);
+            let expected = x.overflowing_mul(y);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == (actual as i64, overflowed)
+        }
 
         fn shl_i32_quickcheck(x: i64, n: u32) -> bool {
             let x0 = ((x as u64) & LO32) as u32;
