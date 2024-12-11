@@ -757,30 +757,59 @@ macro_rules! rotate_signed_impl {
         /// Shifts the bits to the left by a specified amount, `n`,
         /// wrapping the truncated bits to the end of the resulting integer.
         ///
-        /// Please note this isn't the same operation as the `<<` shifting operator!
-        /// 0: 0b00000001000000000000000010110011
-        /// 8: 0b        00000000000000001011001100000001
+        /// This is identical to the unsigned variant: `T::MIN rol 1` is
+        /// `1 as T`.
+        ///
+        // This is basically identical to the unsigned variant.
+        //
+        // ```asm
+        // rotate_left:
+        //     mov     r8d, edx
+        //     mov     eax, esi
+        //     test    r8b, 32
+        //     mov     edx, edi
+        //     cmove   edx, esi
+        //     cmove   eax, edi
+        //     mov     esi, r8d
+        //     and     esi, 31
+        //     je      .LBB
+        //     mov     edi, edx
+        //     mov     ecx, esi
+        //     shl     edi, cl
+        //     neg     r8b
+        //     mov     r9d, eax
+        //     mov     ecx, r8d
+        //     shr     r9d, cl
+        //     mov     ecx, esi
+        //     shl     eax, cl
+        //     mov     ecx, r8d
+        //     shr     edx, cl
+        //     or      r9d, edi
+        //     or      eax, edx
+        //     mov     edx, r9d
+        // .LBB:
+        //     ret
+        // ```
         #[inline(always)]
         pub const fn $left(x0:$u, x1: $s, n: u32) -> ($u, $s) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
             // 0bXYFFFF -> 0bFFFFXY
             const BITS: u32 = <$u>::BITS;
-            let n = n % (BITS * 2);
-            todo!();
-//            if n >= BITS {
-//                todo!();
-//                let hi = x0 << (n - BITS);
-//                (0, hi as $s)
-//            } else if n == 0 {
-//                (x0, x1)
-//            } else {
-//                // TODO: Fix this...
-//                todo!();
-//                let hi = x1 << n;
-//                let lo = x0 << n;
-//                let carry = x0 >> (BITS - n);
-//                (lo, hi | carry as $s)
-//            }
+            let n = n % (2 * BITS);
+            let upper = n & !(BITS - 1);
+            let n = n & (BITS - 1);
+            let (x0, x1) = if upper != 0 {
+                (x1 as $u, x0)
+            } else {
+                (x0, x1 as $u)
+            };
+            if n == 0 {
+                (x0, x1 as $s)
+            } else {
+                let hi = (x1.wrapping_shl(n)) | (x0.wrapping_shr(BITS - n));
+                let lo = (x0.wrapping_shl(n)) | (x1.wrapping_shr(BITS - n));
+                (lo, hi as $s)
+            }
         }
 
         /// Shifts the bits to the right by a specified amount, `n`,
@@ -792,9 +821,22 @@ macro_rules! rotate_signed_impl {
         pub const fn $right(x0:$u, x1: $s, n: u32) -> ($u, $s) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
             // 0bFFFFXY -> 0bXYFFFF
-            const BITS: u32 = <$u>::BITS * 2;
-            let n = n % BITS;
-            todo!();
+            const BITS: u32 = <$u>::BITS;
+            let n = n % (2 * BITS);
+            let upper = n & !(BITS - 1);
+            let n = n & (BITS - 1);
+            let (x0, x1) = if upper != 0 {
+                (x1 as $u, x0)
+            } else {
+                (x0, x1 as $u)
+            };
+            if n == 0 {
+                (x0, x1 as $s)
+            } else {
+                let hi = (x1.wrapping_shr(n)) | (x0.wrapping_shl(BITS - n));
+                let lo = (x0.wrapping_shr(n)) | (x1.wrapping_shl(BITS - n));
+                (lo, hi as $s)
+            }
         }
     )*);
 }
@@ -1287,6 +1329,24 @@ mod tests {
             let x1 = ((x as u64) >> 32) as i32;
             let expected = x.reverse_bits();
             let (lo, hi) = reverse_bits_i32(x0, x1);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == actual as i64
+        }
+
+        fn rotate_left_i32_quickcheck(x: i64, n: u32) -> bool {
+            let x0 = ((x as u64) & LO32) as u32;
+            let x1 = ((x as u64) >> 32) as i32;
+            let expected = x.rotate_left(n);
+            let (lo, hi) = rotate_left_i32(x0, x1, n);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == actual as i64
+        }
+
+        fn rotate_right_i32_quickcheck(x: i64, n: u32) -> bool {
+            let x0 = ((x as u64) & LO32) as u32;
+            let x1 = ((x as u64) >> 32) as i32;
+            let expected = x.rotate_right(n);
+            let (lo, hi) = rotate_right_i32(x0, x1, n);
             let actual = lo as u64 + ((hi as u64) << 32);
             expected == actual as i64
         }
