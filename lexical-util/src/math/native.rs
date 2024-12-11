@@ -20,7 +20,9 @@ macro_rules! unsigned_impl {
         $div:ident,rem =>
         $rem:ident,shl =>
         $shl:ident,shr =>
-        $shr:ident,rotate_left =>
+        $shr:ident,swap_bytes =>
+        $swap_bytes:ident,reverse_bits =>
+        $reverse_bits:ident,rotate_left =>
         $rotate_left:ident,rotate_right =>
         $rotate_right:ident
     ) => {
@@ -252,6 +254,65 @@ macro_rules! unsigned_impl {
             }
         }
 
+        /// Reverses the byte order of the integer.
+        ///
+        /// This is just a bswap instruction, for `u32`, for example, an
+        /// optimized implementation could be:
+        ///
+        /// ```rust
+        /// pub const fn bswap(v: u32) -> u32 {
+        ///     let v1 = (v & 0x000000FF) << 24;
+        ///     let v2 = (v & 0x0000FF00) << 8;
+        ///     let v3 = (v & 0x00FF0000) >> 8;
+        ///     let v4 = (v & 0xFFFF0000) >> 24;
+        ///     v1 | v2 | v3 | v4
+        /// }
+        /// ```
+        ///
+        /// The slow method looks quite ugly but is actually identical
+        /// when optimized.
+        ///
+        /// ```rust
+        /// #[inline(never)]
+        /// pub const fn bswap_generic(v: u32) -> u32 {
+        ///     const BYTES: usize = u32::BITS as usize / 8;
+        ///     let mut i = 0;
+        ///     let mut buffer: [u8; BYTES] = [0; BYTES];
+        ///     while i < BYTES {
+        ///         let vi = v >> (8 * i);
+        ///         buffer[BYTES - i - 1] = vi as u8;
+        ///         i += 1;
+        ///     }
+        ///     unsafe { std::mem::transmute(buffer) }
+        /// }
+        /// ```
+        #[inline(always)]
+        pub const fn $swap_bytes(x0: $u, x1: $u) -> ($u, $u) {
+            debug_assert!(<$u>::BITS == <$s>::BITS);
+
+            const BYTES: usize = <$u>::BITS as usize / 8;
+            let mut buffer = ([0u8; BYTES], [0u8; BYTES]);
+
+            let mut i = 0;
+            while i < BYTES {
+                buffer.1[BYTES - i - 1] = (x0 >> (8 * i)) as u8;
+                buffer.0[BYTES - i - 1] = (x1 >> (8 * i)) as u8;
+                i += 1;
+            }
+
+            // SAFETY: Safe since this is POD
+            unsafe { (std::mem::transmute(buffer)) }
+        }
+
+        /// Reverses the order of bits in the integer. The least significant
+        /// bit becomes the most significant bit, second least-significant bit
+        /// becomes second most-significant bit, etc.
+        #[inline(always)]
+        pub const fn $reverse_bits(x0: $u, x1: $u) -> ($u, $u) {
+            debug_assert!(<$u>::BITS == <$s>::BITS);
+            (x1.reverse_bits(), x0.reverse_bits())
+        }
+
         /// Shifts the bits to the left by a specified amount, `n`,
         /// wrapping the truncated bits to the end of the resulting integer.
         ///
@@ -418,6 +479,8 @@ unsigned_impl!(
     rem => rem_u8,
     shl => shl_u8,
     shr => shr_u8,
+    swap_bytes => swap_bytes_u8,
+    reverse_bits => reverse_bits_u8,
     rotate_left => rotate_left_u8,
     rotate_right => rotate_right_u8
 );
@@ -433,6 +496,8 @@ unsigned_impl!(
     rem => rem_u16,
     shl => shl_u16,
     shr => shr_u16,
+    swap_bytes => swap_bytes_u16,
+    reverse_bits => reverse_bits_u16,
     rotate_left => rotate_left_u16,
     rotate_right => rotate_right_u16
 );
@@ -448,6 +513,8 @@ unsigned_impl!(
     rem => rem_u32,
     shl => shl_u32,
     shr => shr_u32,
+    swap_bytes => swap_bytes_u32,
+    reverse_bits => reverse_bits_u32,
     rotate_left => rotate_left_u32,
     rotate_right => rotate_right_u32
 );
@@ -463,6 +530,8 @@ unsigned_impl!(
     rem => rem_u64,
     shl => shl_u64,
     shr => shr_u64,
+    swap_bytes => swap_bytes_u64,
+    reverse_bits => reverse_bits_u64,
     rotate_left => rotate_left_u64,
     rotate_right => rotate_right_u64
 );
@@ -478,6 +547,8 @@ unsigned_impl!(
     rem => rem_u128,
     shl => shl_u128,
     shr => shr_u128,
+    swap_bytes => swap_bytes_u128,
+    reverse_bits => reverse_bits_u128,
     rotate_left => rotate_left_u128,
     rotate_right => rotate_right_u128
 );
@@ -493,6 +564,8 @@ unsigned_impl!(
     rem => rem_usize,
     shl => shl_usize,
     shr => shr_usize,
+    swap_bytes => swap_bytes_usize,
+    reverse_bits => reverse_bits_usize,
     rotate_left => rotate_left_usize,
     rotate_right => rotate_right_usize
 );
@@ -764,7 +837,19 @@ macro_rules! signed_impl {
         #[inline(always)]
         pub const fn $swap_bytes(x0: $u, x1: $s) -> ($u, $s) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
-            todo!();
+
+            const BYTES: usize = <$u>::BITS as usize / 8;
+            let mut buffer = ([0u8; BYTES], [0u8; BYTES]);
+
+            let mut i = 0;
+            while i < BYTES {
+                buffer.1[BYTES - i - 1] = (x0 >> (8 * i)) as u8;
+                buffer.0[BYTES - i - 1] = (x1 >> (8 * i)) as u8;
+                i += 1;
+            }
+
+            // SAFETY: Safe since this is POD
+            unsafe { (std::mem::transmute(buffer)) }
         }
 
         /// Reverses the order of bits in the integer. The least significant
@@ -773,7 +858,8 @@ macro_rules! signed_impl {
         #[inline(always)]
         pub const fn $reverse_bits(x0: $u, x1: $s) -> ($u, $s) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
-            todo!();
+            // NOTE: Reversing bits is identical to unsigned.
+            ((x1 as $u).reverse_bits(), x0.reverse_bits() as $s)
         }
 
         /// Shifts the bits to the left by a specified amount, `n`,
@@ -1263,6 +1349,24 @@ mod tests {
             expected == actual
         }
 
+        fn swap_bytes_u32_quickcheck(x: u64) -> bool {
+            let x0 = (x & LO32) as u32;
+            let x1 = (x >> 32) as u32;
+            let expected = x.swap_bytes();
+            let (lo, hi) = swap_bytes_u32(x0, x1);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == actual
+        }
+
+        fn reverse_bits_u32_quickcheck(x: u64) -> bool {
+            let x0 = (x & LO32) as u32;
+            let x1 = (x >> 32) as u32;
+            let expected = x.reverse_bits();
+            let (lo, hi) = reverse_bits_u32(x0, x1);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == actual
+        }
+
         fn rotate_left_u32_quickcheck(x: u64, n: u32) -> bool {
             let x0 = (x & LO32) as u32;
             let x1 = (x >> 32) as u32;
@@ -1374,6 +1478,24 @@ mod tests {
             let (lo, hi) = shr_i32(x0, x1, n);
             let actual = lo as i64 + ((hi as u64) << 32) as i64;
             expected == actual
+        }
+
+        fn swap_bytes_i32_quickcheck(x: i64) -> bool {
+            let x0 = ((x as u64) & LO32) as u32;
+            let x1 = ((x as u64) >> 32) as i32;
+            let expected = x.swap_bytes();
+            let (lo, hi) = swap_bytes_i32(x0, x1);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == actual as i64
+        }
+
+        fn reverse_bits_i32_quickcheck(x: i64) -> bool {
+            let x0 = ((x as u64) & LO32) as u32;
+            let x1 = ((x as u64) >> 32) as i32;
+            let expected = x.reverse_bits();
+            let (lo, hi) = reverse_bits_i32(x0, x1);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == actual as i64
         }
 
         fn as_uwide_i32_quickcheck(x: u32) -> bool {

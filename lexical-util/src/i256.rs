@@ -2001,25 +2001,3 @@ const fn cmp(lhs: i256, rhs: i256) -> Ordering {
         Ordering::Equal
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn swap_bytes_test() {
-        let n = i256 { hi: -0x12345678, lo: 0x2468ACE };
-        let r = n.swap_bytes();
-        panic!("{} {}, {} {}", n.hi, n.lo, r.hi, r.lo);
-        //assert_eq!(add(u256::from_u8(1), u256::from_u8(1)), u256::from_u8(2));
-        //assert_eq!(add(u256::MAX, u256::MAX), u256 { hi: u128::MAX, lo: u128::MAX - 1 });
-        // TODO: Add more here
-    }
-
-    #[test]
-    fn reverse_bits_test() {
-        let n = i256 { hi: -0x12345678, lo: 0x2468ACE };
-        let r = n.reverse_bits();
-        panic!("{} {}, {} {}", n.hi, n.lo, r.hi, r.lo);
-    }
-}

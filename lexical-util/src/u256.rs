@@ -171,7 +171,8 @@ impl u256 {
     /// Reverses the byte order of the integer.
     #[inline(always)]
     pub const fn swap_bytes(self) -> Self {
-        Self { hi: self.lo.swap_bytes(), lo: self.hi.swap_bytes() }
+        let (lo, hi) = math::swap_bytes_u128(self.lo, self.hi);
+        Self { lo, hi }
     }
 
     /// Reverses the order of bits in the integer. The least significant
@@ -179,7 +180,8 @@ impl u256 {
     /// becomes second most-significant bit, etc.
     #[inline(always)]
     pub const fn reverse_bits(self) -> Self {
-        Self { hi: self.lo.reverse_bits(), lo: self.hi.reverse_bits() }
+        let (lo, hi) = math::reverse_bits_u128(self.lo, self.hi);
+        Self { lo, hi }
     }
 
     /// Converts an integer from big endian to the target's endianness.
