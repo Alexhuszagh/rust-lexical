@@ -347,3 +347,15 @@ impl fmt::Display for Error {
 #[cfg(feature = "std")]
 impl error::Error for Error {
 }
+
+/// The error type returned when a checked integral type conversion fails.
+// TODO: Make this feature-gated
+pub struct TryFromIntError;
+
+impl fmt::Display for TryFromIntError {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let msg = "out of range integral type conversion attempted";
+        fmt::Display::fmt(msg, f)
+    }
+}

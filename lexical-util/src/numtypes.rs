@@ -3,7 +3,6 @@
 //! This defines primarily macros intended to be used when
 //! defining your own types.
 
-#![cfg(feature = "f16")]
 #![doc(hidden)]
 
 /// Implement the reference and op assign variants of a trait.
@@ -37,19 +36,34 @@ macro_rules! op_impl {
 pub(crate) use op_impl;
 
 macro_rules! ref_impl {
-    ($t:ty, $trait:ident, $op:ident) => {
+    ($t:ty, $trait:ident, $op:ident $(, $args:tt:$type:ty)*) => {
         impl $trait for &$t {
             type Output = <$t as $trait>::Output;
 
             #[inline(always)]
-            fn $op(self) -> Self::Output {
-                $trait::$op(*self)
+            fn $op(self $(, $args: $type)*) -> Self::Output {
+                $trait::$op(*self $(, $args)*)
             }
         }
     };
 }
 
 pub(crate) use ref_impl;
+
+macro_rules! ref_t_impl {
+    ($t:ty, $trait:ident, $op:ident) => {
+        impl $trait<&$t> for $t {
+            type Output = <$t as $trait>::Output;
+
+            #[inline(always)]
+            fn $op(self, other: &$t) -> Self::Output {
+                $trait::$op(self, *other)
+            }
+        }
+    };
+}
+
+pub(crate) use ref_t_impl;
 
 macro_rules! from_impl {
     ($to:ty, $from:ty, $op:ident) => {
