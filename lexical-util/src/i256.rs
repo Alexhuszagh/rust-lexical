@@ -1420,28 +1420,32 @@ impl i256 {
     /// This allows optimizations a full addition cannot do.
     #[inline(always)]
     pub fn add_usmall(self, n: u128) -> Self {
-        todo!();
+        let (lo, hi, _) = math::add_usmall_i128(self.lo, self.hi, n);
+        Self { lo, hi }
     }
 
     /// Add the 256-bit integer by a small, 128-bit signed factor.
     /// This allows optimizations a full addition cannot do.
     #[inline(always)]
     pub fn add_ismall(self, n: i128) -> Self {
-        todo!();
+        let (lo, hi, _) = math::add_ismall_i128(self.lo, self.hi, n);
+        Self { lo, hi }
     }
 
     /// Subtract the 256-bit integer by a small, 128-bit unsigned factor.
     /// This allows optimizations a full subtraction cannot do.
     #[inline(always)]
     pub fn sub_usmall(self, n: u128) -> Self {
-        todo!();
+        let (lo, hi, _) = math::sub_usmall_i128(self.lo, self.hi, n);
+        Self { lo, hi }
     }
 
     /// Subtract the 256-bit integer by a small, 128-bit signed factor.
     /// This allows optimizations a full subtraction cannot do.
     #[inline(always)]
     pub fn sub_ismall(self, n: i128) -> Self {
-        todo!();
+        let (lo, hi, _) = math::add_ismall_i128(self.lo, self.hi, n);
+        Self { lo, hi }
     }
 
     /// Multiply the 256-bit integer by a small, 128-bit unsigned factor.

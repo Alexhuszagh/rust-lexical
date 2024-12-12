@@ -585,17 +585,25 @@ macro_rules! add_signed_impl {
         /// * `x1` - The upper half of x.
         /// * `y` - The small, signed value.
         #[inline(always)]
-        pub fn $ismall(x0: $u, x1: $s, y: $s) -> ($u, $s, bool) { // TODO: Make const
-            // TODO: Fix, need to optimize this
-            if y < 0 {
-                let (v0, c0) = x0.overflowing_sub(y.wrapping_abs() as $u);
-                let (v1, c1) = x1.overflowing_sub(c0 as $s);
-                (v0, v1, c1)
-            } else {
-                let (v0, c0) = x0.overflowing_add(y as $u);
-                let (v1, c1) = x1.overflowing_add(c0 as $s);
-                (v0, v1, c1)
-            }
+        pub const fn $ismall(x0: $u, x1: $s, y: $s) -> ($u, $s, bool) {
+            // This first step works simply because no matter what, we can get
+            // signed as unsigned, and then checking if it overflowed the unsigned
+            // (`c0`) or if it overflowed the signed size, which due to 2's complement
+            // is the above.
+            let (v0, c0) = x0.overflowing_add(y as $u);
+            let c0 = c0 ^ (y < 0);
+
+            // now, if we overflowed but `y < 0`, we need
+            // to sub that since we underflowed, otherwise
+            // we add one. we should be able to do this as
+            // `c0 as $u`. But, we need to know he direction,
+            // but this is pretty cheap.
+            let is_negative = y < 0;
+            // This optimizes super efficient as `(x >> 31) | 1`,
+            // since a negative number shift always rounds to -Inf.
+            let fac = if is_negative { -1 } else { 1 };
+            let (v1, c1) = x1.overflowing_add(c0 as $s * fac);
+            (v0, v1, c1)
         }
     )*);
 }
@@ -652,17 +660,13 @@ macro_rules! sub_signed_impl {
         /// * `y` - The small, signed value.
         #[inline(always)]
         pub const fn $ismall(x0: $u, x1: $s, y: $s) -> ($u, $s, bool) {
-            // This optimizes super well.
-            // TODO: Fix, need to optimize this
-            if y < 0 {
-                let (v0, c0) = x0.overflowing_add(y.wrapping_abs() as $u);
-                let (v1, c1) = x1.overflowing_add(c0 as $s);
-                (v0, v1, c1)
-            } else {
-                let (v0, c0) = x0.overflowing_sub(y as $u);
-                let (v1, c1) = x1.overflowing_sub(c0 as $s);
-                (v0, v1, c1)
-            }
+            // See `$ismall` for `add` for the reasons.
+            let (v0, c0) = x0.overflowing_sub(y as $u);
+            let c0 = c0 ^ (y < 0);
+            let is_negative = y < 0;
+            let fac = if is_negative { -1 } else { 1 };
+            let (v1, c1) = x1.overflowing_sub(c0 as $s * fac);
+            (v0, v1, c1)
         }
     )*);
 }
