@@ -680,53 +680,33 @@ sub_signed_impl! {
 
 macro_rules! mul_signed_impl {
     ($($u:ty, $s:ty => $full:ident, $narrow:ident, $usmall:ident, $ismall:ident,)*) => ($(
-        // TODO: Fix this, need separate checked and unchecked ones....
-        // Need to add in our checked and unchecked mul...
-
         /// Const implementation of `Mul` for internal algorithm use.
         ///
-        /// Returns the value and if it overflowed. Overflowing multiplication
-        /// is much more expensive for signed numbers so we only do it when needed.
-        /// TODO: IS THAT TRUE?
+        /// This uses wrapping behavior and has no overflow checking.
         ///
         /// * `x0` - The lower half of x.
         /// * `x1` - The upper half of x.
         /// * `y0` - The lower half of y.
         /// * `y1` - The upper half of y.
         #[inline(always)]
-        pub const fn $full(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
+        pub const fn $full(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s) {
             // NOTE: When we ignore the carry in the caller, this optimizes the same.
             // This optimizes down to ~6 muls and 6 adds, which really isn't bad.
             debug_assert!(<$u>::BITS == <$s>::BITS);
             const BITS: u32 = <$u>::BITS;
-            // if we've had a literal 0, we can just never overflow
-            let is_zero = (x0 == 0 && x1 == 0) || (y0 == 0 && y1 == 0);
-
-            // we create a mask, since this if it's <0 the bit shift will be
-            // 0, and we will zero it out if they're both the same size or will
-            // be `<$u>::MIN` otherwise.
-            let mask = (x1 >> (BITS - 1)) ^ (y1 >> (BITS - 1));
-            let mask = mask as $u;
 
             let (lo, hi) = $narrow(x0, y0);
-            let (x0_y1, c1) = (x0 as $s).overflowing_mul(y1);
-            let (x1_y0, c2) = x1.overflowing_mul(y0 as $s);
+            let x0_y1 = (x0 as $s).wrapping_mul(y1);
+            let x1_y0 = x1.wrapping_mul(y0 as $s);
+            let hi = (hi as $s).wrapping_add(x0_y1);
+            let hi = hi.wrapping_add(x1_y0);
 
-            // special check if we've had overflow: if the signs don't match
-            let hi = hi as $s;
-            let should_be_positive = (x1 < 0) ^ (y1 < 0);
-            let swapped_sign = should_be_positive ^ (hi < 0);
-
-            let (hi, c3) = (hi as $s).overflowing_add(x0_y1);
-            let (hi, c4) = hi.overflowing_add(x1_y0);
-
-            let overflowed = c1 | c2 | c3 | c4 | (x1 != 0 && y1 != 0);
-            (lo, hi, !is_zero & overflowed)
+            (lo, hi)
         }
 
         /// Const implementation of `Mul` for internal algorithm use.
         ///
-        /// Returns the value and the carry.
+        /// This uses wrapping behavior and has no overflow checking.
         ///
         /// * `x0` - The lower half of x.
         /// * `x1` - The upper half of x.
@@ -736,14 +716,14 @@ macro_rules! mul_signed_impl {
         /// pairs by a small value (`u32`) which can add optimizations
         /// for scalar word processing.
         #[inline(always)]
-        pub const fn $usmall(x0: $u, x1: $s, n:$u) -> ($u, $s, bool) {
+        pub const fn $usmall(x0: $u, x1: $s, n:$u) -> ($u, $s) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
             $full(x0, x1, n, 0)
         }
 
         /// Const implementation of `Mul` for internal algorithm use.
         ///
-        /// Returns the value and the carry.
+        /// This uses wrapping behavior and has no overflow checking.
         ///
         /// * `x0` - The lower half of x.
         /// * `x1` - The upper half of x.
@@ -753,7 +733,7 @@ macro_rules! mul_signed_impl {
         /// pairs by a small value (`u32`) which can add optimizations
         /// for scalar word processing.
         #[inline(always)]
-        pub const fn $ismall(x0: $u, x1: $s, n:$s) -> ($u, $s, bool) {
+        pub const fn $ismall(x0: $u, x1: $s, n:$s) -> ($u, $s) {
             debug_assert!(<$u>::BITS == <$s>::BITS);
             // TODO: Here...
             // TODO: I think I can do this as wrapping_abs
@@ -1524,44 +1504,28 @@ mod tests {
             let x1 = (x >> 32) as u32;
             let y0 = ((y as u64) & LO32) as u32;
             let y1 = (y >> 32) as u32;
-            let (lo, hi, overflowed) = mul_i32(x0, x1 as i32, y0, y1 as i32);
-            let expected = x.overflowing_mul(y);
+            let (lo, hi) = mul_i32(x0, x1 as i32, y0, y1 as i32);
+            let expected = x.wrapping_mul(y);
             let actual = lo as u64 + ((hi as u64) << 32);
-            expected == (actual as i64, overflowed)
+            expected == actual as i64
         }
 
         fn mul_usmall_i32_quickcheck(x: i64, y: u32) -> bool {
             let x0 = ((x as u64) & LO32) as u32;
             let x1 = ((x as u64) >> 32) as i32;
-            let (lo, hi, overflowed) = mul_usmall_i32(x0, x1, y);
-            let expected = x.overflowing_mul(y as i64);
+            let (lo, hi) = mul_usmall_i32(x0, x1, y);
+            let expected = x.wrapping_mul(y as i64);
             let actual = lo as u64 + ((hi as u64) << 32);
-            if x == 2147483649 && y == 4294967295 {
-                let (lo, hi) = mul_narrow_u32(x0, y);
-                println!("(lo, hi) = ({lo}, {hi})");
-                let (x0_y1, c1) = (x0 as i32).overflowing_mul(0);
-                println!("(x0_y1, c1) = ({x0_y1}, {c1})");
-                let (x1_y0, c2) = x1.overflowing_mul(y as i32);
-                println!("(x1_y0, c2) = ({x1_y0}, {c2})");
-                let (hi, c3) = (hi as i32).overflowing_add(x0_y1);
-                println!("(hi, c3) = ({hi}, {c3})");
-                let (hi, c4) = hi.overflowing_add(x1_y0);
-                println!("(hi, c4) = ({hi}, {c4})");
-                println!("(x1 != 0 && y1 != 0) = ({0})", (x1 != 0 && 0 != 0));
-                println!("{x}, {y}, {:#?}, {expected:#?}", (actual as i64, overflowed));
-                //if x1 and y1 are 0, then it can't overflow
-                // TODO: What about the last check?? (lo, hi, c1 | c2 | c3 | c4 | (x1 != 0 && y1 != 0))
-            }
-            expected == (actual as i64, overflowed)
+            expected == actual as i64
         }
 
         fn mul_ismall_i32_quickcheck(x: i64, y: i32) -> bool {
             let x0 = ((x as u64) & LO32) as u32;
             let x1 = ((x as u64) >> 32) as i32;
-            let (lo, hi, overflowed) = mul_ismall_i32(x0, x1, y);
-            let expected = x.overflowing_mul(y as i64);
+            let (lo, hi) = mul_ismall_i32(x0, x1, y);
+            let expected = x.wrapping_mul(y as i64);
             let actual = lo as u64 + ((hi as u64) << 32);
-            expected == (actual as i64, overflowed)
+            expected == actual as i64
         }
 
         fn shl_i32_quickcheck(x: i64, n: u32) -> bool {

@@ -11,7 +11,6 @@
 
 use core::cmp::Ordering;
 use core::{fmt, mem};
-use core::iter::{Product, Sum};
 use core::ops::*;
 use core::num::ParseIntError;
 use core::str::FromStr;
@@ -715,8 +714,7 @@ impl i256 {
     /// overflow would have occurred then the wrapped value is returned.
     #[inline(always)]
     pub const fn overflowing_mul(self, rhs: Self) -> (Self, bool) {
-        let (lo, hi, overflowed) = math::mul_i128(self.lo, self.hi, rhs.lo, rhs.hi);
-        (Self { lo, hi }, overflowed)
+        overflowing_mul(self, rhs)
     }
 
     /// Calculates the divisor when `self` is divided by `rhs`.
@@ -1556,7 +1554,8 @@ impl i256 {
     /// This allows optimizations a full multiplication cannot do.
     #[inline(always)]
     pub fn mul_usmall(self, n: u128) -> Self {
-        todo!();  // Wait till the correct implementation
+        let (lo, hi) = math::mul_usmall_i128(self.lo, self.hi, n);
+        Self { lo, hi }
     }
 
     /// Multiply the 256-bit integer by a small, 128-bit unsigned factor.
@@ -1589,7 +1588,8 @@ impl i256 {
     /// This allows optimizations a full multiplication cannot do.
     #[inline(always)]
     pub fn mul_ismall(self, n: i128) -> Self {
-        todo!();  // Wait till the correct implementation
+        let (lo, hi) = math::mul_ismall_i128(self.lo, self.hi, n);
+        Self { lo, hi }
     }
 
     /// Multiply the 256-bit integer by a small, 128-bit signed factor.
@@ -1996,13 +1996,6 @@ impl PartialOrd for i256 {
     }
 }
 
-impl Product for i256 {
-    #[inline(always)]
-    fn product<I: Iterator<Item = i256>>(iter: I) -> Self {
-        todo!();
-    }
-}
-
 impl Rem for i256 {
     type Output = i256;
 
@@ -2271,13 +2264,6 @@ impl Sub for i256 {
 
 op_impl!(i256, Sub, SubAssign, sub, sub_assign);
 
-impl Sum for i256 {
-    #[inline(always)]
-    fn sum<I: Iterator<Item = i256>>(iter: I) -> Self {
-        todo!();
-    }
-}
-
 impl TryFrom<u256> for i256 {
     type Error = TryFromIntError;
 
@@ -2390,8 +2376,15 @@ fn div_rem_ismall(lhs: i256, rhs: i64) -> (i256, i64) {
 /// Const implementation of `Mul` for internal algorithm use.
 #[inline(always)]
 const fn mul(lhs: i256, rhs: i256) -> i256 {
-    let (lo, hi, _) = math::mul_i128(lhs.lo, lhs.hi, rhs.lo, rhs.hi);
+    let (lo, hi) = math::mul_i128(lhs.lo, lhs.hi, rhs.lo, rhs.hi);
     i256 { lo, hi }
+}
+
+/// Const implementation of `Mul` for internal algorithm use.
+#[inline(always)]
+const fn overflowing_mul(lhs: i256, rhs: i256) -> (i256, bool) {
+    // TODO: Fix once we change things
+    todo!();
 }
 
 /// Const implementation of `Rem` for internal algorithm use.

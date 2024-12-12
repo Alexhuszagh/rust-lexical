@@ -6,7 +6,6 @@
 
 use core::cmp::Ordering;
 use core::{fmt, mem};
-use core::iter::{Product, Sum};
 use core::ops::*;
 use core::num::ParseIntError;
 use core::str::FromStr;
@@ -1577,13 +1576,6 @@ impl PartialOrd for u256 {
     }
 }
 
-impl Product for u256 {
-    #[inline(always)]
-    fn product<I: Iterator<Item = u256>>(iter: I) -> Self {
-        todo!();
-    }
-}
-
 impl Rem for u256 {
     type Output = u256;
 
@@ -1851,13 +1843,6 @@ impl Sub for u256 {
 }
 
 op_impl!(u256, Sub, SubAssign, sub, sub_assign);
-
-impl Sum for u256 {
-    #[inline(always)]
-    fn sum<I: Iterator<Item = u256>>(iter: I) -> Self {
-        todo!();
-    }
-}
 
 macro_rules! try_from_impl {
     ($($t:ty)*) => ($(
