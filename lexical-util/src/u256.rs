@@ -1153,46 +1153,173 @@ impl u256 {
     /// Add the 256-bit integer by a small, 128-bit unsigned factor.
     /// This allows optimizations a full addition cannot do.
     #[inline(always)]
-    pub fn add_usmall(self, n: u128) -> Self {
-        let (lo, hi, _) = math::add_small_u128(self.lo, self.hi, n);
-        Self { lo, hi }
+    pub const fn add_small(self, n: u128) -> Self {
+        self.overflowing_add_small(n).0
+    }
+
+    /// Add the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full addition cannot do.
+    #[inline(always)]
+    pub const fn wrapping_add_small(self, n: u128) -> Self {
+        self.add_small(n)
+    }
+
+    /// Add the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full addition cannot do.
+    #[inline(always)]
+    pub const fn overflowing_add_small(self, n: u128) -> (Self, bool) {
+        let (lo, hi, overflowed) = math::add_small_u128(self.lo, self.hi, n);
+        (Self { lo, hi }, overflowed)
+    }
+
+    /// Add the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full addition cannot do.
+    #[inline(always)]
+    pub const fn checked_add_small(self, n: u128) -> Option<Self> {
+        let (value, overflowed) = self.overflowing_add_small(n);
+        if overflowed {
+            None
+        } else {
+            Some(value)
+        }
     }
 
     /// Subtract the 256-bit integer by a small, 128-bit unsigned factor.
     /// This allows optimizations a full subtraction cannot do.
     #[inline(always)]
-    pub fn sub_usmall(self, n: u128) -> Self {
-        let (lo, hi, _) = math::sub_small_u128(self.lo, self.hi, n);
-        Self { lo, hi }
+    pub const fn sub_small(self, n: u128) -> Self {
+        self.overflowing_sub_small(n).0
+    }
+
+    /// Subtract the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full subtraction cannot do.
+    #[inline(always)]
+    pub const fn wrapping_sub_small(self, n: u128) -> Self {
+        self.sub_small(n)
+    }
+
+    /// Subtract the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full subtraction cannot do.
+    #[inline(always)]
+    pub const fn overflowing_sub_small(self, n: u128) -> (Self, bool) {
+        let (lo, hi, overflowed) = math::sub_small_u128(self.lo, self.hi, n);
+        (Self { lo, hi }, overflowed)
+    }
+
+    /// Subtract the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full subtraction cannot do.
+    #[inline(always)]
+    pub const fn checked_sub_small(self, n: u128) -> Option<Self> {
+        let (value, overflowed) = self.overflowing_sub_small(n);
+        if overflowed {
+            None
+        } else {
+            Some(value)
+        }
     }
 
     /// Multiply the 256-bit integer by a small, 128-bit unsigned factor.
     /// This allows optimizations a full multiplication cannot do.
     #[inline(always)]
-    pub fn mul_usmall(self, n: u128) -> Self {
-        let (lo, hi, _) = math::mul_small_u128(self.lo, self.hi, n);
-        Self { lo, hi }
+    pub const fn mul_small(self, n: u128) -> Self {
+        self.overflowing_mul_small(n).0
+    }
+
+    /// Multiply the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full multiplication cannot do.
+    #[inline(always)]
+    pub const fn wrapping_mul_small(self, n: u128) -> Self {
+        self.mul_small(n)
+    }
+
+    /// Multiply the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full multiplication cannot do.
+    #[inline(always)]
+    pub const fn overflowing_mul_small(self, n: u128) -> (Self, bool) {
+        let (lo, hi, overflowed) = math::mul_small_u128(self.lo, self.hi, n);
+        (Self { lo, hi }, overflowed)
+    }
+
+    /// Multiply the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full multiplication cannot do.
+    #[inline(always)]
+    pub const fn checked_mul_small(self, n: u128) -> Option<Self> {
+        let (value, overflowed) = self.overflowing_mul_small(n);
+        if overflowed {
+            None
+        } else {
+            Some(value)
+        }
+    }
+
+    /// Div/Rem the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full division cannot do.
+    /// This panics if the divisor is 0.
+    #[inline(always)]
+    pub fn div_rem_small(self, n: u64) -> (Self, u64) {
+        div_rem_small(self, n)
     }
 
     /// Div/Rem the 256-bit integer by a small, 128-bit unsigned factor.
     /// This allows optimizations a full division cannot do.
     #[inline(always)]
-    pub fn div_rem_usmall(self, n: u64) -> (Self, u64) {
-        div_rem_usmall(self, n)
+    pub fn checked_div_rem_small(self, n: u64) -> Option<(Self, u64)> {
+        if n == 0 {
+            None
+        } else {
+            Some(self.div_rem_small(n))
+        }
+    }
+
+    /// Div/Rem the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full division cannot do.
+    #[inline(always)]
+    pub fn overflowing_div_rem_small(self, n: u64) -> ((Self, u64), bool) {
+        (self.div_rem_small(n), false)
     }
 
     /// Div the 256-bit integer by a small, 128-bit unsigned factor.
     /// This allows optimizations a full division cannot do.
     #[inline(always)]
-    pub fn div_usmall(self, n: u64) -> Self {
-        self.div_rem_usmall(n).0
+    pub fn div_small(self, n: u64) -> Self {
+        self.div_rem_small(n).0
+    }
+
+    /// Div the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full division cannot do.
+    #[inline(always)]
+    pub fn overflowing_div_small(self, n: u64) -> (Self, bool) {
+        let (divrem, overflow) = self.overflowing_div_rem_small(n);
+        (divrem.0, overflow)
+    }
+
+    /// Div the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full division cannot do.
+    #[inline(always)]
+    pub fn checked_div_small(self, n: u64) -> Option<Self> {
+        Some(self.checked_div_rem_small(n)?.0)
     }
 
     /// Rem the 256-bit integer by a small, 128-bit unsigned factor.
     /// This allows optimizations a full division cannot do.
     #[inline(always)]
-    pub fn rem_usmall(self, n: u64) -> u64 {
-        self.div_rem_usmall(n).1
+    pub fn rem_small(self, n: u64) -> u64 {
+        self.div_rem_small(n).1
+    }
+
+    /// Div the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full division cannot do.
+    #[inline(always)]
+    pub fn overflowing_rem_small(self, n: u64) -> (u64, bool) {
+        let (divrem, overflow) = self.overflowing_div_rem_small(n);
+        (divrem.1, overflow)
+    }
+
+    /// Div the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full division cannot do.
+    #[inline(always)]
+    pub fn checked_rem_small(self, n: u64) -> Option<u64> {
+        Some(self.checked_div_rem_small(n)?.1)
     }
 }
 
@@ -1819,7 +1946,7 @@ fn div(lhs: u256, rhs: u256) -> u256 {
 }
 
 #[inline]
-fn div_rem_usmall(lhs: u256, rhs: u64) -> (u256, u64) {
+fn div_rem_small(lhs: u256, rhs: u64) -> (u256, u64) {
     // SAFETY: Safe since these are plain old data.
     unsafe {
         let x: [u64; 4] = mem::transmute(lhs.to_le_bytes());
