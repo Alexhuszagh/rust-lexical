@@ -1569,7 +1569,8 @@ impl i256 {
     /// This allows optimizations a full multiplication cannot do.
     #[inline(always)]
     pub const fn overflowing_mul_usmall(self, n: u128) -> (Self, bool) {
-        todo!();  // Wait till the correct implementation
+        let (lo, hi, overflowed) = math::overflowing_mul_usmall_i128(self.lo, self.hi, n);
+        (Self { lo, hi }, overflowed)
     }
 
     /// Multiply the 256-bit integer by a small, 128-bit unsigned factor.
@@ -1603,7 +1604,8 @@ impl i256 {
     /// This allows optimizations a full multiplication cannot do.
     #[inline(always)]
     pub const fn overflowing_mul_ismall(self, n: i128) -> (Self, bool) {
-        todo!();  // Wait till the correct implementation
+        let (lo, hi, overflowed) = math::overflowing_mul_ismall_i128(self.lo, self.hi, n);
+        (Self { lo, hi }, overflowed)
     }
 
     /// Multiply the 256-bit integer by a small, 128-bit signed factor.
@@ -2383,8 +2385,8 @@ const fn mul(lhs: i256, rhs: i256) -> i256 {
 /// Const implementation of `Mul` for internal algorithm use.
 #[inline(always)]
 const fn overflowing_mul(lhs: i256, rhs: i256) -> (i256, bool) {
-    // TODO: Fix once we change things
-    todo!();
+    let (lo, hi, overflowed) = math::overflowing_mul_i128(lhs.lo, lhs.hi, rhs.lo, rhs.hi);
+    (i256 { lo, hi }, overflowed)
 }
 
 /// Const implementation of `Rem` for internal algorithm use.
