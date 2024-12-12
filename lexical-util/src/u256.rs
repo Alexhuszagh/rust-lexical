@@ -1150,10 +1150,26 @@ impl u256 {
         i256 { lo, hi }
     }
 
+    /// Add the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full addition cannot do.
+    #[inline(always)]
+    pub fn add_usmall(self, n: u128) -> Self {
+        let (lo, hi, _) = math::add_small_u128(self.lo, self.hi, n);
+        Self { lo, hi }
+    }
+
+    /// Subtract the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full subtraction cannot do.
+    #[inline(always)]
+    pub fn sub_usmall(self, n: u128) -> Self {
+        let (lo, hi, _) = math::sub_small_u128(self.lo, self.hi, n);
+        Self { lo, hi }
+    }
+
     /// Multiply the 256-bit integer by a small, 128-bit unsigned factor.
     /// This allows optimizations a full multiplication cannot do.
     #[inline(always)]
-    pub const fn mul_usmall(self, n: u128) -> Self {
+    pub fn mul_usmall(self, n: u128) -> Self {
         let (lo, hi, _) = math::mul_small_u128(self.lo, self.hi, n);
         Self { lo, hi }
     }

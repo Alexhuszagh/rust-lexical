@@ -13,7 +13,7 @@
 // See `div.rs` for the implementation.
 
 macro_rules! add_unsigned_impl {
-    ($($u:ty => $fn:ident,)*) => ($(
+    ($($u:ty => $full:ident, $small:ident,)*) => ($(
         /// Const implementation of `Add` for internal algorithm use.
         ///
         /// Returns the value and if the add overflowed.
@@ -23,7 +23,7 @@ macro_rules! add_unsigned_impl {
         /// * `y0` - The lower half of y.
         /// * `y1` - The upper half of y.
         #[inline(always)]
-        pub const fn $fn(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u, bool) {
+        pub const fn $full(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u, bool) {
             // NOTE: When we ignore the carry in the caller, this optimizes the same.
             // This is super efficient, it becomes an `add` and an `adc` (add carry).
             let (v0, c0) = x0.overflowing_add(y0);
@@ -31,20 +31,36 @@ macro_rules! add_unsigned_impl {
             let (v1, c2) = v1.overflowing_add(c0 as $u);
             (v0, v1, c1 || c2)
         }
+
+        /// Const implementation to add a small number to the wider type.
+        ///
+        /// Returns the value and if the add overflowed.
+        ///
+        /// * `x0` - The lower half of x.
+        /// * `x1` - The upper half of x.
+        /// * `y` - The small value.
+        #[inline(always)]
+        pub const fn $small(x0: $u, x1: $u, y: $u) -> ($u, $u, bool) {
+            // NOTE: When we ignore the carry in the caller, this optimizes the same.
+            // This is super efficient, it becomes an `add` and an `adc` (add carry).
+            let (v0, c0) = x0.overflowing_add(y);
+            let (v1, c1) = x1.overflowing_add(c0 as $u);
+            (v0, v1, c1)
+        }
     )*);
 }
 
 add_unsigned_impl! {
-    u8 => add_u8,
-    u16 => add_u16,
-    u32 => add_u32,
-    u64 => add_u64,
-    u128 => add_u128,
-    usize => add_usize,
+    u8 => add_u8, add_small_u8,
+    u16 => add_u16, add_small_u16,
+    u32 => add_u32, add_small_u32,
+    u64 => add_u64, add_small_u64,
+    u128 => add_u128, add_small_u128,
+    usize => add_usize, add_small_usize,
 }
 
 macro_rules! sub_unsigned_impl {
-    ($($u:ty => $fn:ident,)*) => ($(
+    ($($u:ty => $full:ident, $small:ident,)*) => ($(
         /// Const implementation of `Sub` for internal algorithm use.
         ///
         /// Returns the value and if the sub underflowed.
@@ -54,23 +70,39 @@ macro_rules! sub_unsigned_impl {
         /// * `y0` - The lower half of y.
         /// * `y1` - The upper half of y.
         #[inline(always)]
-        pub const fn $fn(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u, bool) {
+        pub const fn $full(x0: $u, x1: $u, y0: $u, y1: $u) -> ($u, $u, bool) {
             // NOTE: When we ignore the carry in the caller, this optimizes the same.
             let (v0, c0) = x0.overflowing_sub(y0);
             let (v1, c1) = x1.overflowing_sub(y1);
             let (v1, c2) = v1.overflowing_sub(c0 as $u);
             (v0, v1, c1 || c2)
         }
+
+        /// Const implementation to subtract a small number from the wider type.
+        ///
+        /// Returns the value and if the sub overflowed.
+        ///
+        /// * `x0` - The lower half of x.
+        /// * `x1` - The upper half of x.
+        /// * `y` - The small value.
+        #[inline(always)]
+        pub const fn $small(x0: $u, x1: $u, y: $u) -> ($u, $u, bool) {
+            // NOTE: When we ignore the carry in the caller, this optimizes the same.
+            // This is super efficient, it becomes an `add` and an `adc` (add carry).
+            let (v0, c0) = x0.overflowing_sub(y);
+            let (v1, c1) = x1.overflowing_sub(c0 as $u);
+            (v0, v1, c1)
+        }
     )*);
 }
 
 sub_unsigned_impl! {
-    u8 => sub_u8,
-    u16 => sub_u16,
-    u32 => sub_u32,
-    u64 => sub_u64,
-    u128 => sub_u128,
-    usize => sub_usize,
+    u8 => sub_u8, sub_small_u8,
+    u16 => sub_u16, sub_small_u16,
+    u32 => sub_u32, sub_small_u32,
+    u64 => sub_u64, sub_small_u64,
+    u128 => sub_u128, sub_small_u128,
+    usize => sub_usize, sub_small_usize,
 }
 
 macro_rules! mul_unsigned_impl {
@@ -151,9 +183,12 @@ macro_rules! mul_unsigned_impl {
         /// for scalar word processing.
         #[inline(always)]
         pub const fn $small(x0: $u, x1: $u, n:$u) -> ($u, $u, bool) {
-            // TODO: Need the small div...
-            // TODO: Here, need a primitive only version
-            todo!();
+            // (4, 2147483648)
+            //todo!(); // always inaccurate
+            let (lo, c1) = x0.overflowing_mul(n);
+            let (hi, c2) = x1.overflowing_mul(n);
+            let (hi, c3) = hi.overflowing_add(c1 as _);
+            (lo, hi, c2 | c3)
         }
     )*);
 }
@@ -509,7 +544,7 @@ unsigned_primitive_cast!(
 );
 
 macro_rules! add_signed_impl {
-    ($($u:ty, $s:ty => $fn:ident,)*) => ($(
+    ($($u:ty, $s:ty => $full:ident, $usmall:ident, $ismall:ident,)*) => ($(
         /// Const implementation of `Add` for internal algorithm use.
         ///
         /// Returns the value and if the add overflowed.
@@ -519,7 +554,7 @@ macro_rules! add_signed_impl {
         /// * `y0` - The lower half of y.
         /// * `y1` - The upper half of y.
         #[inline(always)]
-        pub const fn $fn(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
+        pub const fn $full(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
             // NOTE: When we ignore the carry in the caller, this optimizes the same.
             debug_assert!(<$u>::BITS == <$s>::BITS);
             let (v0, c0) = x0.overflowing_add(y0);
@@ -527,20 +562,55 @@ macro_rules! add_signed_impl {
             let (v1, c2) = v1.overflowing_add(c0 as $s);
             (v0, v1, c1 || c2)
         }
+
+        /// Const implementation to add a small, unsigned number to the wider type.
+        ///
+        /// Returns the value and if the add overflowed.
+        ///
+        /// * `x0` - The lower half of x.
+        /// * `x1` - The upper half of x.
+        /// * `y` - The small, unsigned value.
+        #[inline(always)]
+        pub const fn $usmall(x0: $u, x1: $s, y: $u) -> ($u, $s, bool) {
+            let (v0, c0) = x0.overflowing_add(y);
+            let (v1, c1) = x1.overflowing_add(c0 as $s);
+            (v0, v1, c1)
+        }
+
+        /// Const implementation to add a small, signed number to the wider type.
+        ///
+        /// Returns the value and if the add overflowed.
+        ///
+        /// * `x0` - The lower half of x.
+        /// * `x1` - The upper half of x.
+        /// * `y` - The small, signed value.
+        #[inline(always)]
+        pub const fn $ismall(x0: $u, x1: $s, y: $s) -> ($u, $s, bool) {
+            // TODO: Fix, need to optimize this
+            if y < 0 {
+                let (v0, c0) = x0.overflowing_sub(y.wrapping_abs() as $u);
+                let (v1, c1) = x1.overflowing_sub(c0 as $s);
+                (v0, v1, c1)
+            } else {
+                let (v0, c0) = x0.overflowing_add(y as $u);
+                let (v1, c1) = x1.overflowing_add(c0 as $s);
+                (v0, v1, c1)
+            }
+        }
     )*);
 }
 
 add_signed_impl! {
-    u8, i8 => add_i8,
-    u16, i16 => add_i16,
-    u32, i32 => add_i32,
-    u64, i64 => add_i64,
-    u128, i128 => add_i128,
-    usize, isize => add_isize,
+    u8, i8 => add_i8, add_usmall_i8, add_ismall_i8,
+    u16, i16 => add_i16, add_usmall_i16, add_ismall_i16,
+    u32, i32 => add_i32, add_usmall_i32, add_ismall_i32,
+    u64, i64 => add_i64, add_usmall_i64, add_ismall_i64,
+    u128, i128 => add_i128, add_usmall_i128, add_ismall_i128,
+    usize, isize => add_isize, add_usmall_isize, add_ismall_isize,
 }
 
 macro_rules! sub_signed_impl {
-    ($($u:ty, $s:ty => $fn:ident,)*) => ($(
+    ($($u:ty, $s:ty => $full:ident, $usmall:ident, $ismall:ident,)*) => ($(
         /// Const implementation of `Sub` for internal algorithm use.
         ///
         /// Returns the value and if the sub underflowed.
@@ -550,7 +620,7 @@ macro_rules! sub_signed_impl {
         /// * `y0` - The lower half of y.
         /// * `y1` - The upper half of y.
         #[inline(always)]
-        pub const fn $fn(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
+        pub const fn $full(x0: $u, x1: $s, y0: $u, y1: $s) -> ($u, $s, bool) {
             // NOTE: When we ignore the carry in the caller, this optimizes the same.
             debug_assert!(<$u>::BITS == <$s>::BITS);
             let (v0, c0) = x0.overflowing_sub(y0);
@@ -558,16 +628,51 @@ macro_rules! sub_signed_impl {
             let (v1, c2) = v1.overflowing_sub(c0 as $s);
             (v0, v1, c1 || c2)
         }
+
+        /// Const implementation to subtract a small, unsigned number to the wider type.
+        ///
+        /// Returns the value and if the subtract overflowed.
+        ///
+        /// * `x0` - The lower half of x.
+        /// * `x1` - The upper half of x.
+        /// * `y` - The small, unsigned value.
+        #[inline(always)]
+        pub const fn $usmall(x0: $u, x1: $s, y: $u) -> ($u, $s, bool) {
+            let (v0, c0) = x0.overflowing_sub(y);
+            let (v1, c1) = x1.overflowing_sub(c0 as $s);
+            (v0, v1, c1)
+        }
+
+        /// Const implementation to subtract a small, signed number to the wider type.
+        ///
+        /// Returns the value and if the subtract overflowed.
+        ///
+        /// * `x0` - The lower half of x.
+        /// * `x1` - The upper half of x.
+        /// * `y` - The small, signed value.
+        #[inline(always)]
+        pub const fn $ismall(x0: $u, x1: $s, y: $s) -> ($u, $s, bool) {
+            // TODO: Fix, need to optimize this
+            if y < 0 {
+                let (v0, c0) = x0.overflowing_add(y.wrapping_abs() as $u);
+                let (v1, c1) = x1.overflowing_add(c0 as $s);
+                (v0, v1, c1)
+            } else {
+                let (v0, c0) = x0.overflowing_sub(y as $u);
+                let (v1, c1) = x1.overflowing_sub(c0 as $s);
+                (v0, v1, c1)
+            }
+        }
     )*);
 }
 
 sub_signed_impl! {
-    u8, i8 => sub_i8,
-    u16, i16 => sub_i16,
-    u32, i32 => sub_i32,
-    u64, i64 => sub_i64,
-    u128, i128 => sub_i128,
-    usize, isize => sub_isize,
+    u8, i8 => sub_i8, sub_usmall_i8, sub_ismall_i8,
+    u16, i16 => sub_i16, sub_usmall_i16, sub_ismall_i16,
+    u32, i32 => sub_i32, sub_usmall_i32, sub_ismall_i32,
+    u64, i64 => sub_i64, sub_usmall_i64, sub_ismall_i64,
+    u128, i128 => sub_i128, sub_usmall_i128, sub_ismall_i128,
+    usize, isize => sub_isize, sub_usmall_isize, sub_ismall_isize,
 }
 
 macro_rules! mul_signed_impl {
@@ -1091,6 +1196,7 @@ mod tests {
         assert_eq!(sub_u32(1, 0, 0, 0), (1, 0, false));
         assert_eq!(sub_u32(u32::MAX, 1, 0, 2), (u32::MAX, u32::MAX, true));
         assert_eq!(sub_u32(0, 1, 0, 2), (0, 4294967295, true));
+        assert_eq!(sub_u32(0, 1, 1, 1), (u32::MAX, u32::MAX, true));
     }
 
     #[test]
@@ -1103,8 +1209,6 @@ mod tests {
         assert_eq!(mul_u32(u32::MAX, 1, 0, 2), (0, u32::MAX - 1, true));
         assert_eq!(mul_u32(0, 1, 0, 2), (0, 0, true));
     }
-
-    // TODO: Div, rem
 
     #[test]
     fn shl_u32_test() {
@@ -1142,6 +1246,15 @@ mod tests {
             expected == (actual, overflowed)
         }
 
+        fn add_small_u32_quickcheck(x: u64, y: u32) -> bool {
+            let x0 = (x & LO32) as u32;
+            let x1 = (x >> 32) as u32;
+            let (lo, hi, overflowed) = add_small_u32(x0, x1, y);
+            let expected = x.overflowing_add(y as u64);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == (actual, overflowed)
+        }
+
         fn sub_u32_quickcheck(x: u64, y: u64) -> bool {
             let x0 = (x & LO32) as u32;
             let x1 = (x >> 32) as u32;
@@ -1153,6 +1266,15 @@ mod tests {
             expected == (actual, overflowed)
         }
 
+        fn sub_small_u32_quickcheck(x: u64, y: u32) -> bool {
+            let x0 = (x & LO32) as u32;
+            let x1 = (x >> 32) as u32;
+            let (lo, hi, overflowed) = sub_small_u32(x0, x1, y);
+            let expected = x.overflowing_sub(y as u64);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == (actual, overflowed)
+        }
+
         fn mul_u32_quickcheck(x: u64, y: u64) -> bool {
             let x0 = (x & LO32) as u32;
             let x1 = (x >> 32) as u32;
@@ -1160,6 +1282,15 @@ mod tests {
             let y1 = (y >> 32) as u32;
             let (lo, hi, overflowed) = mul_u32(x0, x1, y0, y1);
             let expected = x.overflowing_mul(y);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == (actual, overflowed)
+        }
+
+        fn mul_small_u32_quickcheck(x: u64, y: u32) -> bool {
+            let x0 = (x & LO32) as u32;
+            let x1 = (x >> 32) as u32;
+            let (lo, hi, overflowed) = mul_small_u32(x0, x1, y);
+            let expected = x.overflowing_mul(y as u64);
             let actual = lo as u64 + ((hi as u64) << 32);
             expected == (actual, overflowed)
         }
@@ -1273,6 +1404,24 @@ mod tests {
             expected == (actual as i64, overflowed)
         }
 
+        fn add_usmall_i32_quickcheck(x: i64, y: u32) -> bool {
+            let x0 = ((x as u64) & LO32) as u32;
+            let x1 = (x >> 32) as u32;
+            let (lo, hi, overflowed) = add_usmall_i32(x0, x1 as i32, y);
+            let expected = x.overflowing_add(y as i64);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == (actual as i64, overflowed)
+        }
+
+        fn add_ismall_i32_quickcheck(x: i64, y: i32) -> bool {
+            let x0 = ((x as u64) & LO32) as u32;
+            let x1 = (x >> 32) as u32;
+            let (lo, hi, overflowed) = add_ismall_i32(x0, x1 as i32, y);
+            let expected = x.overflowing_add(y as i64);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == (actual as i64, overflowed)
+        }
+
         fn sub_i32_quickcheck(x: i64, y: i64) -> bool {
             let x0 = ((x as u64) & LO32) as u32;
             let x1 = (x >> 32) as u32;
@@ -1280,6 +1429,24 @@ mod tests {
             let y1 = (y >> 32) as u32;
             let (lo, hi, overflowed) = sub_i32(x0, x1 as i32, y0, y1 as i32);
             let expected = x.overflowing_sub(y);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == (actual as i64, overflowed)
+        }
+
+        fn sub_usmall_i32_quickcheck(x: i64, y: u32) -> bool {
+            let x0 = ((x as u64) & LO32) as u32;
+            let x1 = (x >> 32) as u32;
+            let (lo, hi, overflowed) = sub_usmall_i32(x0, x1 as i32, y);
+            let expected = x.overflowing_sub(y as i64);
+            let actual = lo as u64 + ((hi as u64) << 32);
+            expected == (actual as i64, overflowed)
+        }
+
+        fn sub_ismall_i32_quickcheck(x: i64, y: i32) -> bool {
+            let x0 = ((x as u64) & LO32) as u32;
+            let x1 = (x >> 32) as u32;
+            let (lo, hi, overflowed) = sub_ismall_i32(x0, x1 as i32, y);
+            let expected = x.overflowing_sub(y as i64);
             let actual = lo as u64 + ((hi as u64) << 32);
             expected == (actual as i64, overflowed)
         }

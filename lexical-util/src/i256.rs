@@ -1416,6 +1416,34 @@ impl i256 {
         *self
     }
 
+    /// Add the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full addition cannot do.
+    #[inline(always)]
+    pub fn add_usmall(self, n: u128) -> Self {
+        todo!();
+    }
+
+    /// Add the 256-bit integer by a small, 128-bit signed factor.
+    /// This allows optimizations a full addition cannot do.
+    #[inline(always)]
+    pub fn add_ismall(self, n: i128) -> Self {
+        todo!();
+    }
+
+    /// Subtract the 256-bit integer by a small, 128-bit unsigned factor.
+    /// This allows optimizations a full subtraction cannot do.
+    #[inline(always)]
+    pub fn sub_usmall(self, n: u128) -> Self {
+        todo!();
+    }
+
+    /// Subtract the 256-bit integer by a small, 128-bit signed factor.
+    /// This allows optimizations a full subtraction cannot do.
+    #[inline(always)]
+    pub fn sub_ismall(self, n: i128) -> Self {
+        todo!();
+    }
+
     /// Multiply the 256-bit integer by a small, 128-bit unsigned factor.
     /// This allows optimizations a full multiplication cannot do.
     #[inline(always)]
@@ -1424,7 +1452,7 @@ impl i256 {
         Self { lo, hi }
     }
 
-    /// Multiply the 256-bit integer by a small, 128-bit nsigned factor.
+    /// Multiply the 256-bit integer by a small, 128-bit signed factor.
     /// This allows optimizations a full multiplication cannot do.
     #[inline(always)]
     pub const fn mul_ismall(self, n: i128) -> Self {
@@ -1439,7 +1467,7 @@ impl i256 {
         div_rem_usmall(self, n)
     }
 
-    /// Div/Rem the 256-bit integer by a small, 128-bit nsigned factor.
+    /// Div/Rem the 256-bit integer by a small, 128-bit signed factor.
     /// This allows optimizations a full division cannot do.
     #[inline(always)]
     pub fn div_rem_ismall(self, n: i64) -> (Self, i64) {
@@ -1453,7 +1481,7 @@ impl i256 {
         self.div_rem_usmall(n).0
     }
 
-    /// Div the 256-bit integer by a small, 128-bit nsigned factor.
+    /// Div the 256-bit integer by a small, 128-bit signed factor.
     /// This allows optimizations a full division cannot do.
     #[inline(always)]
     pub fn div_ismall(self, n: i64) -> Self {
@@ -1467,7 +1495,7 @@ impl i256 {
         self.div_rem_usmall(n).1
     }
 
-    /// Rem the 256-bit integer by a small, 128-bit nsigned factor.
+    /// Rem the 256-bit integer by a small, 128-bit signed factor.
     /// This allows optimizations a full division cannot do.
     #[inline(always)]
     pub fn rem_ismall(self, n: i64) -> i64 {
