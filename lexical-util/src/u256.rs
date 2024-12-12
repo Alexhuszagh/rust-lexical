@@ -5,10 +5,10 @@
 //! is based off of [u32][core::u32] for each method/member.
 
 use core::cmp::Ordering;
-use core::{fmt, mem};
+use core::{fmt, mem, str};
 use core::ops::*;
 use core::num::ParseIntError;
-use core::str::FromStr;
+use core::str::{FromStr, Utf8Error};
 
 use crate::error::TryFromIntError;
 use crate::i256::i256;
@@ -1393,17 +1393,14 @@ impl fmt::Debug for u256 {
 impl fmt::Display for u256 {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        // We're not optimizing for this at all, since we'll implement
-        // it well in the integer writers (max 78 digits).
         if self.hi == 0 {
             return fmt::Display::fmt(&self.hi, f);
         }
 
-        // only want to write until
         let mut buffer = [0u8; 78];
-        let mut index = buffer.len();
-        //let radix = buffer.
-        todo!();
+        let formatted= to_string(*self, &mut buffer)
+            .or_else(|_| Err(fmt::Error::default()))?;
+        write!(f, "{}", formatted)
     }
 }
 
@@ -1462,7 +1459,12 @@ impl fmt::LowerExp for u256 {
             return fmt::LowerExp::fmt(&self.hi, f);
         }
 
-        todo!();
+        let mut buffer = [0u8; 78];
+        let buffer= to_bytes(*self, &mut buffer);
+        let first = buffer[0] as char;
+        let formatted = str::from_utf8(&buffer[1..])
+            .or_else(|_| Err(fmt::Error::default()))?;
+        write!(f, "{}.{}e{}", first, formatted, buffer.len() - 1)
     }
 }
 
@@ -1883,7 +1885,12 @@ impl fmt::UpperExp for u256 {
             return fmt::UpperExp::fmt(&self.hi, f);
         }
 
-        todo!();
+        let mut buffer = [0u8; 78];
+        let buffer= to_bytes(*self, &mut buffer);
+        let first = buffer[0] as char;
+        let formatted = str::from_utf8(&buffer[1..])
+            .or_else(|_| Err(fmt::Error::default()))?;
+        write!(f, "{}.{}E{}", first, formatted, buffer.len() - 1)
     }
 }
 
@@ -2031,14 +2038,71 @@ const fn cmp(lhs: u256, rhs: u256) -> Ordering {
     }
 }
 
+#[inline]
+fn to_bytes(mut value: u256, buffer: &mut [u8; 78]) -> &[u8] {
+    // We're not optimizing for this at all, since we'll implement
+    // it well in the integer writers (max 78 digits).
+
+    // only want to write until
+    let mut rem: u64;
+    let mut index = buffer.len();
+    while value.hi > 0 || value.lo > 10 && index > 1 {
+        index -= 1;
+        (value, rem) = value.div_rem_small(10);
+        buffer[index] = b'0' + rem as u8;
+    }
+    // always have one trailing digit
+    index -= 1;
+    buffer[index] = b'0' + value.lo as u8;
+    &buffer[index..]
+}
+
+#[inline]
+fn to_string(value: u256, buffer: &mut [u8; 78]) -> Result<&str, Utf8Error> {
+    str::from_utf8(to_bytes(value, buffer))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn add_test() {
+        // NOTE: This is mostly covered elsewhere
         assert_eq!(add(u256::from_u8(1), u256::from_u8(1)), u256::from_u8(2));
         assert_eq!(add(u256::MAX, u256::MAX), u256 { hi: u128::MAX, lo: u128::MAX - 1 });
-        // TODO: Add more here
+    }
+
+    #[test]
+    fn display_test() {
+        let max = u256::MAX;
+        let result = max.to_string();
+        assert_eq!("115792089237316195423570985008687907853269984665640564039457584007913129639935", result);
+
+        let value = u256 { lo: 0, hi: 1 };
+        let result = value.to_string();
+        assert_eq!("340282366920938463463374607431768211456", result);
+    }
+
+    #[test]
+    fn lower_exp_test() {
+        let max = u256::MAX;
+        let result = format!("{:e}", max);
+        assert_eq!("1.15792089237316195423570985008687907853269984665640564039457584007913129639935e77", result);
+
+        let value = u256 { lo: 0, hi: 1 };
+        let result = format!("{:e}", value);
+        assert_eq!("3.40282366920938463463374607431768211456e38", result);
+    }
+
+    #[test]
+    fn upper_exp_test() {
+        let max = u256::MAX;
+        let result = format!("{:E}", max);
+        assert_eq!("1.15792089237316195423570985008687907853269984665640564039457584007913129639935E77", result);
+
+        let value = u256 { lo: 0, hi: 1 };
+        let result = format!("{:E}", value);
+        assert_eq!("3.40282366920938463463374607431768211456E38", result);
     }
 }
