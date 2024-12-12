@@ -585,7 +585,7 @@ macro_rules! add_signed_impl {
         /// * `x1` - The upper half of x.
         /// * `y` - The small, signed value.
         #[inline(always)]
-        pub const fn $ismall(x0: $u, x1: $s, y: $s) -> ($u, $s, bool) {
+        pub fn $ismall(x0: $u, x1: $s, y: $s) -> ($u, $s, bool) { // TODO: Make const
             // TODO: Fix, need to optimize this
             if y < 0 {
                 let (v0, c0) = x0.overflowing_sub(y.wrapping_abs() as $u);
@@ -652,6 +652,7 @@ macro_rules! sub_signed_impl {
         /// * `y` - The small, signed value.
         #[inline(always)]
         pub const fn $ismall(x0: $u, x1: $s, y: $s) -> ($u, $s, bool) {
+            // This optimizes super well.
             // TODO: Fix, need to optimize this
             if y < 0 {
                 let (v0, c0) = x0.overflowing_add(y.wrapping_abs() as $u);
