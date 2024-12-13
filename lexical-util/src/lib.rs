@@ -176,5 +176,4 @@ mod format_builder;
 mod format_flags;
 mod noskip;
 mod not_feature_format;
-mod numtypes;
 mod skip;

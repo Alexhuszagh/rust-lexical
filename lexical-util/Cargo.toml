@@ -20,6 +20,7 @@ exclude = [
 
 [dependencies]
 static_assertions = "1"
+float16 = { version = "0.1.0", optional = true }
 
 [dev-dependencies]
 # FIXME: Replace back to "1.0.4" once the PR is merged.
@@ -57,7 +58,7 @@ parse-floats = ["parse", "floats"]
 # Reduce code size at the cost of performance.
 compact = []
 # Add support for the `f16` and `b16` half-point floating point numbers.
-f16 = ["parse-floats", "write-floats"]
+f16 = ["parse-floats", "write-floats", "float16"]
 
 # Internal only features.
 # Enable the lint checks.
@@ -81,4 +82,4 @@ floats = []
 f128 = ["parse-floats", "write-floats"]
 
 [package.metadata.docs.rs]
-features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats"]
+features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats", "f16"]

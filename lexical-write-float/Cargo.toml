@@ -88,4 +88,4 @@ lint = [
 f128 = ["lexical-util/f128"]
 
 [package.metadata.docs.rs]
-features = ["radix", "format"]
+features = ["radix", "format", "f16"]
