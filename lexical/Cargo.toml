@@ -73,4 +73,4 @@ floats = ["lexical-core/floats"]
 f128 = ["lexical-core/f128"]
 
 [package.metadata.docs.rs]
-features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats"]
+features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats", "f16"]
