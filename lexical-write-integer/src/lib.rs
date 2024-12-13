@@ -62,8 +62,45 @@
 //! fairly easy to demonstrate the safety as long as the caller ensures at least
 //! the required number of digits are provided.
 //!
-//! Our algorithms work like this, carving off the lower digits and writing them
-//! to the back of the buffer.
+//! ## Decimal
+//!
+//! Our decimal-based digit writers are based on the [`Jeaiii Algorithm`], which
+//! branches based on the number of digits and writes digits to minimize the
+//! number of additions and multiplications. This avoids the need to calculate
+//! the number of digits ahead of time, by just branching on the value.
+//!
+//! James Anhalt's itoa algorithm along with Junekey Jeon's performance tweaks
+//! have excellent performance, however, this can be further optimized. Both
+//! James Anhalt's and Junekey Jeon's use a binary search for determining the
+//! correct number of digits to print (for 32-bit integers).
+//!
+//! ```text
+//!      /\____________
+//!     /  \______     \______
+//!    /\   \     \     \     \
+//!   0  1  /\    /\    /\    /\
+//!        2  3  4  5  6  7  8  9
+//! ```
+//!
+//! This leads to a max tree depth of 4, and the major performance bottleneck
+//! with larger type sizes is the branching. A minor modification can optimize
+//! this, leadingg to a max tree depth of 3 while only required 1 extra
+//! comparison at the top level. Also, we invert the comparisons: oddly enough,
+//! our benchmarks show doing larger comparisons then smaller improves
+//! performance for numbers with both large and small numbers of digits.
+//!
+//! ```text
+//!           ____________________
+//!       ___/_       __|__       \
+//!      /  |  \     /     \      /\
+//!     /\  1   0   /\     /\    8  9
+//!    3  2        6  7   4  5
+//! ```
+//!
+//! ## Radix
+//!
+//! Our radix-based algorithms work like this, carving off the lower digits and
+//! writing them to the back of the buffer.
 //!
 //! ```rust,ignore
 //! let mut value = 12345u32;
@@ -94,27 +131,22 @@
 //!     bytes[index] = table[r1];
 //! }
 //!
-//! // oontinue with radix^2 and then a single digit.
+//! // continue with radix^2 and then a single digit.
 //! ```
 //!
 //! We can efficiently determine at compile time if the pre-computed
 //! tables are large enough so there are no non-local safety considerations
 //! there. The current logic call stack is:
 //! 1. [`to_lexical`]
-//! 2. [decimal][dec], compact, or radix (gets the correct tables and calls
+//! 2. [`decimal`][`dec`], compact, or radix (gets the correct tables and calls
 //!    algorithm)
-//! 3. [algorithm]
+//! 3. [`jeaiii`]
 //!
-//! [decimal][dec], compact, and radix therefore **MUST** be safe and do type
-//! check of the bounds to avoid too much exposure to unsafety. Only
-//! [`algorithm`] should have any unsafety associated with it. That is, as long
-//! as the direct caller has ensure the proper buffer is allocated, there are
-//! non-local safety invariants.
-//!
-//! [`digit_count`]: crate::decimal::DigitCount
+//! [`digit_count`]: crate::digit_count::DigitCount
 //! [`to_lexical`]: crate::ToLexical::to_lexical
-//! [dec]: crate::decimal::Decimal::decimal
-//! [`algorithm`]: crate::algorithm::algorithm
+//! [`dec`]: crate::decimal::Decimal::decimal
+//! [`jeaiii`]: crate::jeaiii
+//! [`Jeaiii Algorithm`]: https://jk-jeon.github.io/posts/2022/02/jeaiii-algorithm/
 
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.

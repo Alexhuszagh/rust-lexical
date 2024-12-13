@@ -31,7 +31,7 @@ pub enum RoundMode {
 }
 
 /// Maximum length for a special string.
-const MAX_SPECIAL_STRING_LENGTH: usize = 50;
+pub const MAX_SPECIAL_STRING_LENGTH: usize = 50;
 const_assert!(MAX_SPECIAL_STRING_LENGTH < f32::FORMATTED_SIZE_DECIMAL);
 
 /// Builder for `Options`.

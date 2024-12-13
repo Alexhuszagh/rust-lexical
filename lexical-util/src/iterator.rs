@@ -71,7 +71,7 @@ pub unsafe trait Iter<'a> {
     /// This operators on the underlying buffer: that is,
     /// it returns if [`as_slice`] would return an empty slice.
     ///
-    /// [as_slice]: Iter::as_slice
+    /// [`as_slice`]: Iter::as_slice
     #[inline(always)]
     fn is_buffer_empty(&self) -> bool {
         self.cursor() >= self.get_buffer().len()
@@ -290,8 +290,8 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     /// If you would like to see if the cursor is at the end of the buffer,
     /// see [`is_buffer_empty`] instead.
     ///
-    /// [is_buffer_empty]: Iter::is_buffer_empty
-    /// [peek]: DigitsIter::peek
+    /// [`is_buffer_empty`]: Iter::is_buffer_empty
+    /// [`peek`]: DigitsIter::peek
     #[inline(always)]
     #[allow(clippy::wrong_self_convention)] // reason="required for peeking next item"
     fn is_consumed(&mut self) -> bool {

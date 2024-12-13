@@ -30,3 +30,8 @@ cargo +nightly clippy --all-features -- --deny warnings
 cd ../lexical-benchmark
 cargo +nightly fmt -- --check
 cargo +nightly clippy --all-features --benches -- --deny warnings
+
+# Check our docs will be valid
+cd ..
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --no-default-features
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --features=radix,format,f16

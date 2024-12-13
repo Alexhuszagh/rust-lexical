@@ -9,7 +9,7 @@ use lexical_util::result::Result;
 use static_assertions::const_assert;
 
 /// Maximum length for a special string.
-const MAX_SPECIAL_STRING_LENGTH: usize = 50;
+pub const MAX_SPECIAL_STRING_LENGTH: usize = 50;
 
 /// Builder for `Options`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
