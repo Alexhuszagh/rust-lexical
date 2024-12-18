@@ -6,7 +6,8 @@ set -ex
 # Change to our project home.
 script_dir=$(dirname "${BASH_SOURCE[0]}")
 script_home=$(realpath "${script_dir}")
-cd "${script_home}"/..
+home=$(dirname "${script_home}")
+cd "${home}"
 
 # Make sure we error on warnings, and don't format in-place.
 
@@ -18,20 +19,25 @@ cargo +nightly clippy --features=format,radix -- --deny warnings
 cargo +nightly clippy --features=f16 -- --deny warnings
 cargo +nightly clippy --all-features -- --deny warnings
 
+# all our additional unittests
+cd "${home}/extras"
+cargo +nightly fmt -- --check
+cargo +nightly clippy --all-features -- --deny warnings
+
 # ASM, size, and benchmarks use separate workspaces, do those separately.
-cd lexical-asm
+cd "${home}/extras/asm"
 cargo +nightly fmt -- --check
 cargo +nightly clippy --all-features -- --deny warnings
 
-cd ../lexical-size
+cd "${home}/extras/size"
 cargo +nightly fmt -- --check
 cargo +nightly clippy --all-features -- --deny warnings
 
-cd ../lexical-benchmark
+cd "${home}/extras/benchmark"
 cargo +nightly fmt -- --check
 cargo +nightly clippy --all-features --benches -- --deny warnings
 
 # Check our docs will be valid
-cd ..
+cd "${home}"
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --no-default-features
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --features=radix,format,f16

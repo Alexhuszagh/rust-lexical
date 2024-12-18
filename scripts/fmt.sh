@@ -6,15 +6,19 @@ set -e
 # Change to our project home.
 script_dir=$(dirname "${BASH_SOURCE[0]}")
 script_home=$(realpath "${script_dir}")
-cd "${script_home}"/..
+home=$(dirname "${script_home}")
+cd "${home}"
 
 cargo +nightly fmt
 
-cd lexical-asm
+cd "${home}/extras"
 cargo +nightly fmt
 
-cd ../lexical-size
+cd "${home}/extras/asm"
 cargo +nightly fmt
 
-cd ../lexical-benchmark
+cd "${home}/extras/size"
+cargo +nightly fmt
+
+cd "${home}/extras/benchmark"
 cargo +nightly fmt

@@ -1,6 +1,6 @@
 [submodule "lexical-parse-float/etc/correctness/test-parse-golang/parse-number-fxx-test-data"]
 	path = lexical-parse-float/etc/correctness/test-parse-golang/parse-number-fxx-test-data
 	url = https://github.com/Alexhuszagh/parse-number-fxx-test-data
-[submodule "lexical-benchmark/data"]
-	path = lexical-benchmark/data
+[submodule "extras/benchmark/data"]
+	path = extras/benchmark/data
 	url = https://github.com/Alexhuszagh/rust-lexical-benchmark-data

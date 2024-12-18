@@ -1,0 +1,32 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2021"
+keywords = ["no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-core-extras"
+repository = "https://github.com/Alexhuszagh/rust-lexical"
+version = "0.0.1-alpha"
+rust-version = "1.65.0"
+publish = false
+
+[dependencies.lexical-core]
+default-features = false
+path = "../../lexical-core"
+
+[dev-dependencies]
+approx = "0.5.0"
+
+[features]
+# Need to enable all for backwards compatibility.
+default = ["std", "write-integers", "write-floats", "parse-integers", "parse-floats"]
+std = ["lexical-core/std"]
+write-integers = ["lexical-core/write-integers"]
+write-floats = ["lexical-core/write-floats"]
+parse-integers = ["lexical-core/parse-integers"]
+parse-floats = ["lexical-core/parse-floats"]
+power-of-two = ["lexical-core/power-of-two"]
+radix = ["lexical-core/radix", "power-of-two"]
+format = ["lexical-core/format"]
+compact = ["lexical-core/compact"]
+f16 = ["lexical-core/f16"]
+lint = ["lexical-core/lint"]

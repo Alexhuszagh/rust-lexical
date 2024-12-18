@@ -1,6 +1,6 @@
 # Benchmarks
 
-These benchmarks were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.12.5/Fedora 34, and run against commit [a6dbf6d](https://github.com/Alexhuszagh/rust-lexical-experimental/commit/a6dbf6d6639758989f24d6750ee9711d29c9f6bd). The Rust compiler version was `rustc 1.55.0-nightly (b41936b92 2021-07-20)`. The exact code and data used to run the benchmark can be seen [here](https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-benchmark/parse-float).
+These benchmarks were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.12.5/Fedora 34, and run against commit [a6dbf6d](https://github.com/Alexhuszagh/rust-lexical-experimental/commit/a6dbf6d6639758989f24d6750ee9711d29c9f6bd). The Rust compiler version was `rustc 1.55.0-nightly (b41936b92 2021-07-20)`. The exact code and data used to run the benchmark can be seen [here](https://github.com/Alexhuszagh/rust-lexical/tree/main/extras/benchmark/parse-float).
 
 **Random**
 

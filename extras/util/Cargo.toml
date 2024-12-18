@@ -1,0 +1,40 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2021"
+keywords = ["no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-util-extras"
+repository = "https://github.com/Alexhuszagh/rust-lexical"
+version = "0.0.1-alpha"
+rust-version = "1.65.0"
+publish = false
+
+[dependencies.lexical-util]
+path = "../../lexical-util"
+default-features = false
+
+[dev-dependencies]
+# FIXME: Replace back to "1.0.4" once the PR is merged.
+#  There's an issue in quickcheck due to an infinitely repeating shrinker.
+#  Issue:   https://github.com/BurntSushi/quickcheck/issues/295
+#  Fix:     https://github.com/BurntSushi/quickcheck/pull/296
+quickcheck = { git = "https://github.com/Alexhuszagh/quickcheck/", branch = "i32min-shrink-bound-legacy" }
+proptest = ">=1.5.0"
+
+[features]
+default = ["std"]
+std = ["lexical-util/std"]
+power-of-two = ["lexical-util/power-of-two"]
+radix = ["lexical-util/radix"]
+format = ["lexical-util/format"]
+write-integers = ["lexical-util/write-integers", "write", "integers"]
+write-floats = ["lexical-util/write-floats", "write", "floats"]
+parse-integers = ["lexical-util/parse-integers", "parse", "integers"]
+parse-floats = ["lexical-util/parse-floats", "parse", "floats"]
+compact = ["lexical-util/compact"]
+f16 = ["lexical-util/f16", "parse-floats", "write-floats"]
+lint = ["lexical-util/lint"]
+write = ["lexical-util/write"]
+parse = ["lexical-util/parse"]
+integers = ["lexical-util/integers"]
+floats = ["lexical-util/floats"]

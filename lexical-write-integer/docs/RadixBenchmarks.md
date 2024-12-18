@@ -1,6 +1,6 @@
 # Benchmarks
 
-These benchmarks were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.12.5/Fedora 34, and run against commit [469e805](https://github.com/Alexhuszagh/rust-lexical-experimental/commit/469e8053a5d1c8b3592840cf97a5a28511e2651d). The Rust compiler version was `rustc 1.55.0-nightly (b41936b92 2021-07-20)`. The exact code and data used to run the benchmark can be seen [here](https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-benchmark/write-integer).
+These benchmarks were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.12.5/Fedora 34, and run against commit [469e805](https://github.com/Alexhuszagh/rust-lexical-experimental/commit/469e8053a5d1c8b3592840cf97a5a28511e2651d). The Rust compiler version was `rustc 1.55.0-nightly (b41936b92 2021-07-20)`. The exact code and data used to run the benchmark can be seen [here](https://github.com/Alexhuszagh/rust-lexical/tree/main/extras/benchmark/write-integer).
 
 Since there is no analogous feature in Rust's fmt, or any 3rd party library, this merely benchmarks decimal strings while the `radix` feature is enabled. This is because the `radix` feature can add numerous code paths, which could affect code generation and therefore performance, and therefore exists to show no major regressions occur.
 

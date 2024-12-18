@@ -1,6 +1,6 @@
 # Compact Benchmarks
 
-These benchmarks were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.13.12/Fedora 34, and run against commit [961aefc](https://github.com/Alexhuszagh/rust-lexical-experimental/commit/961aefc5d7c1f4eb8b10c043a585644bc891c832). The Rust compiler version was `rustc 1.55.0-nightly (b41936b92 2021-07-20)`. The exact code and data used to run the benchmark can be seen [here](https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-benchmark/write-float).
+These benchmarks were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.13.12/Fedora 34, and run against commit [961aefc](https://github.com/Alexhuszagh/rust-lexical-experimental/commit/961aefc5d7c1f4eb8b10c043a585644bc891c832). The Rust compiler version was `rustc 1.55.0-nightly (b41936b92 2021-07-20)`. The exact code and data used to run the benchmark can be seen [here](https://github.com/Alexhuszagh/rust-lexical/tree/main/extras/benchmark/write-float).
 
 **JSON**
 
