@@ -9,19 +9,27 @@ set -e
 # Change to our project home.
 script_dir=$(dirname "${BASH_SOURCE[0]}")
 script_home=$(realpath "${script_dir}")
-cd "${script_home}"/..
+home=$(dirname "${script_home}")
+cd "${home}"
 
 export RUSTFLAGS="--deny warnings"
 export MIRIFLAGS="-Zmiri-tag-raw-pointers"
 
-cargo +nightly test
-cargo +nightly test --all-features
-if [ "$SKIP_VALGRIND" == "" ]; then
-    cargo +nightly valgrind test --features=radix --release
-fi
-if [ "$SKIP_MIRI" == "" ]; then
-    cargo +nightly miri test --features=radix --tests --release
-fi
+run_test() {
+    cargo +nightly test
+    cargo +nightly test --all-features
+    if [ "$SKIP_VALGRIND" == "" ]; then
+        cargo +nightly valgrind test --features=radix --release
+    fi
+    if [ "$SKIP_MIRI" == "" ]; then
+        cargo +nightly miri test --features=radix --tests --release
+    fi
+}
+
+run_test
+cd "${home}/extras"
+run_test
+cd "${home}"
 
 # Test various feature combinations.
 FEATURES=(
@@ -35,23 +43,30 @@ FEATURES=(
     "format,radix"
     "f16"
 )
-if [ "$SKIP_FEATURES" == "" ]; then
-    for features in "${FEATURES[@]}"; do
-        echo "cargo test --features=$features"
-        cargo +nightly test --features="$features"
-    done
-fi
+run_features() {
+    if [ "$SKIP_FEATURES" == "" ]; then
+        for features in "${FEATURES[@]}"; do
+            echo "cargo test --features=$features"
+            cargo +nightly test --features="$features"
+        done
+    fi
 
-# This is very slow, but uses Valgrind to test all features.
-if [ "$SKIP_VALGRIND" == "" ] && [ "$LEXICAL_VALGRIND_TEST_ALL" != "" ]; then
-    for features in "${FEATURES[@]}"; do
-        cargo +nightly valgrind test --features="$features" --release
-    done
-fi
+    # This is very slow, but uses Valgrind to test all features.
+    if [ "$SKIP_VALGRIND" == "" ] && [ "$LEXICAL_VALGRIND_TEST_ALL" != "" ]; then
+        for features in "${FEATURES[@]}"; do
+            cargo +nightly valgrind test --features="$features" --release
+        done
+    fi
 
-# This is very slow, but uses Miri to test all features.
-if [ "$SKIP_MIRI" == "" ] && [ "$LEXICAL_MIRI_TEST_ALL" != "" ]; then
-    for features in "${FEATURES[@]}"; do
-        cargo +nightly miri test --features="$features" --tests --release
-    done
-fi
+    # This is very slow, but uses Miri to test all features.
+    if [ "$SKIP_MIRI" == "" ] && [ "$LEXICAL_MIRI_TEST_ALL" != "" ]; then
+        for features in "${FEATURES[@]}"; do
+            cargo +nightly miri test --features="$features" --tests --release
+        done
+    fi
+}
+
+run_features
+cd "${home}/extras"
+run_features
+cd "${home}"

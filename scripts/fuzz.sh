@@ -6,6 +6,7 @@ set -e
 # Change to our project home.
 script_dir=$(dirname "${BASH_SOURCE[0]}")
 script_home=$(realpath "${script_dir}")
-cd "${script_home}"/..
+home=$(dirname "${script_home}")
+cd "${home}"
 
 cargo +nightly fuzz run "$@"

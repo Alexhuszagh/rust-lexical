@@ -1,0 +1,21 @@
+[workspace]
+members = [
+    "core",
+    "parse-integer",
+    "parse-float",
+    "util",
+    "write-integer",
+    "write-float",
+]
+resolver = "2"
+
+[profile.dev]
+opt-level = 0
+debug = true
+lto = false
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+lto = true

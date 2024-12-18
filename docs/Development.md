@@ -1,6 +1,6 @@
 # Getting Started
 
-In order to build and test lexical, only a modern Rust toolchain (1.51+) is required. However, for reasons described below, we highly recommend you install a recent (1.55+) nightly toolchain.
+In order to build and test lexical, only a modern Rust toolchain (1.65+) (1.61.0 to build, 1.65.0 to test) is required. However, for reasons described below, we highly recommend you install a recent (1.55+) nightly toolchain.
 
 ```bash
 cargo +nightly build
@@ -64,6 +64,8 @@ In addition, the following non-Rust dependencies must be installed:
 - Python3.6+
 - python-magic (python-magic-win64 on Windows)
 - Valgrind
+
+In order to minimize build times, dependencies, and potential version conflicts, all tests with development dependencies are moved to a [extras](/extras) workspace. This allows testing from that directory without influencing the core crate. This is less than ideal but is required to simplify version and dependency management without affecting test coverage. Each keeps the identical workspace structure so we can perfectly replicate the original unittests.
 
 ## Development Process
 

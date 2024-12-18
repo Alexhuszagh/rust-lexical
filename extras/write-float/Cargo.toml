@@ -1,0 +1,43 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2021"
+keywords = ["no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-write-float-extras"
+repository = "https://github.com/Alexhuszagh/rust-lexical"
+version = "0.0.1-alpha"
+rust-version = "1.65.0"
+publish = false
+
+[dependencies.lexical-write-float]
+path = "../../lexical-write-float"
+default-features = false
+
+[dependencies.lexical-write-integer]
+path = "../../lexical-write-integer"
+default-features = false
+
+[dependencies.lexical-util]
+path = "../../lexical-util"
+default-features = false
+
+[dev-dependencies]
+approx = "0.5.0"
+# FIXME: Replace back to "1.0.4" once the PR is merged.
+#  There's an issue in quickcheck due to an infinitely repeating shrinker.
+#  Issue:   https://github.com/BurntSushi/quickcheck/issues/295
+#  Fix:     https://github.com/BurntSushi/quickcheck/pull/296
+quickcheck = { git = "https://github.com/Alexhuszagh/quickcheck/", branch = "i32min-shrink-bound-legacy" }
+proptest = ">=1.5.0"
+fraction = "0.15.0"
+
+[features]
+default = ["std"]
+std = [ "lexical-util/std", "lexical-write-integer/std", "lexical-write-float/std"]
+power-of-two = ["lexical-util/power-of-two", "lexical-write-integer/power-of-two", "lexical-write-float/power-of-two"]
+radix = ["lexical-util/radix", "lexical-write-integer/radix", "lexical-write-float/radix", "power-of-two"]
+format = ["lexical-util/format", "lexical-write-float/format"]
+compact = ["lexical-util/compact", "lexical-write-integer/compact", "lexical-write-float/compact"]
+f16 = ["lexical-util/f16", "lexical-write-float/f16"]
+lint = ["lexical-util/lint", "lexical-write-integer/lint", "lexical-write-float/lint"]
+f128 = ["lexical-util/f128", "lexical-write-float/f128"]

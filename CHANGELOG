@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Additional trait impls for `f16` and `bf16` to better match Rust's interface.
 
+### Changed
+
+- Lowered the MSRV from 1.63.0 to 1.61.0 and adds support for most testing on 1.61.0.
+
 ## [1.0.5] 2024-12-08
 
 ### Fixed

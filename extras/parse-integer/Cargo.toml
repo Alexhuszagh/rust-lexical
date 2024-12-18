@@ -1,0 +1,35 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2021"
+keywords = ["no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-parse-integer-extras"
+repository = "https://github.com/Alexhuszagh/rust-lexical"
+version = "0.0.1-alpha"
+rust-version = "1.65.0"
+publish = false
+
+[dependencies.lexical-util]
+path = "../../lexical-util"
+default-features = false
+
+[dependencies.lexical-parse-integer]
+path = "../../lexical-parse-integer"
+default-features = false
+
+[dev-dependencies]
+# FIXME: Replace back to "1.0.4" once the PR is merged.
+#  There's an issue in quickcheck due to an infinitely repeating shrinker.
+#  Issue:   https://github.com/BurntSushi/quickcheck/issues/295
+#  Fix:     https://github.com/BurntSushi/quickcheck/pull/296
+quickcheck = { git = "https://github.com/Alexhuszagh/quickcheck/", branch = "i32min-shrink-bound-legacy" }
+proptest = ">=1.5.0"
+
+[features]
+default = ["std"]
+std = ["lexical-util/std", "lexical-parse-integer/std"]
+power-of-two = ["lexical-util/power-of-two", "lexical-parse-integer/power-of-two"]
+radix = ["lexical-util/radix", "lexical-parse-integer/radix", "power-of-two"]
+format = ["lexical-util/format", "lexical-parse-integer/format"]
+compact = ["lexical-util/compact", "lexical-parse-integer/compact"]
+lint = ["lexical-util/lint", "lexical-parse-integer/lint"]

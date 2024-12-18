@@ -35,6 +35,7 @@ else:
 
 scripts = os.path.dirname(os.path.realpath(__file__))
 home = os.path.dirname(scripts)
+size_home = f'{home}/extras/size'
 size_command = os.environ.get('SIZE', 'size')
 strip_command = os.environ.get('STRIP', 'strip')
 
@@ -152,7 +153,7 @@ def plot_bar(
 def clean():
     '''Clean the project'''
 
-    os.chdir(f'{home}/lexical-size')
+    os.chdir(size_home)
     subprocess.check_call(
         'cargo +nightly clean',
         shell=True,
@@ -164,7 +165,7 @@ def clean():
 def write_manifest(level):
     '''Write the manifest for the given optimization level.'''
 
-    manifest = f'{home}/lexical-size/Cargo.toml'
+    manifest = f'{size_home}/Cargo.toml'
     with open(f'{manifest}.in') as file:
         contents = file.read()
 
@@ -183,7 +184,7 @@ def write_manifest(level):
 def build(args, level, is_lexical):
     '''Build the project.'''
 
-    os.chdir(f'{home}/lexical-size')
+    os.chdir(size_home)
     command = 'cargo +nightly build'
     if args.no_default_features:
         command = f'{command} --no-default-features'
@@ -260,7 +261,7 @@ def get_sizes(level):
 
     data = {}
     build_type = LEVELS[level]
-    target = f'{home}/lexical-size/target/{build_type}'
+    target = f'{size_home}/target/{build_type}'
     for filename in os.listdir(target):
         path = os.path.join(target, filename)
         if os.path.isfile(path) and is_executable(path):
@@ -282,7 +283,7 @@ def strip(level):
         return
 
     build_type = LEVELS[level]
-    target = f'{home}/lexical-size/target/{build_type}'
+    target = f'{size_home}/target/{build_type}'
     for filename in os.listdir(target):
         path = os.path.join(target, filename)
         if os.path.isfile(path) and is_executable(path):

@@ -6,7 +6,8 @@ set -e
 # Change to our project home.
 script_dir=$(dirname "${BASH_SOURCE[0]}")
 script_home=$(realpath "${script_dir}")
-cd "${script_home}"/..
+home=$(dirname "${script_home}")
+cd "${home}"
 
 WORKSPACES=(
     "lexical"
@@ -31,9 +32,9 @@ for workspace in "${WORKSPACES[@]}"; do
 done
 
 PROJECTS=(
-    "lexical-asm"
-    "lexical-benchmark"
-    "lexical-size"
+    "asm"
+    "benchmark"
+    "size"
 )
 PROJECT_FILES=(
     "clippy.toml"
@@ -42,7 +43,8 @@ PROJECT_FILES=(
 
 for project in "${PROJECTS[@]}"; do
     for file in "${PROJECT_FILES[@]}"; do
-        unlink "$project/$file"
-        ln -s ../"$file" "$project/$file"
+        project_file="extras/${project}/${file}"
+        unlink "${project_file}"
+        ln -s ../"${file}" "${project_file}"
     done
 done

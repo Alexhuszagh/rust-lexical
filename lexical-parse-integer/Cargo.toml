@@ -10,7 +10,7 @@ name = "lexical-parse-integer"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
 version = "1.0.5"
-rust-version = "1.63.0"
+rust-version = "1.61.0"
 exclude = [
     "assets/*",
     "docs/*",
@@ -26,14 +26,6 @@ version = "1.0.5"
 path = "../lexical-util"
 default-features = false
 features = ["parse-integers"]
-
-[dev-dependencies]
-# FIXME: Replace back to "1.0.4" once the PR is merged.
-#  There's an issue in quickcheck due to an infinitely repeating shrinker.
-#  Issue:   https://github.com/BurntSushi/quickcheck/issues/295
-#  Fix:     https://github.com/BurntSushi/quickcheck/pull/296
-quickcheck = { git = "https://github.com/Alexhuszagh/quickcheck/", branch = "i32min-shrink-bound-legacy" }
-proptest = ">=1.5.0"
 
 [features]
 default = ["std"]
