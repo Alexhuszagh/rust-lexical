@@ -58,7 +58,7 @@ def build(args, directory=home):
     '''Build the project and get the timings output.'''
 
     os.chdir(directory)
-    command = 'cargo +nightly build -Z timings=json'
+    command = 'cargo +nightly build -Z unstable-options --timings=json'
     if args.no_default_features:
         command = f'{command} --no-default-features'
     if args.features:
