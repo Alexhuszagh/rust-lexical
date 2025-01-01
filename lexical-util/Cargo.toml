@@ -21,6 +21,7 @@ exclude = [
 [dependencies]
 static_assertions = "1"
 float16 = { version = "0.1.0", optional = true }
+i256 = { version = "0.2.0", optional = true, default-features = false, features = ["stdint"] }
 
 # FEATURES
 # --------
@@ -51,6 +52,12 @@ parse-floats = ["parse", "floats"]
 compact = []
 # Add support for the `f16` and `b16` half-point floating point numbers.
 f16 = ["parse-floats", "write-floats", "float16"]
+# Adds in support for higher-order big integers. Each contains the signed
+# and unsigned types for each.
+bigint = ["parse-integers", "write-integers", "i256"]
+i384 = ["parse-integers", "write-integers", "bigint", "i256/i384"]
+i512 = ["parse-integers", "write-integers", "bigint", "i256/i512"]
+i1024 = ["parse-integers", "write-integers", "bigint", "i256/i1024"]
 
 # Internal only features.
 # Enable the lint checks.

@@ -7,28 +7,30 @@ Other licensing terms may apply, as described in depth below for various feature
 
 ## `write-floats, not(compact)`
 
-`lexical-write-float/src/algorithm.rs` is a direct port of the reference C++ implementation of Dragonbox, found [here](https://github.com/jk-jeon/dragonbox/).
+[lexical-write-float/src/algorithm.rs](/lexical-write-float/src/algorithm.rs) is a direct port of the reference C++ implementation of Dragonbox, found [here](https://github.com/jk-jeon/dragonbox/).
 This code (used if the `write-floats` feature is enabled and the `compact` feature is disabled) is subject to a [Boost Software License](https://github.com/jk-jeon/dragonbox/blob/71993f55067a89f4b4e27591605e21521f5c61be/LICENSE-Boost) and a modified [Apache2 license](https://github.com/jk-jeon/dragonbox/blob/71993f55067a89f4b4e27591605e21521f5c61be/LICENSE-Apache2-LLVM), shown in the [Boost Software License](#boost-software-license) and [Apache2 With LLVM Exceptions](#apache2-with-llvm-exceptions) sections below.
 
 ## `write-floats, compact`
 
-`lexical-write-float/src/compact.rs` is a direct port of a C++ implementation of the Grisu algorithm, found [here](https://github.com/night-shift/fpconv/).
-This code (used if both the `write-floats` and `compact` features are enabled) is subject to a [MIT License](https://github.com/night-shift/fpconv/blob/dfeb7e938fb85fb5eca130b84f856705ced75012/license), shown in the [fpconv License](#fpconv-license) section below.
+[compact](/lexical-write-float/src/compact.rs) is a direct port of a C++ implementation of the Grisu algorithm, found [here](https://github.com/night-shift/fpconv/). This code (used if both the `write-floats` and `compact` features are enabled) is subject to a [MIT License](https://github.com/night-shift/fpconv/blob/dfeb7e938fb85fb5eca130b84f856705ced75012/license), shown in the [fpconv License](#fpconv-license) section below.
 
 ## `write-floats, radix`
 
-`lexical-write-float/src/radix.rs` is adapted from the V8 implementation found [here](). This code (used if both the `parse-floats` and `radix` features are enabled) is subject to a [3-clause BSD license](https://github.com/v8/v8/blob/f80bfeaf0792652bfbc1f174d5a7b8ab8bc0cbbd/LICENSE.v8), shown in the [V8 License](#v8-license) section below.
+[radix](/lexical-write-float/src/radix.rs) is adapted from the V8 implementation found [here](https://github.com/v8/v8/blob/9ee58d91adc4f7d83882133941a3b7a2862059db/src/numbers/conversions.cc#L1232). This code (used if both the `parse-floats` and `radix` features are enabled) is subject to a [3-clause BSD license](https://github.com/v8/v8/blob/f80bfeaf0792652bfbc1f174d5a7b8ab8bc0cbbd/LICENSE.v8), shown in the [V8 License](#v8-license) section below.
 
 ## `parse-floats, compact`
 
-`lexical-parse-float/src/bellerophon.rs` is loosely based off the Golang implementation,
-found [here](https://github.com/golang/go/blob/b10849fbb97a2244c086991b4623ae9f32c212d0/src/strconv/extfloat.go). This code (used if both the `parse-floats` and `compact` features are enabled) is subject to a [3-clause BSD license](https://github.com/golang/go/blob/b10849fbb97a2244c086991b4623ae9f32c212d0/LICENSE), shown in the [Go License](#go-license) section below.
+[bellerophon](/lexical-parse-float/src/bellerophon.rs) is loosely based off the Golang implementation, found [here](https://github.com/golang/go/blob/b10849fbb97a2244c086991b4623ae9f32c212d0/src/strconv/extfloat.go). This code (used if both the `parse-floats` and `compact` features are enabled) is subject to a [3-clause BSD license](https://github.com/golang/go/blob/b10849fbb97a2244c086991b4623ae9f32c212d0/LICENSE), shown in the [Go License](#go-license) section below.
 
-# License Terms
+## `i256`
+
+[div](/lexical-util/src/math/div.rs) is modified from [arrow-rs](https://github.com/apache/arrow-rs/blob/fcf4aa4cfb258903daab0029277ddfed1883bd90/arrow-buffer/src/lib.rs) This code (enabled only if `i256` is enabled) is subject to an [Apache 2.0 License](https://github.com/apache/arrow-rs/blob/fcf4aa4cfb258903daab0029277ddfed1883bd90/LICENSE.txt).
+
+## License Terms
 
 This contains complete copies of the licensing terms for the feature-dependent code described above.
 
-## Go License
+### Go License
 
 Copyright (c) 2009 The Go Authors. All rights reserved.
 
@@ -52,7 +54,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## Boost Software License
+### Boost Software License
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -78,14 +80,14 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-## Apache2 With LLVM Exceptions
+### Apache2 With LLVM Exceptions
 
 _Version 2.0, January 2004_
 _&lt;<http://www.apache.org/licenses/>&gt;_
 
-### Terms and Conditions for use, reproduction, and distribution
+#### Terms and Conditions for use, reproduction, and distribution
 
-#### 1. Definitions
+##### 1. Definitions
 
 “License” shall mean the terms and conditions for use, reproduction, and
 distribution as defined by Sections 1 through 9 of this document.
@@ -139,7 +141,7 @@ owner as “Not a Contribution.”
 of whom a Contribution has been received by Licensor and subsequently
 incorporated within the Work.
 
-#### 2. Grant of Copyright License
+##### 2. Grant of Copyright License
 
 Subject to the terms and conditions of this License, each Contributor hereby
 grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free,
@@ -147,7 +149,7 @@ irrevocable copyright license to reproduce, prepare Derivative Works of,
 publicly display, publicly perform, sublicense, and distribute the Work and such
 Derivative Works in Source or Object form.
 
-#### 3. Grant of Patent License
+##### 3. Grant of Patent License
 
 Subject to the terms and conditions of this License, each Contributor hereby
 grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free,
@@ -162,7 +164,7 @@ Contribution incorporated within the Work constitutes direct or contributory
 patent infringement, then any patent licenses granted to You under this License
 for that Work shall terminate as of the date such litigation is filed.
 
-#### 4. Redistribution
+##### 4. Redistribution
 
 You may reproduce and distribute copies of the Work or Derivative Works thereof
 in any medium, with or without modifications, and in Source or Object form,
@@ -196,7 +198,7 @@ distribution of Your modifications, or for any such Derivative Works as a whole,
 provided Your use, reproduction, and distribution of the Work otherwise complies
 with the conditions stated in this License.
 
-#### 5. Submission of Contributions
+##### 5. Submission of Contributions
 
 Unless You explicitly state otherwise, any Contribution intentionally submitted
 for inclusion in the Work by You to the Licensor shall be under the terms and
@@ -205,14 +207,14 @@ Notwithstanding the above, nothing herein shall supersede or modify the terms of
 any separate license agreement you may have executed with Licensor regarding
 such Contributions.
 
-#### 6. Trademarks
+##### 6. Trademarks
 
 This License does not grant permission to use the trade names, trademarks,
 service marks, or product names of the Licensor, except as required for
 reasonable and customary use in describing the origin of the Work and
 reproducing the content of the NOTICE file.
 
-#### 7. Disclaimer of Warranty
+##### 7. Disclaimer of Warranty
 
 Unless required by applicable law or agreed to in writing, Licensor provides the
 Work (and each Contributor provides its Contributions) on an “AS IS” BASIS,
@@ -223,7 +225,7 @@ solely responsible for determining the appropriateness of using or
 redistributing the Work and assume any risks associated with Your exercise of
 permissions under this License.
 
-#### 8. Limitation of Liability
+##### 8. Limitation of Liability
 
 In no event and under no legal theory, whether in tort (including negligence),
 contract, or otherwise, unless required by applicable law (such as deliberate
@@ -235,7 +237,7 @@ damages for loss of goodwill, work stoppage, computer failure or malfunction, or
 any and all other commercial damages or losses), even if such Contributor has
 been advised of the possibility of such damages.
 
-#### 9. Accepting Warranty or Additional Liability
+##### 9. Accepting Warranty or Additional Liability
 
 While redistributing the Work or Derivative Works thereof, You may choose to
 offer, and charge a fee for, acceptance of support, warranty, indemnity, or
@@ -248,7 +250,7 @@ accepting any such warranty or additional liability.
 
 _END OF TERMS AND CONDITIONS_
 
-### APPENDIX: How to apply the Apache License to your work
+#### APPENDIX: How to apply the Apache License to your work
 
 To apply the Apache License to your work, attach the following boilerplate
 notice, with the fields enclosed by brackets `[]` replaced with your own
@@ -272,7 +274,7 @@ third-party archives.
     See the License for the specific language governing permissions and
     limitations under the License.
 
-### LLVM Exceptions to the Apache 2.0 License
+#### LLVM Exceptions to the Apache 2.0 License
 
 As an exception, if, as a result of your compiling your source code, portions
 of this Software are embedded into an Object form of such source code, you
@@ -288,7 +290,7 @@ prospectively choose to deem waived or otherwise exclude such Section(s) of
 the License, but only in their entirety and only with respect to the Combined
 Software.
 
-## V8 License
+### V8 License
 
 Copyright 2014, the V8 project authors. All rights reserved.
 Redistribution and use in source and binary forms, with or without
@@ -311,7 +313,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## fpconv License
+### fpconv License
 
 The MIT License
 
