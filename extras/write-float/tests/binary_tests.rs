@@ -18,12 +18,12 @@ const OCTAL: u128 = NumberFormatBuilder::octal();
 default_quickcheck! {
     fn f32_binary_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
-        let options = Options::builder().build().unwrap();
+        const OPTIONS: Options = Options::builder().build_strict();
         if f.is_special() {
             true
         } else {
             let f = f.abs();
-            let count = binary::write_float::<_, BINARY>(f, &mut buffer, &options);
+            let count = binary::write_float::<_, BINARY>(f, &mut buffer, &OPTIONS);
             let roundtrip = parse_f32(&buffer[..count], 2, b'e');
             roundtrip == f
         }
@@ -31,12 +31,12 @@ default_quickcheck! {
 
     fn f32_octal_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
-        let options = Options::builder().build().unwrap();
+        const OPTIONS: Options = Options::builder().build_strict();
         if f.is_special() {
             true
         } else {
             let f = f.abs();
-            let count = binary::write_float::<_, OCTAL>(f, &mut buffer, &options);
+            let count = binary::write_float::<_, OCTAL>(f, &mut buffer, &OPTIONS);
             let roundtrip = parse_f32(&buffer[..count], 8, b'e');
             roundtrip == f
         }
@@ -44,12 +44,12 @@ default_quickcheck! {
 
     fn f64_binary_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
-        let options = Options::builder().build().unwrap();
+        const OPTIONS: Options = Options::builder().build_strict();
         if f.is_special() {
             true
         } else {
             let f = f.abs();
-            let count = binary::write_float::<_, BINARY>(f, &mut buffer, &options);
+            let count = binary::write_float::<_, BINARY>(f, &mut buffer, &OPTIONS);
             let roundtrip = parse_f64(&buffer[..count], 2, b'e');
             roundtrip == f
         }
@@ -57,12 +57,12 @@ default_quickcheck! {
 
     fn f64_octal_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
-        let options = Options::builder().build().unwrap();
+        const OPTIONS: Options = Options::builder().build_strict();
         if f.is_special() {
             true
         } else {
             let f = f.abs();
-            let count = binary::write_float::<_, OCTAL>(f, &mut buffer, &options);
+            let count = binary::write_float::<_, OCTAL>(f, &mut buffer, &OPTIONS);
             let roundtrip = parse_f64(&buffer[..count], 8, b'e');
             roundtrip == f
         }
@@ -75,10 +75,10 @@ proptest! {
     #[test]
     fn f32_binary_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
-        let options = Options::builder().build().unwrap();
+        const OPTIONS: Options = Options::builder().build_strict();
         if !f.is_special() {
             let f = f.abs();
-            let count = binary::write_float::<_, BINARY>(f, &mut buffer, &options);
+            let count = binary::write_float::<_, BINARY>(f, &mut buffer, &OPTIONS);
             let roundtrip = parse_f32(&buffer[..count], 2, b'e');
             prop_assert_eq!(roundtrip, f)
         }
@@ -87,10 +87,10 @@ proptest! {
     #[test]
     fn f32_octal_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
-        let options = Options::builder().build().unwrap();
+        const OPTIONS: Options = Options::builder().build_strict();
         if !f.is_special() {
             let f = f.abs();
-            let count = binary::write_float::<_, OCTAL>(f, &mut buffer, &options);
+            let count = binary::write_float::<_, OCTAL>(f, &mut buffer, &OPTIONS);
             let roundtrip = parse_f32(&buffer[..count], 8, b'e');
             prop_assert_eq!(roundtrip, f)
         }
@@ -99,10 +99,10 @@ proptest! {
     #[test]
     fn f64_binary_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
-        let options = Options::builder().build().unwrap();
+        const OPTIONS: Options = Options::builder().build_strict();
         if !f.is_special() {
             let f = f.abs();
-            let count = binary::write_float::<_, BINARY>(f, &mut buffer, &options);
+            let count = binary::write_float::<_, BINARY>(f, &mut buffer, &OPTIONS);
             let roundtrip = parse_f64(&buffer[..count], 2, b'e');
             prop_assert_eq!(roundtrip, f)
         }
@@ -111,10 +111,10 @@ proptest! {
     #[test]
     fn f64_octal_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
-        let options = Options::builder().build().unwrap();
+        const OPTIONS: Options = Options::builder().build_strict();
         if !f.is_special() {
             let f = f.abs();
-            let count = binary::write_float::<_, OCTAL>(f, &mut buffer, &options);
+            let count = binary::write_float::<_, OCTAL>(f, &mut buffer, &OPTIONS);
             let roundtrip = parse_f64(&buffer[..count], 8, b'e');
             prop_assert_eq!(roundtrip, f)
         }

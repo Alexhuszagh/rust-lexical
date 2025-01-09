@@ -45,8 +45,8 @@ macro_rules! float_to_lexical {
     )*)
 }
 
-to_lexical! {}
-to_lexical_with_options! {}
+to_lexical!("lexical_write_float", 1.234, f64);
+to_lexical_with_options!("lexical_write_float", 1.234, f64, Options);
 float_to_lexical! {
     f32 ;
     f64 ;

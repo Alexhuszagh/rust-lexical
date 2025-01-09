@@ -18,28 +18,28 @@ const BASE2_2_4: u128 = NumberFormatBuilder::new()
     .mantissa_radix(2)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(4))
-    .build();
+    .build_strict();
 const BASE4_4_8: u128 = NumberFormatBuilder::new()
     .mantissa_radix(4)
     .exponent_base(num::NonZeroU8::new(4))
     .exponent_radix(num::NonZeroU8::new(8))
-    .build();
+    .build_strict();
 const BASE4_2_32: u128 = NumberFormatBuilder::new()
     .mantissa_radix(4)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(32))
-    .build();
+    .build_strict();
 const BASE4_8_4: u128 = NumberFormatBuilder::new()
     .mantissa_radix(4)
     .exponent_base(num::NonZeroU8::new(8))
     .exponent_radix(num::NonZeroU8::new(4))
-    .build();
+    .build_strict();
 const BASE32_2_32: u128 = NumberFormatBuilder::new()
     .mantissa_radix(32)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(32))
-    .build();
-const HEX_OPTIONS: Options = Options::builder().exponent(b'^').build_unchecked();
+    .build_strict();
+const HEX_OPTIONS: Options = Options::builder().exponent(b'^').build_strict();
 
 #[test]
 fn fast_log2_test() {
@@ -133,28 +133,26 @@ fn scale_sci_exp_test() {
 
 #[test]
 fn truncate_and_round_test() {
-    let truncate = Options::builder()
+    const TRUNCATE: Options = Options::builder()
         .max_significant_digits(num::NonZeroUsize::new(4))
         .round_mode(RoundMode::Truncate)
-        .build()
-        .unwrap();
-    let round = Options::builder()
+        .build_strict();
+    const ROUND: Options = Options::builder()
         .max_significant_digits(num::NonZeroUsize::new(4))
         .round_mode(RoundMode::Round)
-        .build()
-        .unwrap();
+        .build_strict();
 
     // Above halfway
-    assert_eq!(binary::truncate_and_round(6602499140956772u64, 2, &round), (12, 53));
-    assert_eq!(binary::truncate_and_round(6602499140956772u64, 2, &truncate), (11, 53));
+    assert_eq!(binary::truncate_and_round(6602499140956772u64, 2, &ROUND), (12, 53));
+    assert_eq!(binary::truncate_and_round(6602499140956772u64, 2, &TRUNCATE), (11, 53));
 
     // At halfway
-    assert_eq!(binary::truncate_and_round(6473924464345088u64, 2, &round), (12, 53));
-    assert_eq!(binary::truncate_and_round(6473924464345088u64, 2, &truncate), (11, 53));
+    assert_eq!(binary::truncate_and_round(6473924464345088u64, 2, &ROUND), (12, 53));
+    assert_eq!(binary::truncate_and_round(6473924464345088u64, 2, &TRUNCATE), (11, 53));
 
     // Below halfway.
-    assert_eq!(binary::truncate_and_round(6473924464345087u64, 2, &round), (11, 53));
-    assert_eq!(binary::truncate_and_round(6473924464345087u64, 2, &truncate), (11, 53));
+    assert_eq!(binary::truncate_and_round(6473924464345087u64, 2, &ROUND), (11, 53));
+    assert_eq!(binary::truncate_and_round(6473924464345087u64, 2, &TRUNCATE), (11, 53));
 }
 
 // NOTE: This doesn't handle float rounding or truncation.
@@ -183,82 +181,82 @@ fn write_float_scientific_test() {
     // Positive exponent
 
     // Check no formatting, binary.
-    let options = Options::builder().build().unwrap();
-    write_float_scientific::<_, BINARY>(0.0f64, &options, "0.0e0");
-    write_float_scientific::<_, BINARY>(1.0f64, &options, "1.0e0");
-    write_float_scientific::<_, BINARY>(2.0f64, &options, "1.0e1");
-    write_float_scientific::<_, BINARY>(0.5f64, &options, "1.0e-1");
+    const OPTIONS: Options = Options::builder().build_strict();
+    write_float_scientific::<_, BINARY>(0.0f64, &OPTIONS, "0.0e0");
+    write_float_scientific::<_, BINARY>(1.0f64, &OPTIONS, "1.0e0");
+    write_float_scientific::<_, BINARY>(2.0f64, &OPTIONS, "1.0e1");
+    write_float_scientific::<_, BINARY>(0.5f64, &OPTIONS, "1.0e-1");
     write_float_scientific::<_, BINARY>(
         0.2345678901234567890e2f64,
-        &options,
+        &OPTIONS,
         "1.01110111010011110000000111111110110100110010011001e100",
     );
     write_float_scientific::<_, BINARY>(
         0.1172839450617284e2f64,
-        &options,
+        &OPTIONS,
         "1.01110111010011110000000111111110110100110010011001e11",
     );
     write_float_scientific::<_, BINARY>(
         0.0586419725308642e2f64,
-        &options,
+        &OPTIONS,
         "1.01110111010011110000000111111110110100110010011001e10",
     );
     write_float_scientific::<_, BINARY>(
         0.0293209862654321e2f64,
-        &options,
+        &OPTIONS,
         "1.01110111010011110000000111111110110100110010011001e1",
     );
     write_float_scientific::<_, BINARY>(
         0.01466049313271605e2f64,
-        &options,
+        &OPTIONS,
         "1.01110111010011110000000111111110110100110010011001e0",
     );
 
     // Check no formatting, base 4.
-    write_float_scientific::<_, BASE4>(0.0f64, &options, "0.0e0");
-    write_float_scientific::<_, BASE4>(1.0f64, &options, "1.0e0");
-    write_float_scientific::<_, BASE4>(2.0f64, &options, "2.0e0");
-    write_float_scientific::<_, BASE4>(0.5f64, &options, "2.0e-1");
+    write_float_scientific::<_, BASE4>(0.0f64, &OPTIONS, "0.0e0");
+    write_float_scientific::<_, BASE4>(1.0f64, &OPTIONS, "1.0e0");
+    write_float_scientific::<_, BASE4>(2.0f64, &OPTIONS, "2.0e0");
+    write_float_scientific::<_, BASE4>(0.5f64, &OPTIONS, "2.0e-1");
     write_float_scientific::<_, BASE4>(
         0.2345678901234567890e2f64,
-        &options,
+        &OPTIONS,
         "1.1313103300013332310302121e2",
     );
     write_float_scientific::<_, BASE4>(
         0.1172839450617284e2f64,
-        &options,
+        &OPTIONS,
         "2.3232213200033331221210302e1",
     );
     write_float_scientific::<_, BASE4>(
         0.0586419725308642e2f64,
-        &options,
+        &OPTIONS,
         "1.1313103300013332310302121e1",
     );
     write_float_scientific::<_, BASE4>(
         0.0293209862654321e2f64,
-        &options,
+        &OPTIONS,
         "2.3232213200033331221210302e0",
     );
     write_float_scientific::<_, BASE4>(
         0.01466049313271605e2f64,
-        &options,
+        &OPTIONS,
         "1.1313103300013332310302121e0",
     );
 
     // Check no formatting, octal.
-    write_float_scientific::<_, OCTAL>(0.0f64, &options, "0.0e0");
-    write_float_scientific::<_, OCTAL>(1.0f64, &options, "1.0e0");
-    write_float_scientific::<_, OCTAL>(2.0f64, &options, "2.0e0");
-    write_float_scientific::<_, OCTAL>(0.5f64, &options, "4.0e-1");
+    write_float_scientific::<_, OCTAL>(0.0f64, &OPTIONS, "0.0e0");
+    write_float_scientific::<_, OCTAL>(1.0f64, &OPTIONS, "1.0e0");
+    write_float_scientific::<_, OCTAL>(2.0f64, &OPTIONS, "2.0e0");
+    write_float_scientific::<_, OCTAL>(0.5f64, &OPTIONS, "4.0e-1");
     write_float_scientific::<_, OCTAL>(
         0.2345678901234567890e2f64,
-        &options,
+        &OPTIONS,
         "2.73517003773231144e1",
     );
-    write_float_scientific::<_, OCTAL>(0.1172839450617284e2f64, &options, "1.35647401775514462e1");
-    write_float_scientific::<_, OCTAL>(0.0586419725308642e2f64, &options, "5.6723600776646231e0");
-    write_float_scientific::<_, OCTAL>(0.0293209862654321e2f64, &options, "2.73517003773231144e0");
-    write_float_scientific::<_, OCTAL>(0.01466049313271605e2f64, &options, "1.35647401775514462e0");
+    write_float_scientific::<_, OCTAL>(0.1172839450617284e2f64, &OPTIONS, "1.35647401775514462e1");
+    write_float_scientific::<_, OCTAL>(0.0586419725308642e2f64, &OPTIONS, "5.6723600776646231e0");
+    write_float_scientific::<_, OCTAL>(0.0293209862654321e2f64, &OPTIONS, "2.73517003773231144e0");
+    write_float_scientific::<_, OCTAL>(0.01466049313271605e2f64, &OPTIONS, "1.35647401775514462e0");
 
     // Check no formatting, hexadecimal.
     write_float_scientific::<_, HEX>(0.0f64, &HEX_OPTIONS, "0.0^0");
@@ -287,67 +285,67 @@ fn write_float_scientific_test() {
     // Check no formatting, binary.
     write_float_scientific::<_, BINARY>(
         0.2345678901234567890f64,
-        &options,
+        &OPTIONS,
         "1.11100000011001010010000101000110001011001111110111e-11",
     );
     write_float_scientific::<_, BINARY>(
         0.1172839450617284f64,
-        &options,
+        &OPTIONS,
         "1.11100000011001010010000101000110001011001111110111e-100",
     );
     write_float_scientific::<_, BINARY>(
         0.0586419725308642f64,
-        &options,
+        &OPTIONS,
         "1.11100000011001010010000101000110001011001111110111e-101",
     );
     write_float_scientific::<_, BINARY>(
         0.0293209862654321f64,
-        &options,
+        &OPTIONS,
         "1.11100000011001010010000101000110001011001111110111e-110",
     );
     write_float_scientific::<_, BINARY>(
         0.01466049313271605f64,
-        &options,
+        &OPTIONS,
         "1.11100000011001010010000101000110001011001111110111e-111",
     );
 
     // Check no formatting, base 4.
     write_float_scientific::<_, BASE4>(
         0.2345678901234567890f64,
-        &options,
+        &OPTIONS,
         "3.3000302210022030112133232e-2",
     );
     write_float_scientific::<_, BASE4>(
         0.1172839450617284f64,
-        &options,
+        &OPTIONS,
         "1.3200121102011012023033313e-2",
     );
     write_float_scientific::<_, BASE4>(
         0.0586419725308642f64,
-        &options,
+        &OPTIONS,
         "3.3000302210022030112133232e-3",
     );
     write_float_scientific::<_, BASE4>(
         0.0293209862654321f64,
-        &options,
+        &OPTIONS,
         "1.3200121102011012023033313e-3",
     );
     write_float_scientific::<_, BASE4>(
         0.01466049313271605f64,
-        &options,
+        &OPTIONS,
         "3.3000302210022030112133232e-10",
     );
 
     // Check no formatting, octal.
     write_float_scientific::<_, OCTAL>(
         0.2345678901234567890f64,
-        &options,
+        &OPTIONS,
         "1.70062441214263756e-1",
     );
-    write_float_scientific::<_, OCTAL>(0.1172839450617284f64, &options, "7.4031220506131767e-2");
-    write_float_scientific::<_, OCTAL>(0.0586419725308642f64, &options, "3.60145102430547734e-2");
-    write_float_scientific::<_, OCTAL>(0.0293209862654321f64, &options, "1.70062441214263756e-2");
-    write_float_scientific::<_, OCTAL>(0.01466049313271605f64, &options, "7.4031220506131767e-3");
+    write_float_scientific::<_, OCTAL>(0.1172839450617284f64, &OPTIONS, "7.4031220506131767e-2");
+    write_float_scientific::<_, OCTAL>(0.0586419725308642f64, &OPTIONS, "3.60145102430547734e-2");
+    write_float_scientific::<_, OCTAL>(0.0293209862654321f64, &OPTIONS, "1.70062441214263756e-2");
+    write_float_scientific::<_, OCTAL>(0.01466049313271605f64, &OPTIONS, "7.4031220506131767e-3");
 
     // Check no formatting, hexadecimal.
     write_float_scientific::<_, HEX>(0.2345678901234567890f64, &HEX_OPTIONS, "3.C0CA428C59FB8^-1");
@@ -366,79 +364,78 @@ fn write_float_scientific_test() {
     // Different exponent radix.
     write_float_scientific::<_, BASE2_2_4>(
         0.2345678901234567890e2f64,
-        &options,
+        &OPTIONS,
         "1.01110111010011110000000111111110110100110010011001e10",
     );
     write_float_scientific::<_, BASE4_4_8>(
         0.2345678901234567890e2f64,
-        &options,
+        &OPTIONS,
         "1.1313103300013332310302121e2",
     );
 
     // Check no formatting, f32, binary.
     write_float_scientific::<_, BINARY>(
         1.2345678901234567890f32,
-        &options,
+        &OPTIONS,
         "1.0011110000001100101001e0",
     );
     write_float_scientific::<_, BINARY>(
         3.2345678901234567890f32,
-        &options,
+        &OPTIONS,
         "1.10011110000001100101001e1",
     );
-    write_float_scientific::<_, BINARY>(1f32, &options, "1.0e0");
+    write_float_scientific::<_, BINARY>(1f32, &OPTIONS, "1.0e0");
     write_float_scientific::<_, BINARY>(
         0.2345678901234567890f32,
-        &options,
+        &OPTIONS,
         "1.11100000011001010010001e-11",
     );
     write_float_scientific::<_, BINARY>(
         0.7345678901234567890f32,
-        &options,
+        &OPTIONS,
         "1.011110000001100101001e-1",
     );
-    write_float_scientific::<_, BINARY>(1.4e-45f32, &options, "1.0e-10010101");
+    write_float_scientific::<_, BINARY>(1.4e-45f32, &OPTIONS, "1.0e-10010101");
     write_float_scientific::<_, BINARY>(
         3.4028234664e38f32,
-        &options,
+        &OPTIONS,
         "1.11111111111111111111111e1111111",
     );
 
     // Check with a minimum number of digits.
-    let options =
-        Options::builder().min_significant_digits(num::NonZeroUsize::new(5)).build().unwrap();
-    write_float_scientific::<_, BINARY>(0.0f64, &options, "0.0000e0");
-    write_float_scientific::<_, BINARY>(1.0f64, &options, "1.0000e0");
-    write_float_scientific::<_, BINARY>(2.0f64, &options, "1.0000e1");
-    write_float_scientific::<_, BINARY>(0.5f64, &options, "1.0000e-1");
+    const MIN_DIGITS: Options =
+        Options::builder().min_significant_digits(num::NonZeroUsize::new(5)).build_strict();
+    write_float_scientific::<_, BINARY>(0.0f64, &MIN_DIGITS, "0.0000e0");
+    write_float_scientific::<_, BINARY>(1.0f64, &MIN_DIGITS, "1.0000e0");
+    write_float_scientific::<_, BINARY>(2.0f64, &MIN_DIGITS, "1.0000e1");
+    write_float_scientific::<_, BINARY>(0.5f64, &MIN_DIGITS, "1.0000e-1");
     write_float_scientific::<_, BASE4>(
         0.2345678901234567890e2f64,
-        &options,
+        &MIN_DIGITS,
         "1.1313103300013332310302121e2",
     );
 
-    let options = Options::builder()
+    const TRIM_MIN_DIGITS: Options = Options::builder()
         .min_significant_digits(num::NonZeroUsize::new(5))
         .trim_floats(true)
-        .build()
-        .unwrap();
-    write_float_scientific::<_, BINARY>(0.0f64, &options, "0e0");
-    write_float_scientific::<_, BINARY>(1.0f64, &options, "1e0");
-    write_float_scientific::<_, BINARY>(2.0f64, &options, "1e1");
-    write_float_scientific::<_, BINARY>(0.5f64, &options, "1e-1");
+        .build_strict();
+    write_float_scientific::<_, BINARY>(0.0f64, &TRIM_MIN_DIGITS, "0e0");
+    write_float_scientific::<_, BINARY>(1.0f64, &TRIM_MIN_DIGITS, "1e0");
+    write_float_scientific::<_, BINARY>(2.0f64, &TRIM_MIN_DIGITS, "1e1");
+    write_float_scientific::<_, BINARY>(0.5f64, &TRIM_MIN_DIGITS, "1e-1");
     write_float_scientific::<_, BASE4>(
         0.2345678901234567890e2f64,
-        &options,
+        &TRIM_MIN_DIGITS,
         "1.1313103300013332310302121e2",
     );
 
     // Check trimming floats
-    let options = Options::builder().trim_floats(true).build().unwrap();
-    write_float_scientific::<_, BINARY>(1f32, &options, "1e0");
-    write_float_scientific::<_, BINARY>(1.4e-45f32, &options, "1e-10010101");
+    const TRIM: Options = Options::builder().trim_floats(true).build_strict();
+    write_float_scientific::<_, BINARY>(1f32, &TRIM, "1e0");
+    write_float_scientific::<_, BINARY>(1.4e-45f32, &TRIM, "1e-10010101");
     write_float_scientific::<_, BINARY>(
         1.2345678901234567890f32,
-        &options,
+        &TRIM,
         "1.0011110000001100101001e0",
     );
 }
@@ -474,84 +471,84 @@ fn write_float_negative_exponent_test() {
     // Negative exponent
 
     // Check no formatting, binary.
-    let options = Options::builder().build().unwrap();
+    const OPTS1: Options = Options::builder().build_strict();
     write_float_negative_exponent::<_, BINARY>(
         0.2345678901234567890f64,
-        &options,
+        &OPTS1,
         "0.00111100000011001010010000101000110001011001111110111",
     );
     write_float_negative_exponent::<_, BINARY>(
         0.1172839450617284f64,
-        &options,
+        &OPTS1,
         "0.000111100000011001010010000101000110001011001111110111",
     );
     write_float_negative_exponent::<_, BINARY>(
         0.0586419725308642f64,
-        &options,
+        &OPTS1,
         "0.0000111100000011001010010000101000110001011001111110111",
     );
     write_float_negative_exponent::<_, BINARY>(
         0.0293209862654321f64,
-        &options,
+        &OPTS1,
         "0.00000111100000011001010010000101000110001011001111110111",
     );
     write_float_negative_exponent::<_, BINARY>(
         0.01466049313271605f64,
-        &options,
+        &OPTS1,
         "0.000000111100000011001010010000101000110001011001111110111",
     );
 
     // Check no formatting, base 4.
     write_float_negative_exponent::<_, BASE4>(
         0.2345678901234567890f64,
-        &options,
+        &OPTS1,
         "0.033000302210022030112133232",
     );
     write_float_negative_exponent::<_, BASE4>(
         0.1172839450617284f64,
-        &options,
+        &OPTS1,
         "0.013200121102011012023033313",
     );
     write_float_negative_exponent::<_, BASE4>(
         0.0586419725308642f64,
-        &options,
+        &OPTS1,
         "0.0033000302210022030112133232",
     );
     write_float_negative_exponent::<_, BASE4>(
         0.0293209862654321f64,
-        &options,
+        &OPTS1,
         "0.0013200121102011012023033313",
     );
     write_float_negative_exponent::<_, BASE4>(
         0.01466049313271605f64,
-        &options,
+        &OPTS1,
         "0.00033000302210022030112133232",
     );
 
     // Check no formatting, octal.
     write_float_negative_exponent::<_, OCTAL>(
         0.2345678901234567890f64,
-        &options,
+        &OPTS1,
         "0.170062441214263756",
     );
     write_float_negative_exponent::<_, OCTAL>(
         0.1172839450617284f64,
-        &options,
+        &OPTS1,
         "0.074031220506131767",
     );
     write_float_negative_exponent::<_, OCTAL>(
         0.0586419725308642f64,
-        &options,
+        &OPTS1,
         "0.0360145102430547734",
     );
     write_float_negative_exponent::<_, OCTAL>(
         0.0293209862654321f64,
-        &options,
+        &OPTS1,
         "0.0170062441214263756",
     );
     write_float_negative_exponent::<_, OCTAL>(
         0.01466049313271605f64,
-        &options,
+        &OPTS1,
         "0.0074031220506131767",
     );
 
@@ -612,71 +609,70 @@ fn write_float_negative_exponent_test() {
     // Different exponent radix.
     write_float_negative_exponent::<_, BASE2_2_4>(
         0.2345678901234567890f64,
-        &options,
+        &OPTS1,
         "0.00111100000011001010010000101000110001011001111110111",
     );
     write_float_negative_exponent::<_, BASE4_2_32>(
         0.2345678901234567890f64,
-        &options,
+        &OPTS1,
         "0.033000302210022030112133232",
     );
     write_float_negative_exponent::<_, BASE4_4_8>(
         0.2345678901234567890f64,
-        &options,
+        &OPTS1,
         "0.033000302210022030112133232",
     );
     write_float_negative_exponent::<_, BASE4_8_4>(
         0.2345678901234567890f64,
-        &options,
+        &OPTS1,
         "0.033000302210022030112133232",
     );
     write_float_negative_exponent::<_, BASE32_2_32>(
         0.2345678901234567890f64,
-        &options,
+        &OPTS1,
         "0.7G6A8A65JUS",
     );
 
     // Check no formatting, f32, binary.
     write_float_negative_exponent::<_, BINARY>(
         0.2345678901234567890f32,
-        &options,
+        &OPTS1,
         "0.00111100000011001010010001",
     );
     write_float_negative_exponent::<_, BINARY>(
         0.7345678901234567890f32,
-        &options,
+        &OPTS1,
         "0.1011110000001100101001",
     );
-    write_float_negative_exponent::<_, BINARY>(1.4e-45f32, &options, "0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001");
+    write_float_negative_exponent::<_, BINARY>(1.4e-45f32, &OPTS1, "0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001");
 
     // Check with a minimum number of digits.
-    let options =
-        Options::builder().min_significant_digits(num::NonZeroUsize::new(5)).build().unwrap();
-    write_float_negative_exponent::<_, BINARY>(0.5f64, &options, "0.10000");
+    const OPTS2: Options =
+        Options::builder().min_significant_digits(num::NonZeroUsize::new(5)).build_strict();
+    write_float_negative_exponent::<_, BINARY>(0.5f64, &OPTS2, "0.10000");
     write_float_negative_exponent::<_, BASE4>(
         0.2345678901234567890f64,
-        &options,
+        &OPTS2,
         "0.033000302210022030112133232",
     );
 
-    let options = Options::builder()
+    const OPTS3: Options = Options::builder()
         .min_significant_digits(num::NonZeroUsize::new(5))
         .trim_floats(true)
-        .build()
-        .unwrap();
-    write_float_negative_exponent::<_, BINARY>(0.5f64, &options, "0.10000");
+        .build_strict();
+    write_float_negative_exponent::<_, BINARY>(0.5f64, &OPTS3, "0.10000");
     write_float_negative_exponent::<_, BASE4>(
         0.2345678901234567890f64,
-        &options,
+        &OPTS3,
         "0.033000302210022030112133232",
     );
 
     // Check trimming floats does nothing.
-    let options = Options::builder().trim_floats(true).build().unwrap();
-    write_float_negative_exponent::<_, BINARY>(0.5f64, &options, "0.1");
+    const OPTS4: Options = Options::builder().trim_floats(true).build_strict();
+    write_float_negative_exponent::<_, BINARY>(0.5f64, &OPTS4, "0.1");
     write_float_negative_exponent::<_, BASE4>(
         0.2345678901234567890f64,
-        &options,
+        &OPTS4,
         "0.033000302210022030112133232",
     );
 }
@@ -715,93 +711,93 @@ fn write_float_positive_exponent_test() {
     // Positive exponent
 
     // Check no formatting, binary.
-    let options = Options::builder().build().unwrap();
-    write_float_positive_exponent::<_, BINARY>(0.0f64, &options, "0.0");
-    write_float_positive_exponent::<_, BINARY>(1.0f64, &options, "1.0");
-    write_float_positive_exponent::<_, BINARY>(2.0f64, &options, "10.0");
+    const OPTS1: Options = Options::builder().build_strict();
+    write_float_positive_exponent::<_, BINARY>(0.0f64, &OPTS1, "0.0");
+    write_float_positive_exponent::<_, BINARY>(1.0f64, &OPTS1, "1.0");
+    write_float_positive_exponent::<_, BINARY>(2.0f64, &OPTS1, "10.0");
     write_float_positive_exponent::<_, BINARY>(
         0.2345678901234567890e2f64,
-        &options,
+        &OPTS1,
         "10111.0111010011110000000111111110110100110010011001",
     );
     write_float_positive_exponent::<_, BINARY>(
         0.1172839450617284e2f64,
-        &options,
+        &OPTS1,
         "1011.10111010011110000000111111110110100110010011001",
     );
     write_float_positive_exponent::<_, BINARY>(
         0.0586419725308642e2f64,
-        &options,
+        &OPTS1,
         "101.110111010011110000000111111110110100110010011001",
     );
     write_float_positive_exponent::<_, BINARY>(
         0.0293209862654321e2f64,
-        &options,
+        &OPTS1,
         "10.1110111010011110000000111111110110100110010011001",
     );
     write_float_positive_exponent::<_, BINARY>(
         0.01466049313271605e2f64,
-        &options,
+        &OPTS1,
         "1.01110111010011110000000111111110110100110010011001",
     );
 
     // Check no formatting, base 4.
-    write_float_positive_exponent::<_, BASE4>(0.0f64, &options, "0.0");
-    write_float_positive_exponent::<_, BASE4>(1.0f64, &options, "1.0");
-    write_float_positive_exponent::<_, BASE4>(2.0f64, &options, "2.0");
+    write_float_positive_exponent::<_, BASE4>(0.0f64, &OPTS1, "0.0");
+    write_float_positive_exponent::<_, BASE4>(1.0f64, &OPTS1, "1.0");
+    write_float_positive_exponent::<_, BASE4>(2.0f64, &OPTS1, "2.0");
     write_float_positive_exponent::<_, BASE4>(
         0.2345678901234567890e2f64,
-        &options,
+        &OPTS1,
         "113.13103300013332310302121",
     );
     write_float_positive_exponent::<_, BASE4>(
         0.1172839450617284e2f64,
-        &options,
+        &OPTS1,
         "23.232213200033331221210302",
     );
     write_float_positive_exponent::<_, BASE4>(
         0.0586419725308642e2f64,
-        &options,
+        &OPTS1,
         "11.313103300013332310302121",
     );
     write_float_positive_exponent::<_, BASE4>(
         0.0293209862654321e2f64,
-        &options,
+        &OPTS1,
         "2.3232213200033331221210302",
     );
     write_float_positive_exponent::<_, BASE4>(
         0.01466049313271605e2f64,
-        &options,
+        &OPTS1,
         "1.1313103300013332310302121",
     );
 
     // Check no formatting, octal.
-    write_float_positive_exponent::<_, OCTAL>(0.0f64, &options, "0.0");
-    write_float_positive_exponent::<_, OCTAL>(1.0f64, &options, "1.0");
-    write_float_positive_exponent::<_, OCTAL>(2.0f64, &options, "2.0");
+    write_float_positive_exponent::<_, OCTAL>(0.0f64, &OPTS1, "0.0");
+    write_float_positive_exponent::<_, OCTAL>(1.0f64, &OPTS1, "1.0");
+    write_float_positive_exponent::<_, OCTAL>(2.0f64, &OPTS1, "2.0");
     write_float_positive_exponent::<_, OCTAL>(
         0.2345678901234567890e2f64,
-        &options,
+        &OPTS1,
         "27.3517003773231144",
     );
     write_float_positive_exponent::<_, OCTAL>(
         0.1172839450617284e2f64,
-        &options,
+        &OPTS1,
         "13.5647401775514462",
     );
     write_float_positive_exponent::<_, OCTAL>(
         0.0586419725308642e2f64,
-        &options,
+        &OPTS1,
         "5.6723600776646231",
     );
     write_float_positive_exponent::<_, OCTAL>(
         0.0293209862654321e2f64,
-        &options,
+        &OPTS1,
         "2.73517003773231144",
     );
     write_float_positive_exponent::<_, OCTAL>(
         0.01466049313271605e2f64,
-        &options,
+        &OPTS1,
         "1.35647401775514462",
     );
 
@@ -868,22 +864,22 @@ fn write_float_positive_exponent_test() {
     // Different exponent radix.
     write_float_positive_exponent::<_, BASE2_2_4>(
         0.2345678901234567890e2f64,
-        &options,
+        &OPTS1,
         "10111.0111010011110000000111111110110100110010011001",
     );
     write_float_positive_exponent::<_, BASE4_2_32>(
         0.2345678901234567890e2f64,
-        &options,
+        &OPTS1,
         "113.13103300013332310302121",
     );
     write_float_positive_exponent::<_, BASE4_4_8>(
         0.2345678901234567890e2f64,
-        &options,
+        &OPTS1,
         "113.13103300013332310302121",
     );
     write_float_positive_exponent::<_, BASE4_8_4>(
         0.2345678901234567890e2f64,
-        &options,
+        &OPTS1,
         "113.13103300013332310302121",
     );
     write_float_positive_exponent::<_, BASE32_2_32>(
@@ -895,44 +891,43 @@ fn write_float_positive_exponent_test() {
     // Check no formatting, f32, binary.
     write_float_positive_exponent::<_, BINARY>(
         0.2345678901234567890e2f32,
-        &options,
+        &OPTS1,
         "10111.0111010011110000001",
     );
     write_float_positive_exponent::<_, BINARY>(
         0.7345678901234567890e2f32,
-        &options,
+        &OPTS1,
         "1001001.011101001111",
     );
-    write_float_positive_exponent::<_, BINARY>(3.4028234664e38f32, &options, "11111111111111111111111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0");
+    write_float_positive_exponent::<_, BINARY>(3.4028234664e38f32, &OPTS1, "11111111111111111111111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0");
 
     // Check with a minimum number of digits.
-    let options =
-        Options::builder().min_significant_digits(num::NonZeroUsize::new(5)).build().unwrap();
-    write_float_positive_exponent::<_, BINARY>(1.0f64, &options, "1.0000");
+    const OPTS2: Options =
+        Options::builder().min_significant_digits(num::NonZeroUsize::new(5)).build_strict();
+    write_float_positive_exponent::<_, BINARY>(1.0f64, &OPTS2, "1.0000");
     write_float_positive_exponent::<_, BINARY>(
         0.2345678901234567890e2f32,
-        &options,
+        &OPTS2,
         "10111.0111010011110000001",
     );
 
-    let options = Options::builder()
+    const OPTS3: Options = Options::builder()
         .min_significant_digits(num::NonZeroUsize::new(5))
         .trim_floats(true)
-        .build()
-        .unwrap();
-    write_float_positive_exponent::<_, BINARY>(1.0f64, &options, "1");
+        .build_strict();
+    write_float_positive_exponent::<_, BINARY>(1.0f64, &OPTS3, "1");
     write_float_positive_exponent::<_, BINARY>(
         0.2345678901234567890e2f32,
-        &options,
+        &OPTS3,
         "10111.0111010011110000001",
     );
 
     // Check trimming floats works.
-    let options = Options::builder().trim_floats(true).build().unwrap();
-    write_float_positive_exponent::<_, BINARY>(1.0f64, &options, "1");
+    const OPTS4: Options = Options::builder().trim_floats(true).build_strict();
+    write_float_positive_exponent::<_, BINARY>(1.0f64, &OPTS4, "1");
     write_float_positive_exponent::<_, BINARY>(
         0.2345678901234567890e2f32,
-        &options,
+        &OPTS4,
         "10111.0111010011110000001",
     );
 }
@@ -950,132 +945,125 @@ where
 #[test]
 fn write_float_test() {
     // Check no formatting, binary, and when exponent notation is used.
-    let options = Options::builder().build().unwrap();
-    write_float::<_, BINARY>(0.0f64, &options, "0.0");
-    write_float::<_, BINARY>(1.0f64, &options, "1.0");
-    write_float::<_, BINARY>(2.0f64, &options, "10.0");
-    write_float::<_, BINARY>(0.5f64, &options, "0.1");
+    const OPTS1: Options = Options::builder().build_strict();
+    write_float::<_, BINARY>(0.0f64, &OPTS1, "0.0");
+    write_float::<_, BINARY>(1.0f64, &OPTS1, "1.0");
+    write_float::<_, BINARY>(2.0f64, &OPTS1, "10.0");
+    write_float::<_, BINARY>(0.5f64, &OPTS1, "0.1");
     write_float::<_, BINARY>(
         23.45678901234567890f64,
-        &options,
+        &OPTS1,
         "10111.0111010011110000000111111110110100110010011001",
     );
     write_float::<_, BINARY>(
         93.82715604938272f64,
-        &options,
+        &OPTS1,
         "1011101.11010011110000000111111110110100110010011001",
     );
     write_float::<_, BINARY>(
         375.3086241975309f64,
-        &options,
+        &OPTS1,
         "101110111.010011110000000111111110110100110010011001",
     );
     write_float::<_, BINARY>(
         750.6172483950618f64,
-        &options,
+        &OPTS1,
         "1011101110.10011110000000111111110110100110010011001",
     );
     write_float::<_, BINARY>(
         1501.2344967901236f64,
-        &options,
+        &OPTS1,
         "1.01110111010011110000000111111110110100110010011001e1010",
     );
     write_float::<_, BINARY>(
         0.09162808207947531f64,
-        &options,
+        &OPTS1,
         "0.000101110111010011110000000111111110110100110010011001",
     );
     write_float::<_, BINARY>(
         0.04581404103973766f64,
-        &options,
+        &OPTS1,
         "0.0000101110111010011110000000111111110110100110010011001",
     );
     write_float::<_, BINARY>(
         0.02290702051986883f64,
-        &options,
+        &OPTS1,
         "1.01110111010011110000000111111110110100110010011001e-110",
     );
 
     // Try changing the exponent limits.
-    let options = Options::builder()
+    const OPTS2: Options = Options::builder()
         .negative_exponent_break(num::NonZeroI32::new(-6))
         .positive_exponent_break(num::NonZeroI32::new(10))
-        .build()
-        .unwrap();
+        .build_strict();
     write_float::<_, BINARY>(
         1501.2344967901236f64,
-        &options,
+        &OPTS2,
         "10111011101.0011110000000111111110110100110010011001",
     );
     write_float::<_, BINARY>(
         0.02290702051986883f64,
-        &options,
+        &OPTS2,
         "0.00000101110111010011110000000111111110110100110010011001",
     );
 
     // Check max digits.
-    let options =
-        Options::builder().max_significant_digits(num::NonZeroUsize::new(5)).build().unwrap();
-    write_float::<_, BINARY>(0.0f64, &options, "0.0");
-    write_float::<_, BINARY>(1.0f64, &options, "1.0");
-    write_float::<_, BINARY>(2.0f64, &options, "10.0");
-    write_float::<_, BINARY>(0.5f64, &options, "0.1");
-    write_float::<_, BINARY>(0.2345678901234567890f64, &options, "0.001111");
-    write_float::<_, BINARY>(23.45678901234567890f64, &options, "10111.0");
-    write_float::<_, BINARY>(93.82715604938272f64, &options, "1011100.0");
-    write_float::<_, BINARY>(375.3086241975309f64, &options, "101110000.0");
+    const OPTS3: Options =
+        Options::builder().max_significant_digits(num::NonZeroUsize::new(5)).build_strict();
+    write_float::<_, BINARY>(0.0f64, &OPTS3, "0.0");
+    write_float::<_, BINARY>(1.0f64, &OPTS3, "1.0");
+    write_float::<_, BINARY>(2.0f64, &OPTS3, "10.0");
+    write_float::<_, BINARY>(0.5f64, &OPTS3, "0.1");
+    write_float::<_, BINARY>(0.2345678901234567890f64, &OPTS3, "0.001111");
+    write_float::<_, BINARY>(23.45678901234567890f64, &OPTS3, "10111.0");
+    write_float::<_, BINARY>(93.82715604938272f64, &OPTS3, "1011100.0");
+    write_float::<_, BINARY>(375.3086241975309f64, &OPTS3, "101110000.0");
 
     // Check max digits and trim floats.
-    let options = Options::builder()
+    const OPTS4: Options = Options::builder()
         .max_significant_digits(num::NonZeroUsize::new(5))
         .trim_floats(true)
-        .build()
-        .unwrap();
-    write_float::<_, BINARY>(0.2345678901234567890f64, &options, "0.001111");
-    write_float::<_, BINARY>(23.45678901234567890f64, &options, "10111");
-    write_float::<_, BINARY>(93.82715604938272f64, &options, "1011100");
-    write_float::<_, BINARY>(375.3086241975309f64, &options, "101110000");
+        .build_strict();
+    write_float::<_, BINARY>(0.2345678901234567890f64, &OPTS4, "0.001111");
+    write_float::<_, BINARY>(23.45678901234567890f64, &OPTS4, "10111");
+    write_float::<_, BINARY>(93.82715604938272f64, &OPTS4, "1011100");
+    write_float::<_, BINARY>(375.3086241975309f64, &OPTS4, "101110000");
 
     // Test the round mode.
-    let truncate = Options::builder()
+    const TRUNCATE1: Options = Options::builder()
         .max_significant_digits(num::NonZeroUsize::new(4))
         .round_mode(RoundMode::Truncate)
-        .build()
-        .unwrap();
-    let round = Options::builder()
+        .build_strict();
+    const ROUND1: Options = Options::builder()
         .max_significant_digits(num::NonZeroUsize::new(4))
         .round_mode(RoundMode::Round)
-        .build()
-        .unwrap();
-    write_float::<_, BINARY>(23.45678901234567890f64, &round, "11000.0");
-    write_float::<_, BINARY>(23.45678901234567890f64, &truncate, "10110.0");
+        .build_strict();
+    write_float::<_, BINARY>(23.45678901234567890f64, &ROUND1, "11000.0");
+    write_float::<_, BINARY>(23.45678901234567890f64, &TRUNCATE1, "10110.0");
 
-    let truncate = Options::builder()
+    const TRUNCATE2: Options = Options::builder()
         .max_significant_digits(num::NonZeroUsize::new(8))
         .round_mode(RoundMode::Truncate)
-        .build()
-        .unwrap();
-    let round = Options::builder()
+        .build_strict();
+    const ROUND2: Options = Options::builder()
         .max_significant_digits(num::NonZeroUsize::new(8))
         .round_mode(RoundMode::Round)
-        .build()
-        .unwrap();
+        .build_strict();
 
-    write_float::<_, BINARY>(1.2345678901234567890e0f64, &truncate, "1.001111");
-    write_float::<_, BINARY>(1.2345678901234567890e0f64, &round, "1.001111");
-    write_float::<_, BINARY>(1.2345678901234567890e1f64, &truncate, "1100.0101");
-    write_float::<_, BINARY>(1.2345678901234567890e1f64, &round, "1100.011");
-    write_float::<_, BINARY>(1.2345678901234567890e2f64, &truncate, "1111011.0");
-    write_float::<_, BINARY>(1.2345678901234567890e2f64, &round, "1111011.1");
-    write_float::<_, BINARY>(1.2345678901234567890e3f64, &truncate, "1.001101e1010");
-    write_float::<_, BINARY>(1.2345678901234567890e3f64, &round, "1.001101e1010");
+    write_float::<_, BINARY>(1.2345678901234567890e0f64, &TRUNCATE2, "1.001111");
+    write_float::<_, BINARY>(1.2345678901234567890e0f64, &ROUND2, "1.001111");
+    write_float::<_, BINARY>(1.2345678901234567890e1f64, &TRUNCATE2, "1100.0101");
+    write_float::<_, BINARY>(1.2345678901234567890e1f64, &ROUND2, "1100.011");
+    write_float::<_, BINARY>(1.2345678901234567890e2f64, &TRUNCATE2, "1111011.0");
+    write_float::<_, BINARY>(1.2345678901234567890e2f64, &ROUND2, "1111011.1");
+    write_float::<_, BINARY>(1.2345678901234567890e3f64, &TRUNCATE2, "1.001101e1010");
+    write_float::<_, BINARY>(1.2345678901234567890e3f64, &ROUND2, "1.001101e1010");
 
-    let truncate = Options::builder()
+    const TRUNCATE3: Options = Options::builder()
         .max_significant_digits(num::NonZeroUsize::new(8))
         .round_mode(RoundMode::Truncate)
         .trim_floats(true)
-        .build()
-        .unwrap();
-    write_float::<_, BINARY>(1.2345678901234567890e2f64, &truncate, "1111011");
-    write_float::<_, BINARY>(1.2345678901234567890e2f64, &round, "1111011.1");
+        .build_strict();
+    write_float::<_, BINARY>(1.2345678901234567890e2f64, &TRUNCATE3, "1111011");
+    write_float::<_, BINARY>(1.2345678901234567890e2f64, &ROUND2, "1111011.1");
 }

@@ -71,8 +71,8 @@ macro_rules! float_from_lexical {
     )*)
 }
 
-from_lexical! {}
-from_lexical_with_options! {}
+from_lexical!("lexical_parse_float", 1.234, f64, 5);
+from_lexical_with_options!("lexical_parse_float", 1.234, f64, 5, Options);
 float_from_lexical! { f32 f64 }
 
 #[cfg(feature = "f16")]

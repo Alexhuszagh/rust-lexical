@@ -204,8 +204,7 @@
 //! 44. `MongoDB`
 
 #![cfg_attr(rustfmt, rustfmt::skip)]
-
-use static_assertions::const_assert;
+#![doc(hidden)]
 
 // ASSERTIONS
 // ----------
@@ -213,28 +212,28 @@ use static_assertions::const_assert;
 // Ensure all our bit flags are valid.
 macro_rules! check_subsequent_flags {
     ($x:ident, $y:ident) => {
-        const_assert!($x << 1 == $y);
+        const _: () = assert!($x << 1 == $y);
     };
 }
 
 // Ensure all our bit masks don't overlap.
 macro_rules! check_subsequent_masks {
     ($x:ident, $y:ident) => {
-        const_assert!($x & $y == 0);
+        const _: () = assert!($x & $y == 0);
     };
 }
 
 // Check all our masks are in the range `[0, 255]` after shifting.
 macro_rules! check_mask_shifts {
     ($mask:ident, $shift:ident) => {
-        const_assert!(0 < $mask >> $shift && 255 >= $mask >> $shift);
+        const _: () = assert!(0 < $mask >> $shift && 255 >= $mask >> $shift);
     };
 }
 
 // Ensure all our bit masks don't overlap with existing flags.
 macro_rules! check_masks_and_flags {
     ($x:ident, $y:ident) => {
-        const_assert!($x & $y == 0);
+        const _: () = assert!($x & $y == 0);
     };
 }
 
@@ -338,7 +337,7 @@ pub const CASE_SENSITIVE_BASE_PREFIX: u128 = 1 << 16;
 pub const CASE_SENSITIVE_BASE_SUFFIX: u128 = 1 << 17;
 
 // Non-digit separator flags.
-const_assert!(REQUIRED_INTEGER_DIGITS == 1);
+const _: () = assert!(REQUIRED_INTEGER_DIGITS == 1);
 check_subsequent_flags!(REQUIRED_INTEGER_DIGITS, REQUIRED_FRACTION_DIGITS);
 check_subsequent_flags!(REQUIRED_FRACTION_DIGITS, REQUIRED_EXPONENT_DIGITS);
 check_subsequent_flags!(REQUIRED_EXPONENT_DIGITS, REQUIRED_MANTISSA_DIGITS);
@@ -425,7 +424,7 @@ pub const CONSECUTIVE_DIGIT_SEPARATOR: u128 =
 pub const SPECIAL_DIGIT_SEPARATOR: u128 = 1 << 44;
 
 // Digit separator flags.
-const_assert!(INTEGER_INTERNAL_DIGIT_SEPARATOR == 1 << 32);
+const _: () = assert!(INTEGER_INTERNAL_DIGIT_SEPARATOR == 1 << 32);
 check_subsequent_flags!(INTEGER_INTERNAL_DIGIT_SEPARATOR, FRACTION_INTERNAL_DIGIT_SEPARATOR);
 check_subsequent_flags!(FRACTION_INTERNAL_DIGIT_SEPARATOR, EXPONENT_INTERNAL_DIGIT_SEPARATOR);
 check_subsequent_flags!(EXPONENT_INTERNAL_DIGIT_SEPARATOR, INTEGER_LEADING_DIGIT_SEPARATOR);
@@ -466,10 +465,10 @@ pub const MANTISSA_RADIX_SHIFT: i32 = 104;
 /// Mask to extract the mantissa radix: the radix for the significant digits.
 pub const MANTISSA_RADIX: u128 = 0xFF << MANTISSA_RADIX_SHIFT;
 
-/// Alias for `MANTISSA_RADIX_SHIFT`.
+/// Alias for [`MANTISSA_RADIX_SHIFT`].
 pub const RADIX_SHIFT: i32 = MANTISSA_RADIX_SHIFT;
 
-/// Alias for `MANTISSA_RADIX`.
+/// Alias for [`MANTISSA_RADIX`].
 pub const RADIX: u128 = MANTISSA_RADIX;
 
 /// Shift to convert to and from an exponent base as a `u32`.
@@ -483,6 +482,12 @@ pub const EXPONENT_RADIX_SHIFT: i32 = 120;
 
 /// Mask to extract the exponent radix: the radix for the exponent digits.
 pub const EXPONENT_RADIX: u128 = 0xFF << EXPONENT_RADIX_SHIFT;
+
+/// Mask to extract the exponent radix: the radix for the exponent digits.
+///
+/// This only extracts the radix bits, so negating it can be used
+/// to see if any other custom settings were provided.
+pub const RADIX_MASK: u128 = MANTISSA_RADIX | EXPONENT_RADIX;
 
 // Masks do not overlap.
 check_subsequent_masks!(DIGIT_SEPARATOR, BASE_PREFIX);
@@ -600,31 +605,37 @@ pub const EXPONENT_DIGIT_SEPARATOR_FLAG_MASK: u128 =
 // ----------
 
 /// Extract the digit separator from the format packed struct.
+#[doc(hidden)]
 #[inline(always)]
 pub const fn digit_separator(format: u128) -> u8 {
     ((format & DIGIT_SEPARATOR) >> DIGIT_SEPARATOR_SHIFT) as u8
 }
 
 /// Extract the base prefix character from the format packed struct.
+#[doc(hidden)]
 #[inline(always)]
 pub const fn base_prefix(format: u128) -> u8 {
     ((format & BASE_PREFIX) >> BASE_PREFIX_SHIFT) as u8
 }
 
 /// Extract the base suffix character from the format packed struct.
+#[doc(hidden)]
 #[inline(always)]
 pub const fn base_suffix(format: u128) -> u8 {
     ((format & BASE_SUFFIX) >> BASE_SUFFIX_SHIFT) as u8
 }
 
 /// Extract the mantissa radix from the format packed struct.
+#[doc(hidden)]
 #[inline(always)]
 pub const fn mantissa_radix(format: u128) -> u32 {
     ((format & MANTISSA_RADIX) >> MANTISSA_RADIX_SHIFT) as u32
 }
 
 /// Extract the exponent base from the format packed struct.
+///
 /// If not provided, defaults to `mantissa_radix`.
+#[doc(hidden)]
 #[inline(always)]
 pub const fn exponent_base(format: u128) -> u32 {
     let radix = ((format & EXPONENT_BASE) >> EXPONENT_BASE_SHIFT) as u32;
@@ -636,7 +647,9 @@ pub const fn exponent_base(format: u128) -> u32 {
 }
 
 /// Extract the exponent radix from the format packed struct.
+///
 /// If not provided, defaults to `mantissa_radix`.
+#[doc(hidden)]
 #[inline(always)]
 pub const fn exponent_radix(format: u128) -> u32 {
     let radix = ((format & EXPONENT_RADIX) >> EXPONENT_RADIX_SHIFT) as u32;
@@ -648,6 +661,7 @@ pub const fn exponent_radix(format: u128) -> u32 {
 }
 
 /// Extract a generic radix from the format and bitflags.
+#[doc(hidden)]
 #[inline(always)]
 pub const fn radix_from_flags(format: u128, mask: u128, shift: i32) -> u32 {
     let radix = ((format & mask) >> shift) as u32;
@@ -672,6 +686,7 @@ pub const fn is_valid_exponent_flags(format: u128) -> bool {
 }
 
 /// Determine if an optional control character is valid.
+#[doc(hidden)]
 #[inline(always)]
 const fn is_valid_optional_control_radix(radix: u32, value: u8) -> bool {
     // Validate the character isn't a digit or sign character, and is valid ASCII.
@@ -684,6 +699,7 @@ const fn is_valid_optional_control_radix(radix: u32, value: u8) -> bool {
 }
 
 /// Determine if an optional control character is valid.
+#[doc(hidden)]
 #[inline(always)]
 const fn is_valid_optional_control(format: u128, value: u8) -> bool {
     // Need to get the larger of the two radix values, since these
@@ -700,12 +716,14 @@ const fn is_valid_optional_control(format: u128, value: u8) -> bool {
 }
 
 /// Determine if an control character is valid.
+#[doc(hidden)]
 #[inline(always)]
 const fn is_valid_control(format: u128, value: u8) -> bool {
     value != 0 && is_valid_optional_control(format, value)
 }
 
 /// Determine if the digit separator is valid.
+///
 /// Digit separators must not be valid digits or sign characters.
 #[inline(always)]
 pub const fn is_valid_digit_separator(format: u128) -> bool {
@@ -721,7 +739,7 @@ pub const fn is_valid_digit_separator(format: u128) -> bool {
 #[inline(always)]
 pub const fn is_valid_base_prefix(format: u128) -> bool {
     let value = base_prefix(format);
-    if cfg!(feature = "format") {
+    if cfg!(all(feature = "format", feature = "power-of-two")) {
         is_valid_optional_control(format, value)
     } else {
         value == 0
@@ -732,7 +750,7 @@ pub const fn is_valid_base_prefix(format: u128) -> bool {
 #[inline(always)]
 pub const fn is_valid_base_suffix(format: u128) -> bool {
     let value = base_suffix(format);
-    if cfg!(feature = "format") {
+    if cfg!(all(feature = "format", feature = "power-of-two")) {
         is_valid_optional_control(format, value)
     } else {
         value == 0
@@ -765,6 +783,7 @@ pub const fn is_valid_punctuation(format: u128) -> bool {
 }
 
 /// Determine if all of the "punctuation" characters for the options API are valid.
+#[doc(hidden)]
 #[inline(always)]
 #[allow(clippy::if_same_then_else)] // reason="all are different logic conditions"
 #[allow(clippy::needless_bool)] // reason="not needless depending on the format condition"
@@ -795,6 +814,7 @@ pub const fn is_valid_options_punctuation(format: u128, exponent: u8, decimal_po
 }
 
 /// Determine if the radix is valid.
+#[inline(always)]
 pub const fn is_valid_radix(radix: u32) -> bool {
     if cfg!(feature = "radix") {
         radix >= 2 && radix <= 36

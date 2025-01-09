@@ -7,7 +7,6 @@ use lexical_util::bf16::bf16;
 #[cfg(feature = "f16")]
 use lexical_util::f16::f16;
 use lexical_util::format::NumberFormat;
-use lexical_util::options::WriteOptions;
 use lexical_util::{algorithm::copy_to_dst, constants::FormattedSize};
 use lexical_write_integer::write::WriteInteger;
 
@@ -64,7 +63,7 @@ fn check_buffer<T, const FORMAT: u128>(len: usize, options: &Options) -> bool
 where
     T: FormattedSize,
 {
-    let size = Options::buffer_size::<T, FORMAT>(options);
+    let size = Options::buffer_size_const::<T, FORMAT>(options);
     len >= size
 }
 

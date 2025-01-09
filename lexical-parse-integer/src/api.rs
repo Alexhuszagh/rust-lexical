@@ -64,8 +64,8 @@ macro_rules! integer_from_lexical {
     )*)
 }
 
-from_lexical! {}
-from_lexical_with_options! {}
+from_lexical!("lexical_parse_integer", 1234, u64, 4);
+from_lexical_with_options!("lexical_parse_integer", 1234, u64, 4, Options);
 integer_from_lexical! {
     u8 u8 ;
     u16 u16 ;

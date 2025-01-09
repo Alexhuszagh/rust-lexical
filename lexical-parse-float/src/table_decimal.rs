@@ -3,8 +3,6 @@
 #![doc(hidden)]
 #![cfg(not(feature = "compact"))]
 
-use static_assertions::const_assert;
-
 #[cfg(not(feature = "radix"))]
 use crate::bigint::Limb;
 use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit, u64_power_limit};
@@ -113,8 +111,8 @@ pub const SMALL_INT_POW5: [u64; 28] = [
     1490116119384765625,
     7450580596923828125,
 ];
-const_assert!(SMALL_INT_POW5.len() > f64_mantissa_limit(5) as usize);
-const_assert!(SMALL_INT_POW5.len() == u64_power_limit(5) as usize + 1);
+const _: () = assert!(SMALL_INT_POW5.len() > f64_mantissa_limit(5) as usize);
+const _: () = assert!(SMALL_INT_POW5.len() == u64_power_limit(5) as usize + 1);
 
 /// Pre-computed, small powers-of-10.
 pub const SMALL_INT_POW10: [u64; 20] = [
@@ -139,20 +137,20 @@ pub const SMALL_INT_POW10: [u64; 20] = [
     1000000000000000000,
     10000000000000000000,
 ];
-const_assert!(SMALL_INT_POW10.len() > f64_mantissa_limit(10) as usize);
-const_assert!(SMALL_INT_POW10.len() == u64_power_limit(10) as usize + 1);
+const _: () = assert!(SMALL_INT_POW10.len() > f64_mantissa_limit(10) as usize);
+const _: () = assert!(SMALL_INT_POW10.len() == u64_power_limit(10) as usize + 1);
 
 /// Pre-computed, small powers-of-10.
 pub const SMALL_F32_POW10: [f32; 16] =
     [1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 0., 0., 0., 0., 0.];
-const_assert!(SMALL_F32_POW10.len() > f32_exponent_limit(10).1 as usize);
+const _: () = assert!(SMALL_F32_POW10.len() > f32_exponent_limit(10).1 as usize);
 
 /// Pre-computed, small powers-of-10.
 pub const SMALL_F64_POW10: [f64; 32] = [
     1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16,
     1e17, 1e18, 1e19, 1e20, 1e21, 1e22, 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 ];
-const_assert!(SMALL_F64_POW10.len() > f64_exponent_limit(10).1 as usize);
+const _: () = assert!(SMALL_F64_POW10.len() > f64_exponent_limit(10).1 as usize);
 
 /// Pre-computed large power-of-5 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]

@@ -10,16 +10,13 @@ name = "lexical-parse-integer"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
 version = "1.0.5"
-rust-version = "1.61.0"
+rust-version = "1.60.0"
 exclude = [
     "assets/*",
     "docs/*",
     "etc/*",
     "cargo-timing*.html"
 ]
-
-[dependencies]
-static_assertions = "1"
 
 [dependencies.lexical-util]
 version = "1.0.5"
@@ -48,3 +45,4 @@ lint = ["lexical-util/lint"]
 
 [package.metadata.docs.rs]
 features = ["radix", "format"]
+rustdoc-args = ["--cfg", "docsrs"]

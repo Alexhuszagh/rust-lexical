@@ -3,10 +3,10 @@
 fn integer_to_string_test() {
     let mut buffer = [b'0'; lexical_core::BUFFER_SIZE];
     assert_eq!(lexical_core::write(12345u32, &mut buffer), b"12345");
-    let options = lexical_core::WriteIntegerOptions::new();
+    const OPTIONS: lexical_write_integer::Options = lexical_core::WriteIntegerOptions::new();
     const FORMAT: u128 = lexical_core::format::STANDARD;
     assert_eq!(
-        lexical_core::write_with_options::<_, FORMAT>(12345u32, &mut buffer, &options),
+        lexical_core::write_with_options::<_, FORMAT>(12345u32, &mut buffer, &OPTIONS),
         b"12345"
     );
 }
@@ -16,10 +16,10 @@ fn integer_to_string_test() {
 fn float_to_string_test() {
     let mut buffer = [b'0'; lexical_core::BUFFER_SIZE];
     assert_eq!(lexical_core::write(12345.0f32, &mut buffer), b"12345.0");
-    let options = lexical_core::WriteFloatOptions::new();
+    const OPTIONS: lexical_write_float::Options = lexical_core::WriteFloatOptions::new();
     const FORMAT: u128 = lexical_core::format::STANDARD;
     assert_eq!(
-        lexical_core::write_with_options::<_, FORMAT>(12345.0f32, &mut buffer, &options),
+        lexical_core::write_with_options::<_, FORMAT>(12345.0f32, &mut buffer, &OPTIONS),
         b"12345.0"
     );
 }
@@ -30,11 +30,11 @@ fn string_to_integer_test() {
     assert_eq!(lexical_core::parse(b"12345"), Ok(12345u32));
     assert_eq!(lexical_core::parse_partial(b"12345"), Ok((12345u32, 5)));
 
-    let options = lexical_core::ParseIntegerOptions::new();
+    const OPTIONS: lexical_parse_integer::Options = lexical_core::ParseIntegerOptions::new();
     const FORMAT: u128 = lexical_core::format::STANDARD;
-    assert_eq!(lexical_core::parse_with_options::<_, FORMAT>(b"12345", &options), Ok(12345u32));
+    assert_eq!(lexical_core::parse_with_options::<_, FORMAT>(b"12345", &OPTIONS), Ok(12345u32));
     assert_eq!(
-        lexical_core::parse_partial_with_options::<_, FORMAT>(b"12345", &options),
+        lexical_core::parse_partial_with_options::<_, FORMAT>(b"12345", &OPTIONS),
         Ok((12345u32, 5))
     );
 }
@@ -45,17 +45,18 @@ fn string_to_float_test() {
     assert_eq!(lexical_core::parse(b"12345.0"), Ok(12345.0f32));
     assert_eq!(lexical_core::parse_partial(b"12345.0"), Ok((12345.0f32, 7)));
 
-    let options = lexical_core::ParseFloatOptions::new();
+    const OPTIONS: lexical_parse_float::Options = lexical_core::ParseFloatOptions::new();
     const FORMAT: u128 = lexical_core::format::STANDARD;
-    assert_eq!(lexical_core::parse_with_options::<_, FORMAT>(b"12345.0", &options), Ok(12345.0f32));
+    assert_eq!(lexical_core::parse_with_options::<_, FORMAT>(b"12345.0", &OPTIONS), Ok(12345.0f32));
     assert_eq!(
-        lexical_core::parse_partial_with_options::<_, FORMAT>(b"12345.0", &options),
+        lexical_core::parse_partial_with_options::<_, FORMAT>(b"12345.0", &OPTIONS),
         Ok((12345.0f32, 7))
     );
 }
 
 /// Test that converting the specified value into a buffer of FORMATTED_SIZE
 /// yields the expected string
+#[cfg(feature = "write-integers")]
 macro_rules! test_format {
     ($t:ty, $value:expr, $expected:expr) => {{
         use lexical_core::FormattedSize;

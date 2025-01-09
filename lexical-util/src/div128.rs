@@ -42,7 +42,13 @@
 
 #![cfg(not(feature = "compact"))]
 #![cfg(feature = "write")]
-
+#![cfg_attr(
+    docsrs,
+    doc(cfg(all(
+        any(feature = "write-floats", feature = "write-integers"),
+        not(feature = "compact")
+    )))
+)]
 use crate::assert::debug_assert_radix;
 use crate::mul::mulhi;
 

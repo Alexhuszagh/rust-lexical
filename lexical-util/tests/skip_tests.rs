@@ -2,9 +2,8 @@
 
 use core::num;
 
-use lexical_util::format::{NumberFormat, NumberFormatBuilder};
+use lexical_util::format::NumberFormatBuilder;
 use lexical_util::iterator::AsBytes;
-use static_assertions::const_assert;
 
 fn skip_iter_eq<const FORMAT: u128>(input: &[u8], output: &[u8]) {
     // next is done in terms of peek, so we're safe here.
@@ -19,8 +18,7 @@ fn test_skip_iter_i() {
     pub const FORMAT: u128 = NumberFormatBuilder::new()
         .digit_separator(num::NonZeroU8::new(b'_'))
         .integer_internal_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");
@@ -60,8 +58,7 @@ fn test_skip_iter_l() {
     pub const FORMAT: u128 = NumberFormatBuilder::new()
         .digit_separator(num::NonZeroU8::new(b'_'))
         .integer_leading_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");
@@ -101,8 +98,7 @@ fn test_skip_iter_t() {
     pub const FORMAT: u128 = NumberFormatBuilder::new()
         .digit_separator(num::NonZeroU8::new(b'_'))
         .integer_trailing_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");
@@ -143,8 +139,7 @@ fn test_skip_iter_il() {
         .digit_separator(num::NonZeroU8::new(b'_'))
         .integer_internal_digit_separator(true)
         .integer_leading_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");
@@ -185,8 +180,7 @@ fn test_skip_iter_it() {
         .digit_separator(num::NonZeroU8::new(b'_'))
         .integer_internal_digit_separator(true)
         .integer_trailing_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");
@@ -227,8 +221,7 @@ fn test_skip_iter_lt() {
         .digit_separator(num::NonZeroU8::new(b'_'))
         .integer_leading_digit_separator(true)
         .integer_trailing_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");
@@ -270,8 +263,7 @@ fn test_skip_iter_ilt() {
         .integer_internal_digit_separator(true)
         .integer_leading_digit_separator(true)
         .integer_trailing_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");
@@ -312,8 +304,7 @@ fn test_skip_iter_ic() {
         .digit_separator(num::NonZeroU8::new(b'_'))
         .integer_internal_digit_separator(true)
         .integer_consecutive_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");
@@ -354,8 +345,7 @@ fn test_skip_iter_lc() {
         .digit_separator(num::NonZeroU8::new(b'_'))
         .integer_leading_digit_separator(true)
         .integer_consecutive_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");
@@ -396,8 +386,7 @@ fn test_skip_iter_tc() {
         .digit_separator(num::NonZeroU8::new(b'_'))
         .integer_trailing_digit_separator(true)
         .integer_consecutive_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");
@@ -439,8 +428,7 @@ fn test_skip_iter_ilc() {
         .integer_internal_digit_separator(true)
         .integer_leading_digit_separator(true)
         .integer_consecutive_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");
@@ -482,8 +470,7 @@ fn test_skip_iter_itc() {
         .integer_internal_digit_separator(true)
         .integer_trailing_digit_separator(true)
         .integer_consecutive_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");
@@ -525,8 +512,7 @@ fn test_skip_iter_ltc() {
         .integer_leading_digit_separator(true)
         .integer_trailing_digit_separator(true)
         .integer_consecutive_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");
@@ -569,8 +555,7 @@ fn test_skip_iter_iltc() {
         .integer_leading_digit_separator(true)
         .integer_trailing_digit_separator(true)
         .integer_consecutive_digit_separator(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     skip_iter_eq::<{ FORMAT }>(b"123.45", b"123.45");
     skip_iter_eq::<{ FORMAT }>(b"1e45", b"1e45");

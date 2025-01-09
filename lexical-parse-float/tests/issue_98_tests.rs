@@ -15,7 +15,7 @@ fn issue_98_test() {
         .no_special(true)
         .no_integer_leading_zeros(true)
         .no_float_leading_zeros(true)
-        .build();
+        .build_strict();
     let result = f64::from_lexical_with_options::<DECIMAL_FORMAT>(b"1.1.0", &Options::new());
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), Error::InvalidDigit(3));

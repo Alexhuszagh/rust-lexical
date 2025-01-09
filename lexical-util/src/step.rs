@@ -1,5 +1,5 @@
 //! The maximum digits that can be held in a u64 for a given radix without
-//! overflow.
+//! overflowing.
 //!
 //! This is useful for 128-bit division and operations, since it can
 //! reduces the number of inefficient, non-native operations.
@@ -17,11 +17,15 @@
 //  Fallback radixes use 1 for the value to avoid infinite loops,
 //  but allowing them in `const fn`.
 
-/// Get the maximum number of digits that can be processed without overflowing.
+/// Get the number of digits that can be always processed without overflowing.
 ///
-/// Calculate the maximum number of digits that can always be processed
-/// without overflowing for a given type. For example, 19 digits can
-/// always be processed for a decimal string for `u64` without overflowing.
+/// Calculate the number of digits that can always be processed without
+/// overflowing for a given type, that is, it can process every (positive) value
+/// in the range `[0, radix^N)` where `N` is the number of digits.
+///
+/// For example, with [`u8`] with radix `10`, we have a maximum value of `255`,
+/// so we have a min step of `2`: that is, we can always process values from
+/// `[0, 10^2)` (or `[0, 100)`).
 #[inline(always)]
 #[allow(clippy::needless_return)] // reason="required depending on our radix configuration"
 pub const fn min_step(radix: u32, bits: usize, is_signed: bool) -> usize {
@@ -91,10 +95,13 @@ pub const fn min_step(radix: u32, bits: usize, is_signed: bool) -> usize {
 
 /// Get the maximum number of digits that can be processed without overflowing.
 ///
-/// Calculate the maximum number of digits that can be processed
-/// without always overflowing for a given type. For example, 20 digits can
-/// be processed for a decimal string for `u64` without overflowing, but
-/// it may overflow.
+/// Calculate the number of digits that can be processed without overflowing for
+/// a given type, that is, it can process at least `radix^N`. This does not
+/// necessarily mean it can process every value in the range `[0, radix^(N+1))`.
+///
+/// For example, with [`u8`] with radix `10`, we have a maximum value of `255`,
+/// so we have a max step of `3`: that is, it can process up to 3 digits (`[100,
+/// 256)`), even if it **cannot** process every 3 digit value (`[256, 1000)`).
 #[inline(always)]
 #[allow(clippy::needless_return)] // reason="required depending on our radix configuration"
 pub const fn max_step(radix: u32, bits: usize, is_signed: bool) -> usize {
@@ -161,8 +168,10 @@ pub const fn max_step(radix: u32, bits: usize, is_signed: bool) -> usize {
 }
 
 /// Calculate the number of digits that can be processed without overflowing a
-/// u64. Helper function since this is used for 128-bit division.
-#[inline(always)]
+/// [`u64`]. Helper function since this is used for 128-bit division.
+///
+/// This is an alias for [`min_step`] with `bits == 64` and `is_signed ==
+/// false`.
 pub const fn u64_step(radix: u32) -> usize {
     min_step(radix, 64, false)
 }

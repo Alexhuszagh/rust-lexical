@@ -3,11 +3,11 @@
 //! The error type is C-compatible, simplifying use external language
 //! bindings.
 
-use core::{fmt, mem};
+#![doc(hidden)]
+
+use core::fmt;
 #[cfg(feature = "std")]
 use std::error;
-
-use static_assertions::const_assert;
 
 /// Error code during parsing, indicating failure type.
 #[non_exhaustive]
@@ -120,9 +120,6 @@ pub enum Error {
     Success,
 }
 
-// Ensure we don't have extra padding on the structure.
-const_assert!(mem::size_of::<Error>() <= 2 * mem::size_of::<usize>());
-
 macro_rules! is_error_type {
     ($name:ident, $type:ident$($t:tt)*) => (
         /// const fn check to see if an error is of a specific type.
@@ -138,7 +135,71 @@ macro_rules! is_error_type {
 }
 
 impl Error {
+    /// Get a description of the error in a const, panic friendly way.
+    #[inline]
+    pub const fn description(&self) -> &'static str {
+        match self {
+            // PARSE ERRORS
+            Self::Overflow(_) => "'numeric overflow occurred'",
+            Self::Underflow(_) => "'numeric underflow occurred'",
+            Self::InvalidDigit(_) => "'invalid digit found'",
+            Self::Empty(_) => "'the string to parse was empty'",
+            Self::EmptyMantissa(_) => "'no significant digits found'",
+            Self::EmptyExponent(_) => "'exponent notation found without an exponent'",
+            Self::EmptyInteger(_) => "'invalid float with no integer digits'",
+            Self::EmptyFraction(_) => "'invalid float with no fraction digits'",
+            Self::InvalidPositiveMantissaSign(_) => "'invalid `+` sign before significant digits'",
+            Self::MissingMantissaSign(_) => "'missing required `+/-` sign for significant digits'",
+            Self::InvalidExponent(_) => "'exponent found but not allowed'",
+            Self::InvalidPositiveExponentSign(_) => "'invalid `+` sign in exponent'",
+            Self::MissingExponentSign(_) => "'missing required `+/-` sign for exponent'",
+            Self::ExponentWithoutFraction(_) =>  "'invalid float containing exponent without fraction'",
+            Self::InvalidLeadingZeros(_) => "'invalid number with leading zeros before digits'",
+            Self::MissingExponent(_) => "'missing required exponent'",
+            Self::MissingSign(_) => "'missing required `+/-` sign for integer'",
+            Self::InvalidPositiveSign(_) => "'invalid `+` sign for an integer was found'",
+            Self::InvalidNegativeSign(_) => "'invalid `-` sign for an unsigned type was found'",
+
+            // NUMBER FORMAT ERRORS
+            Self::InvalidMantissaRadix => "'invalid radix for mantissa digits'",
+            Self::InvalidExponentBase => "'invalid exponent base'",
+            Self::InvalidExponentRadix => "'invalid radix for exponent digits'",
+            Self::InvalidDigitSeparator => "'invalid digit separator: must be ASCII and not a digit or a `+/-` sign'",
+            Self::InvalidDecimalPoint => "'invalid decimal point: must be ASCII and not a digit or a `+/-` sign'",
+            Self::InvalidExponentSymbol => "'invalid exponent symbol: must be ASCII and not a digit or a `+/-` sign'",
+            Self::InvalidBasePrefix => "'invalid base prefix character'",
+            Self::InvalidBaseSuffix => "'invalid base suffix character'",
+            Self::InvalidPunctuation => "'invalid punctuation: multiple characters overlap'",
+            Self::InvalidExponentFlags => "'exponent flags set while disabling exponent notation'",
+            Self::InvalidMantissaSign => "'disabled the `+` sign while requiring a sign for significant digits'",
+            Self::InvalidExponentSign => "'disabled the `+` sign while requiring a sign for exponent digits'",
+            Self::InvalidSpecial => "'special flags set while disabling special floats'",
+            Self::InvalidConsecutiveIntegerDigitSeparator => "'enabled consecutive digit separators in the integer without setting a valid location'",
+            Self::InvalidConsecutiveFractionDigitSeparator => "'enabled consecutive digit separators in the fraction without setting a valid location'",
+            Self::InvalidConsecutiveExponentDigitSeparator => "'enabled consecutive digit separators in the exponent without setting a valid location'",
+            Self::InvalidFlags => "'invalid flags enabled without the format feature'",
+
+            // OPTION ERRORS
+            Self::InvalidNanString => "'NaN string must started with `n`'",
+            Self::NanStringTooLong => "'NaN string is too long'",
+            Self::InvalidInfString => "'short infinity string must started with `i`'",
+            Self::InfStringTooLong => "'short infinity string is too long'",
+            Self::InvalidInfinityString => "'long infinity string must started with `i`'",
+            Self::InfinityStringTooLong => "'long infinity string is too long'",
+            Self::InfinityStringTooShort => "'long infinity string is too short'",
+            Self::InvalidFloatParseAlgorithm => "'invalid combination of float parse algorithms'",
+            Self::InvalidRadix => "'invalid radix for significant digits'",
+            Self::InvalidFloatPrecision => "'invalid float precision: min digits is larger than max digits'",
+            Self::InvalidNegativeExponentBreak => "'invalid negative exponent break: value is above 0'",
+            Self::InvalidPositiveExponentBreak => "'invalid positive exponent break: value is below 0'",
+
+            // NOT AN ERROR
+            Self::Success => "'not actually an error'",
+        }
+    }
+
     /// Get the index for the parsing error.
+    #[inline]
     pub fn index(&self) -> Option<&usize> {
         match self {
             // PARSE ERRORS
@@ -262,84 +323,97 @@ impl Error {
 
 /// Add an error message for parsing errors.
 macro_rules! write_parse_error {
-    ($formatter:ident, $message:literal, $index:ident) => {
+    ($formatter:ident, $message:expr, $index:ident) => {
         write!($formatter, "lexical parse error: {} at index {}", $message, $index)
     };
 }
 
 /// Add an error message for number format errors.
 macro_rules! format_message {
-    ($formatter:ident, $message:literal) => {
+    ($formatter:ident, $message:expr) => {
         write!($formatter, "lexical number format error: {}", $message)
     };
 }
 
 /// Add an error message for options errors.
 macro_rules! options_message {
-    ($formatter:ident, $message:literal) => {
+    ($formatter:ident, $message:expr) => {
         write!($formatter, "lexical options error: {}", $message)
     };
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let description = self.description();
         match self {
             // PARSE ERRORS
-            Self::Overflow(index) => write_parse_error!(formatter, "'numeric overflow occurred'", index),
-            Self::Underflow(index) => write_parse_error!(formatter, "'numeric underflow occurred'", index),
-            Self::InvalidDigit(index) => write_parse_error!(formatter, "'invalid digit found'", index),
-            Self::Empty(index) => write_parse_error!(formatter, "'the string to parse was empty'", index),
-            Self::EmptyMantissa(index) => write_parse_error!(formatter, "'no significant digits found'", index),
-            Self::EmptyExponent(index) => write_parse_error!(formatter, "'exponent notation found without an exponent'", index),
-            Self::EmptyInteger(index) => write_parse_error!(formatter, "'invalid float with no integer digits'", index),
-            Self::EmptyFraction(index) => write_parse_error!(formatter, "'invalid float with no fraction digits'", index),
-            Self::InvalidPositiveMantissaSign(index) => write_parse_error!(formatter, "'invalid `+` sign before significant digits'", index),
-            Self::MissingMantissaSign(index) => write_parse_error!(formatter, "'missing required `+/-` sign for significant digits'", index),
-            Self::InvalidExponent(index) => write_parse_error!(formatter, "'exponent found but not allowed'", index),
-            Self::InvalidPositiveExponentSign(index) => write_parse_error!(formatter, "'invalid `+` sign in exponent'", index),
-            Self::MissingExponentSign(index) => write_parse_error!(formatter, "'missing required `+/-` sign for exponent'", index),
-            Self::ExponentWithoutFraction(index) => write_parse_error!(formatter,  "'invalid float containing exponent without fraction'", index),
-            Self::InvalidLeadingZeros(index) => write_parse_error!(formatter, "'invalid number with leading zeros before digits'", index),
-            Self::MissingExponent(index) => write_parse_error!(formatter, "'missing required exponent'", index),
-            Self::MissingSign(index) => write_parse_error!(formatter, "'missing required `+/-` sign for integer'", index),
-            Self::InvalidPositiveSign(index) => write_parse_error!(formatter, "'invalid `+` sign for an integer was found'", index),
-            Self::InvalidNegativeSign(index) => write_parse_error!(formatter, "'invalid `-` sign for an unsigned type was found'", index),
+            Self::Overflow(index) => write_parse_error!(formatter, description, index),
+            Self::Underflow(index) => write_parse_error!(formatter, description, index),
+            Self::InvalidDigit(index) => write_parse_error!(formatter, description, index),
+            Self::Empty(index) => write_parse_error!(formatter, description, index),
+            Self::EmptyMantissa(index) => write_parse_error!(formatter, description, index),
+            Self::EmptyExponent(index) => write_parse_error!(formatter, description, index),
+            Self::EmptyInteger(index) => write_parse_error!(formatter, description, index),
+            Self::EmptyFraction(index) => write_parse_error!(formatter, description, index),
+            Self::InvalidPositiveMantissaSign(index) => {
+                write_parse_error!(formatter, description, index)
+            },
+            Self::MissingMantissaSign(index) => write_parse_error!(formatter, description, index),
+            Self::InvalidExponent(index) => write_parse_error!(formatter, description, index),
+            Self::InvalidPositiveExponentSign(index) => {
+                write_parse_error!(formatter, description, index)
+            },
+            Self::MissingExponentSign(index) => write_parse_error!(formatter, description, index),
+            Self::ExponentWithoutFraction(index) => {
+                write_parse_error!(formatter, description, index)
+            },
+            Self::InvalidLeadingZeros(index) => write_parse_error!(formatter, description, index),
+            Self::MissingExponent(index) => write_parse_error!(formatter, description, index),
+            Self::MissingSign(index) => write_parse_error!(formatter, description, index),
+            Self::InvalidPositiveSign(index) => write_parse_error!(formatter, description, index),
+            Self::InvalidNegativeSign(index) => write_parse_error!(formatter, description, index),
 
             // NUMBER FORMAT ERRORS
-            Self::InvalidMantissaRadix => format_message!(formatter, "'invalid radix for mantissa digits'"),
-            Self::InvalidExponentBase => format_message!(formatter, "'invalid exponent base'"),
-            Self::InvalidExponentRadix => format_message!(formatter, "'invalid radix for exponent digits'"),
-            Self::InvalidDigitSeparator => format_message!(formatter, "'invalid digit separator: must be ASCII and not a digit or a `+/-` sign'"),
-            Self::InvalidDecimalPoint => format_message!(formatter, "'invalid decimal point: must be ASCII and not a digit or a `+/-` sign'"),
-            Self::InvalidExponentSymbol => format_message!(formatter, "'invalid exponent symbol: must be ASCII and not a digit or a `+/-` sign'"),
-            Self::InvalidBasePrefix => format_message!(formatter, "'invalid base prefix character'"),
-            Self::InvalidBaseSuffix => format_message!(formatter, "'invalid base suffix character'"),
-            Self::InvalidPunctuation => format_message!(formatter, "'invalid punctuation: multiple characters overlap'"),
-            Self::InvalidExponentFlags => format_message!(formatter, "'exponent flags set while disabling exponent notation'"),
-            Self::InvalidMantissaSign => format_message!(formatter, "'disabled the `+` sign while requiring a sign for significant digits'"),
-            Self::InvalidExponentSign => format_message!(formatter, "'disabled the `+` sign while requiring a sign for exponent digits'"),
-            Self::InvalidSpecial => format_message!(formatter, "'special flags set while disabling special floats'"),
-            Self::InvalidConsecutiveIntegerDigitSeparator => format_message!(formatter, "'enabled consecutive digit separators in the integer without setting a valid location'"),
-            Self::InvalidConsecutiveFractionDigitSeparator => format_message!(formatter, "'enabled consecutive digit separators in the fraction without setting a valid location'"),
-            Self::InvalidConsecutiveExponentDigitSeparator => format_message!(formatter, "'enabled consecutive digit separators in the exponent without setting a valid location'"),
-            Self::InvalidFlags => format_message!(formatter, "'invalid flags enabled without the format feature'"),
+            Self::InvalidMantissaRadix => format_message!(formatter, description),
+            Self::InvalidExponentBase => format_message!(formatter, description),
+            Self::InvalidExponentRadix => format_message!(formatter, description),
+            Self::InvalidDigitSeparator => format_message!(formatter, description),
+            Self::InvalidDecimalPoint => format_message!(formatter, description),
+            Self::InvalidExponentSymbol => format_message!(formatter, description),
+            Self::InvalidBasePrefix => format_message!(formatter, description),
+            Self::InvalidBaseSuffix => format_message!(formatter, description),
+            Self::InvalidPunctuation => format_message!(formatter, description),
+            Self::InvalidExponentFlags => format_message!(formatter, description),
+            Self::InvalidMantissaSign => format_message!(formatter, description),
+            Self::InvalidExponentSign => format_message!(formatter, description),
+            Self::InvalidSpecial => format_message!(formatter, description),
+            Self::InvalidConsecutiveIntegerDigitSeparator => {
+                format_message!(formatter, description)
+            },
+            Self::InvalidConsecutiveFractionDigitSeparator => {
+                format_message!(formatter, description)
+            },
+            Self::InvalidConsecutiveExponentDigitSeparator => {
+                format_message!(formatter, description)
+            },
+            Self::InvalidFlags => format_message!(formatter, description),
 
             // OPTION ERRORS
-            Self::InvalidNanString => options_message!(formatter, "'NaN string must started with `n`'"),
-            Self::NanStringTooLong => options_message!(formatter, "'NaN string is too long'"),
-            Self::InvalidInfString => options_message!(formatter, "'short infinity string must started with `i`'"),
-            Self::InfStringTooLong => options_message!(formatter, "'short infinity string is too long'"),
-            Self::InvalidInfinityString => options_message!(formatter, "'long infinity string must started with `i`'"),
-            Self::InfinityStringTooLong => options_message!(formatter, "'long infinity string is too long'"),
-            Self::InfinityStringTooShort => options_message!(formatter, "'long infinity string is too short'"),
-            Self::InvalidFloatParseAlgorithm => options_message!(formatter, "'invalid combination of float parse algorithms'"),
-            Self::InvalidRadix => options_message!(formatter, "'invalid radix for significant digits'"),
-            Self::InvalidFloatPrecision => options_message!(formatter, "'invalid float precision: min digits is larger than max digits'"),
-            Self::InvalidNegativeExponentBreak => options_message!(formatter, "'invalid negative exponent break: value is above 0'"),
-            Self::InvalidPositiveExponentBreak => options_message!(formatter, "'invalid positive exponent break: value is below 0'"),
+            Self::InvalidNanString => options_message!(formatter, description),
+            Self::NanStringTooLong => options_message!(formatter, description),
+            Self::InvalidInfString => options_message!(formatter, description),
+            Self::InfStringTooLong => options_message!(formatter, description),
+            Self::InvalidInfinityString => options_message!(formatter, description),
+            Self::InfinityStringTooLong => options_message!(formatter, description),
+            Self::InfinityStringTooShort => options_message!(formatter, description),
+            Self::InvalidFloatParseAlgorithm => options_message!(formatter, description),
+            Self::InvalidRadix => options_message!(formatter, description),
+            Self::InvalidFloatPrecision => options_message!(formatter, description),
+            Self::InvalidNegativeExponentBreak => options_message!(formatter, description),
+            Self::InvalidPositiveExponentBreak => options_message!(formatter, description),
 
             // NOT AN ERROR
-            Self::Success => write!(formatter, "'not actually an error'"),
+            Self::Success => write!(formatter, "{description}"),
         }
     }
 }

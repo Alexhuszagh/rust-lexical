@@ -8,9 +8,7 @@
 ///
 /// ```rust
 /// # use lexical_parse_float::mask::lower_n_mask;
-/// # pub fn main() {
 /// assert_eq!(lower_n_mask(2), 0b11);
-/// # }
 /// ```
 #[must_use]
 #[inline(always)]
@@ -30,9 +28,7 @@ pub const fn lower_n_mask(n: u64) -> u64 {
 ///
 /// ```rust
 /// # use lexical_parse_float::mask::lower_n_halfway;
-/// # pub fn main() {
 /// assert_eq!(lower_n_halfway(2), 0b10);
-/// # }
 /// ```
 #[must_use]
 #[inline(always)]
@@ -52,9 +48,7 @@ pub const fn lower_n_halfway(n: u64) -> u64 {
 ///
 /// ```rust
 /// # use lexical_parse_float::mask::nth_bit;
-/// # pub fn main() {
 /// assert_eq!(nth_bit(2), 0b100);
-/// # }
 /// ```
 #[must_use]
 #[inline(always)]

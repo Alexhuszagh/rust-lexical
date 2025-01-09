@@ -10,7 +10,7 @@ name = "lexical-parse-float"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
 version = "1.0.5"
-rust-version = "1.61.0"
+rust-version = "1.60.0"
 exclude = [
     "assets/*",
     "docs/*",
@@ -29,9 +29,6 @@ version = "1.0.5"
 path = "../lexical-parse-integer"
 default-features = false
 features = []
-
-[dependencies]
-static_assertions = "1"
 
 [features]
 default = ["std"]
@@ -82,3 +79,4 @@ f128 = ["lexical-util/f128"]
 
 [package.metadata.docs.rs]
 features = ["radix", "format", "f16"]
+rustdoc-args = ["--cfg", "docsrs"]

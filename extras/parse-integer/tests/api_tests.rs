@@ -58,14 +58,14 @@ proptest! {
     #[test]
     #[cfg(feature = "power-of-two")]
     fn i32_binary_roundtrip_display_proptest(i in i32::MIN..i32::MAX) {
-        let options = Options::new();
+        const OPTIONS: Options = Options::new();
         const FORMAT: u128 = from_radix(2);
         let digits = if i < 0 {
             format!("-{:b}", (i as i64).wrapping_neg())
         } else {
             format!("{:b}", i)
         };
-        let result = i32::from_lexical_with_options::<FORMAT>(digits.as_bytes(), &options);
+        let result = i32::from_lexical_with_options::<FORMAT>(digits.as_bytes(), &OPTIONS);
         prop_assert_eq!(i, result.unwrap());
     }
 

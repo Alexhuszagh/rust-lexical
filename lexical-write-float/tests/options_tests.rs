@@ -4,7 +4,7 @@ use lexical_write_float::options::{self, Options, OptionsBuilder};
 
 #[test]
 fn invalid_exponent_test() {
-    let mut builder = OptionsBuilder::default();
+    let mut builder = OptionsBuilder::new();
     builder = builder.exponent(b'\x00');
     assert!(!builder.is_valid());
     builder = builder.exponent(b'\x7f');
@@ -17,7 +17,7 @@ fn invalid_exponent_test() {
 
 #[test]
 fn invalid_decimal_point_test() {
-    let mut builder = OptionsBuilder::default();
+    let mut builder = OptionsBuilder::new();
     builder = builder.decimal_point(b'\x00');
     assert!(!builder.is_valid());
     builder = builder.decimal_point(b'\x7f');
@@ -30,7 +30,7 @@ fn invalid_decimal_point_test() {
 
 #[test]
 fn invalid_nan_test() {
-    let mut builder = OptionsBuilder::default();
+    let mut builder = OptionsBuilder::new();
     builder = builder.nan_string(Some(b"naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaan"));
     assert!(!builder.is_valid());
     builder = builder.nan_string(Some(b"inf"));
@@ -47,7 +47,7 @@ fn invalid_nan_test() {
 
 #[test]
 fn invalid_inf_test() {
-    let mut builder = OptionsBuilder::default();
+    let mut builder = OptionsBuilder::new();
     builder = builder.inf_string(Some(b"innnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnf"));
     assert!(!builder.is_valid());
     builder = builder.inf_string(Some(b"nan"));
@@ -64,7 +64,7 @@ fn invalid_inf_test() {
 
 #[test]
 fn builder_test() {
-    let mut builder = OptionsBuilder::default();
+    let mut builder = OptionsBuilder::new();
 
     builder = builder.max_significant_digits(num::NonZeroUsize::new(10));
     builder = builder.min_significant_digits(num::NonZeroUsize::new(5));
@@ -93,6 +93,7 @@ fn builder_test() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn options_test() {
     let mut opts = Options::new();
 

@@ -15,8 +15,8 @@
 //! paradoxically seems to improve performance, potentially due to less
 //! branching.
 //!
-//! See [Algorithm.md](/docs/Algorithm.md) for a more detailed description of
-//! the algorithm choice here. See [Benchmarks.md](/docs/Benchmarks.md) for
+//! See [Algorithm](/docs/Algorithm.md) for a more detailed description of
+//! the algorithm choice here. See [Benchmarks](/docs/Benchmarks.md) for
 //! recent benchmark data.
 //!
 //! [`Faster Integer Formatting`]: https://jk-jeon.github.io/posts/2022/02/jeaiii-algorithm/

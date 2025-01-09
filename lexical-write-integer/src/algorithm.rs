@@ -1,18 +1,17 @@
 //! Radix-generic, optimized, integer-to-string conversion routines.
 //!
 //! These routines are highly optimized: they unroll 4 loops at a time,
-//! using pre-computed base^2 tables.
+//! using pre-computed base^2 tables. This was popularized by Andrei
+//! Alexandrescu, and uses 2 digits per division, which we further optimize in
+//! up to 4 digits per division with a bit shift.
 //!
-//! This was popularized by Andrei Alexandrescu, and uses 2 digits per
-//! division, which we further optimize in up to 4 digits per division
-//! with a bit shift.
-//!
-//! See [Algorithm.md](/docs/Algorithm.md) for a more detailed description of
-//! the algorithm choice here. See [Benchmarks.md](/docs/Benchmarks.md) for
+//! See [Algorithm](/docs/Algorithm.md) for a more detailed description of
+//! the algorithm choice here. See [Benchmarks](/docs/Benchmarks.md) for
 //! recent benchmark data.
 
 #![cfg(not(feature = "compact"))]
 #![cfg(feature = "power-of-two")]
+#![doc(hidden)]
 
 use lexical_util::assert::debug_assert_radix;
 use lexical_util::digit::digit_to_char;
@@ -24,13 +23,15 @@ use lexical_util::step::u64_step;
 use crate::digit_count::DigitCount;
 
 /// Index a buffer and get a mutable reference, without bounds checking.
-/// The `($x:ident[$i:expr] = $y:ident[$j:expr])` is not used with `compact`.
+/// The `($x:ident[$i:expr] = $y:ident[$j:expr])` is not used with [`compact`].
 /// The newer version of the lint is `unused_macro_rules`, but this isn't
 /// supported until nightly-2022-05-12.
 ///
 /// By default, writers tend to be safe, due to Miri, Valgrind,
 /// and other tests and careful validation against a wide range
 /// of randomized input. Parsers are much trickier to validate.
+///
+/// [`compact`]: crate#compact
 #[allow(unknown_lints, unused_macro_rules)]
 macro_rules! i {
     ($x:ident[$i:expr]) => {

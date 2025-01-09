@@ -56,7 +56,7 @@ pub trait Compact: UnsignedInteger + FormattedSize {
         }
 
         // Decode last digit.
-        let r = value % radix;
+        let r = value;
         index -= 1;
         digits[index] = digit_to_char(u32::as_cast(r));
         let slc = &digits[index..];

@@ -63,7 +63,7 @@ macro_rules! test_flag {
             const FORMAT: u128 = format::NumberFormatBuilder::new()
                 .digit_separator(num::NonZeroU8::new(b'_'))
                 .$field(true)
-                .build();
+                .build_unchecked();
             let fmt = format::NumberFormat::<FORMAT> {};
             assert_eq!(fmt.is_valid(), true);
             assert_eq!(fmt.$field(), true);
@@ -74,7 +74,7 @@ macro_rules! test_flag {
                 .leading_digit_separator(true)
                 .trailing_digit_separator(true)
                 .$field(true)
-                .build();
+                .build_unchecked();
             let fmt = format::NumberFormat::<FORMAT> {};
             assert_eq!(fmt.is_valid(), true);
             assert_eq!(fmt.$field(), true);

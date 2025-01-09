@@ -1,5 +1,7 @@
 //! Debugging assertions to check a radix is valid.
 
+#![doc(hidden)]
+
 #[cfg(feature = "write")]
 use crate::constants::FormattedSize;
 

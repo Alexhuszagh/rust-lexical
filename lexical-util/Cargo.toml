@@ -19,7 +19,6 @@ exclude = [
 ]
 
 [dependencies]
-static_assertions = "1"
 float16 = { version = "0.1.0", optional = true }
 
 # FEATURES
@@ -75,3 +74,4 @@ f128 = ["parse-floats", "write-floats"]
 
 [package.metadata.docs.rs]
 features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats", "f16"]
+rustdoc-args = ["--cfg", "docsrs"]

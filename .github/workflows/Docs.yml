@@ -1,0 +1,27 @@
+name: Docs
+
+on:
+  [workflow_dispatch]
+
+jobs:
+  docs:
+    name: Test Docs Combinations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install latest nightly
+        uses: dtolnay/rust-toolchain@nightly
+      - run: cargo --version
+      - run: python --version
+      - run: cargo check
+      - run: cargo build
+      - run: RUSTDOCFLAGS="-D warnings --cfg docsrs" cargo doc --no-default-features
+      - run: RUSTDOCFLAGS="-D warnings --cfg docsrs" cargo doc --no-default-features --features=format
+      - run: RUSTDOCFLAGS="-D warnings --cfg docsrs" cargo doc --no-default-features --features=radix
+      - run: RUSTDOCFLAGS="-D warnings --cfg docsrs" cargo doc --no-default-features --features=format,radix
+      - run: RUSTDOCFLAGS="-D warnings --cfg docsrs" cargo doc --no-default-features --features=write-integers,write-floats
+      - run: RUSTDOCFLAGS="-D warnings --cfg docsrs" cargo doc --no-default-features --features=parse-integers,parse-floats
+      - run: RUSTDOCFLAGS="-D warnings --cfg docsrs" cargo doc --no-default-features --all-features
+      # validate all the generated docs.rs docs
+      - run: RUSTDOCFLAGS="-D warnings --cfg docsrs" cargo doc --features=format,radix
+      - run: python scripts/docs.py

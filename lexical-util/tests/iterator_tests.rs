@@ -61,14 +61,12 @@ fn digits_iterator_test() {
 fn skip_iterator_test() {
     use core::num;
 
-    use lexical_util::format::{NumberFormat, NumberFormatBuilder};
-    use static_assertions::const_assert;
+    use lexical_util::format::NumberFormatBuilder;
 
     pub const FORMAT: u128 = NumberFormatBuilder::new()
         .digit_separator(num::NonZeroU8::new(b'_'))
         .digit_separator_flags(true)
-        .build();
-    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+        .build_strict();
 
     type Digits<'a> = Bytes<'a, { FORMAT }>;
     assert!(!Digits::IS_CONTIGUOUS);

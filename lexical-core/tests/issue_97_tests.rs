@@ -9,7 +9,7 @@ fn issue_97_test() {
     const FMT: u128 = NumberFormatBuilder::new()
         .digit_separator(num::NonZeroU8::new(b'_'))
         .internal_digit_separator(true)
-        .build();
+        .build_strict();
 
     let fopts = lexical_core::ParseFloatOptions::new();
     let iopts = lexical_core::ParseIntegerOptions::new();

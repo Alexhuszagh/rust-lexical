@@ -7,97 +7,69 @@
 //!
 //! # Features
 //!
-//! * `std` - Use the standard library.
-//! * `power-of-two` - Add support for parsing power-of-two integer strings.
-//! * `radix` - Add support for strings of any radix.
-//! * `write-integers` - Add support for writing integers.
-//! * `write-floats` - Add support for writing floats.
-//! * `parse-integers` - Add support for parsing integers.
-//! * `parse-floats` - Add support for parsing floats.
+//! * `power-of-two` - Add support for parsing and writing power-of-two integer
+//!   strings.
+//! * `radix` - Add support for parsing and writing strings of any radix.
+//! * `format` - Add support for custom number formats.
+//! * `write-integers` - Add support for writing integers (used for
+//!   [`lexical-write-integer`]).
+//! * `write-floats` - Add support for writing floats (used for
+//!   [`lexical-write-float`]).
+//! * `parse-integers` - Add support for parsing integers (used for
+//!   [`lexical-parse-integer`]).
+//! * `parse-floats` - Add support for parsing floats (used for
+//!   [`lexical-write-float`]).
 //! * `compact` - Reduce code size at the cost of performance.
+//! * `f16` - Enable support for half-precision [`f16`][`ieee-f16`] and
+//!   [`bf16`][`brain-float`] floats.
+//! * `std` (Default) - Disable to allow use in a [`no_std`] environment.
 //!
-//! # Note
+//! [`no_std`]: https://docs.rust-embedded.org/book/intro/no-std.html
+//! [`ieee-f16`]: https://en.wikipedia.org/wiki/Half-precision_floating-point_format
+//! [`brain-float`]: https://en.wikipedia.org/wiki/Bfloat16_floating-point_format
 //!
-//! None of this is considered a public API: any of the implementation
-//! details may change release-to-release without major or minor version
-//! changes. Use internal implementation details at your own risk.
+//! # Public API
 //!
-//! lexical-util mainly exists as an implementation detail for
-//! lexical-core, although its API is stable. If you would like to use
-//! a high-level API that writes to and parses from `String` and `&str`,
-//! respectively, please look at [lexical](https://crates.io/crates/lexical)
-//! instead. If you would like an API that supports multiple numeric
-//! conversions, please look at [lexical-core](https://crates.io/crates/lexical-core)
-//! instead.
+//! [`lexical-util`] mainly exists as an implementation detail for
+//! the other lexical crates, although its API is mostly stable. If you would
+//! like to use a high-level API that writes to and parses from [`String`] and
+//! [`str`], respectively, please look at [`lexical`] instead. If you would like
+//! an API that supports multiple numeric conversions without a dependency on
+//! [`alloc`], please look at [`lexical-core`] instead.
+//!
+//! <div class="warning">
+//!
+//! Any undocumented, implementation details may change release-to-release
+//! without major or minor version changes. Use internal implementation details
+//! at your own risk. Any changes other than to [`NumberFormatBuilder`],
+//! [`NumberFormat`], [`mod@format`], and [`mod@options`] will not be considered
+//! a breaking change.
+//!
+//! </div>
 //!
 //! # Version Support
 //!
-//! The minimum, standard, required version is 1.63.0, for const generic
-//! support. Older versions of lexical support older Rust versions.
+//! The minimum, standard, required version is [`1.63.0`][`rust-1.63.0`], for
+//! const generic support. Older versions of lexical support older Rust
+//! versions.
 //!
 //! # Safety Guarantees
 //!
-//! The only major sources of unsafe code are wrapped in the `iterator.rs`,
-//! `skip.rs`, and `noskip.rs`. These are fully encapsulated into standalone
-//! traits to clearly define safety invariants and localize any unsafety to
-//! 1 or 2 lines of code.
+//! For a detailed breakdown on the use of [`unsafe`], how and why our traits
+//! are implemented safely, and how to verify this, see [`Safety`].
 //!
-//! The core, unsafe trait is `DigitsIter` and `Iter`, both which expect
-//! to be backed by a contiguous block of memory (a slice) but may skip
-//! bytes internally. To guarantee safety, for non-skip iterators you
-//! must implement [DigitsIter::is_consumed][is_consumed] correctly.
-//!
-//! This must correctly determine if there are any elements left in the
-//! iterator. If the buffer is contiguous, this can just be `index ==
-//! self.len()`, but for a non-contiguous iterator it must skip any digits to
-//! advance to the element next to be returned or the iterator itself will be
-//! unsafe. **ALL** other safety invariants depend on this being implemented
-//! correctly.
-//!
-//! To see if the cursor is at the end of the buffer, use
-//! [is_buffer_empty][is_buffer_empty].
-//!
-//! Any iterators must be peekable: you must be able to read and return the next
-//! value without advancing the iterator past that point. For iterators that
-//! skip bytes, this means advancing to the next element to be returned and
-//! returning that value.
-//!
-//! For examples of how to safely implement skip iterators, you can do something
-//! like:
-//!
-//! ```rust,ignore
-//! impl<_> DigitsIter<_> for MyIter {
-//!     fn peek(&mut self) -> Option<u8> {
-//!         loop {
-//!             let value = self.bytes.get(self.index)?;
-//!             if value != &b'.' {
-//!                 return value;
-//!             }
-//!             self.index += 1;
-//!         }
-//!     }
-//! }
-//! ```
-//!
-//! Then, [next](core::iter::Iterator::next) will be implemented in terms
-//! of [peek], incrementing the position in the cursor just after the value.
-//! The next iteration of peek will step to the correct byte to return.
-//!
-//! ```rust,ignore
-//! impl<_> Iterator for MyIter {
-//!     type Item = &'a u8;
-//!
-//!     fn next(&mut self) -> Option<Self::Item> {
-//!         let value = self.peek()?;
-//!         self.index += 1;
-//!         Some(value)
-//!     }
-//! }
-//! ```
-//!
-//! [is_buffer_empty]: <https://github.com/Alexhuszagh/rust-lexical/blob/8fe1d9a/lexical-util/src/iterator.rs#76>
-//! [is_consumed]: <https://github.com/Alexhuszagh/rust-lexical/blob/8fe1d9a/lexical-util/src/iterator.rs#L276>
-//! [peek]: <https://github.com/Alexhuszagh/rust-lexical/blob/8fe1d9a/lexical-util/src/iterator.rs#L284>
+//! [`lexical`]: https://crates.io/crates/lexical
+//! [`lexical-parse-float`]: https://crates.io/crates/lexical-parse-float
+//! [`lexical-parse-integer`]: https://crates.io/crates/lexical-parse-integer
+//! [`lexical-write-float`]: https://crates.io/crates/lexical-write-float
+//! [`lexical-write-integer`]: https://crates.io/crates/lexical-write-integer
+//! [`lexical-core`]: https://crates.io/crates/lexical-core
+//! [`lexical-util`]: https://crates.io/crates/lexical-util
+//! [`rust-1.63.0`]: https://blog.rust-lang.org/2022/08/11/Rust-1.63.0.html
+//! [`alloc`]: https://doc.rust-lang.org/alloc/
+//! [`String`]: https://doc.rust-lang.org/alloc/string/struct.String.html
+//! [`Safety`]: https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-util/docs/Safety.md
+//! [`unsafe`]: https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html
 
 // FIXME: Implement clippy/allow reasons once we drop support for 1.80.0 and below
 // Clippy reasons were stabilized in 1.81.0.
@@ -107,6 +79,8 @@
 #![allow(unused_unsafe)]
 #![cfg_attr(feature = "lint", warn(unsafe_op_in_unsafe_fn))]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![deny(
     clippy::doc_markdown,
     clippy::unnecessary_safety_comment,
@@ -177,3 +151,13 @@ mod format_flags;
 mod noskip;
 mod not_feature_format;
 mod skip;
+
+#[cfg(feature = "write")]
+pub use constants::{FormattedSize, BUFFER_SIZE};
+pub use error::Error;
+pub use format::{NumberFormat, NumberFormatBuilder};
+#[cfg(feature = "parse")]
+pub use options::ParseOptions;
+#[cfg(feature = "write")]
+pub use options::WriteOptions;
+pub use result::Result;
