@@ -30,9 +30,6 @@ path = "../lexical-write-integer"
 default-features = false
 features = []
 
-[dependencies]
-static_assertions = "1"
-
 [features]
 default = ["std"]
 # Use the standard library.
@@ -79,3 +76,4 @@ f128 = ["lexical-util/f128"]
 
 [package.metadata.docs.rs]
 features = ["radix", "format", "f16"]
+rustdoc-args = ["--cfg", "docsrs"]

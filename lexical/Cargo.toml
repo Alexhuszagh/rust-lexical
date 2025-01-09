@@ -10,7 +10,7 @@ name = "lexical"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
 version = "7.0.4"
-rust-version = "1.61.0"
+rust-version = "1.60.0"
 exclude = [
     "assets/*",
     "docs/*",
@@ -74,3 +74,4 @@ f128 = ["lexical-core/f128"]
 
 [package.metadata.docs.rs]
 features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats", "f16"]
+rustdoc-args = ["--cfg", "docsrs"]

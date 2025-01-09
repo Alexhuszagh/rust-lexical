@@ -2,10 +2,11 @@
 
 use crate::num::{as_cast, UnsignedInteger};
 
-/// Multiply two unsigned, integral values, and return the hi and lo product.
+/// Multiply two unsigned, integral values, and return the high and low product.
 ///
-/// The `full` type is the full type size, while the `half` type is the type
-/// with exactly half the bits.
+/// The high product is the upper half of the product and the low product is the
+/// lower half. The `full` type is the full type size, while the `half` type is
+/// the type with exactly half the bits.
 #[inline(always)]
 pub fn mul<Full, Half>(x: Full, y: Full) -> (Full, Full)
 where
@@ -29,10 +30,11 @@ where
     (hi, lo)
 }
 
-/// Multiply two unsigned, integral values, and return the hi product.
+/// Multiply two unsigned, integral values, and return the high product.
 ///
-/// The `full` type is the full type size, while the `half` type is the type
-/// with exactly half the bits.
+/// The high product is the upper half of the product. The `full` type is the
+/// full type size, while the `half` type is the type with exactly half the
+/// bits.
 #[inline(always)]
 pub fn mulhi<Full, Half>(x: Full, y: Full) -> Full
 where

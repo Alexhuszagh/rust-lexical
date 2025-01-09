@@ -1,6 +1,8 @@
 //! Pre-defined constants for numeric types.
 
+#![doc(hidden)]
 #![cfg(feature = "write")]
+#![cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
 
 #[cfg(feature = "f16")]
 use crate::bf16::bf16;
@@ -10,6 +12,10 @@ use crate::f16::f16;
 /// The size, in bytes, of formatted values.
 pub trait FormattedSize {
     /// Maximum number of bytes required to serialize a number to string.
+    /// If [`power-of-two`] or [`radix`] is not enabled, this is the same as
+    /// [`FORMATTED_SIZE_DECIMAL`][`Self::FORMATTED_SIZE_DECIMAL`].
+    ///
+    /// <div class="warning">
     ///
     /// Note that this value may be insufficient if digit precision control,
     /// exponent break points, or disabling exponent notation is used. If
@@ -18,19 +24,31 @@ pub trait FormattedSize {
     /// buffer than the one provided. An upper limit on the buffer size can
     /// then be determined using [`WriteOptions::buffer_size`].
     ///
+    /// Using an insufficiently large buffer will lead to the code panicking.
+    ///
+    /// </div>
+    ///
     /// [`WriteOptions::buffer_size`]: crate::options::WriteOptions::buffer_size
     /// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-write-float
+    /// [`power-of-two`]: crate#features
+    /// [`radix`]: crate#features
     const FORMATTED_SIZE: usize;
 
     /// Maximum number of bytes required to serialize a number to a decimal
     /// string.
     ///
+    /// <div class="warning">
+    ///
     /// Note that this value may be insufficient if digit precision control,
     /// exponent break points, or disabling exponent notation is used. If
     /// you are changing the number significant digits written, the exponent
     /// break points, or disabling scientific notation, you will need a larger
     /// buffer than the one provided. An upper limit on the buffer size can
     /// then be determined using [`WriteOptions::buffer_size`].
+    ///
+    /// Using an insufficiently large buffer will lead to the code panicking.
+    ///
+    /// </div>
     ///
     /// [`WriteOptions::buffer_size`]: crate::options::WriteOptions::buffer_size
     /// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-write-float
@@ -93,7 +111,8 @@ formatted_size_impl! { isize 20 128 ; }
 #[cfg(target_pointer_width = "64")]
 formatted_size_impl! { usize 20 128 ; }
 
-/// Maximum number of bytes required to serialize any number to string.
+/// Maximum number of bytes required to serialize any number with default
+/// options to string.
 ///
 /// Note that this value may be insufficient if digit precision control,
 /// exponent break points, or disabling exponent notation is used.

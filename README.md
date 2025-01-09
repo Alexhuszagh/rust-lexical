@@ -66,7 +66,7 @@ where
     let value: T = lexical_core::parse(value.as_bytes())?;
     let mut buffer = [b'0'; lexical_core::BUFFER_SIZE];
     let bytes = lexical_core::write(value * multiplier, &mut buffer);
-    Ok(std::str::from_utf8(bytes).unwrap())
+    Ok(String::from_utf8(bytes).unwrap())
 }
 ```
 
@@ -93,7 +93,9 @@ let (x, count): (i32, usize) = lexical_core::parse_partial(b"123 456")?;
 
 ## no_std
 
-`lexical-core` does not depend on a standard library, nor a system allocator. To use `lexical-core` in a `no_std` environment, add the following to `Cargo.toml`:
+`lexical-core` does not depend on a standard library, nor a system allocator. To use `lexical-core` in a [`no_std`] environment, add the following to `Cargo.toml`:
+
+[`no_std`]: <https://docs.rust-embedded.org/book/intro/no-std.html>
 
 ```toml
 [dependencies.lexical-core]
@@ -103,7 +105,7 @@ default-features = false
 features = ["write-integers", "write-floats", "parse-integers", "parse-floats"]
 ```
 
-And get started using lexical:
+And get started using `lexical-core`:
 
 ```rust
 // A constant for the maximum number of bytes a formatter will write.
@@ -136,9 +138,9 @@ Lexical is highly customizable, and contains numerous other optional features:
 
 - **std**: &ensp; Enable use of the Rust standard library (enabled by default).
 - **power-of-two**: &ensp; Enable conversions to and from non-decimal strings.
-    <blockquote>With power_of_two enabled, the radixes <code>{2, 4, 8, 10, 16, and 32}</code> are valid, otherwise, only 10 is valid. This enables common conversions to/from hexadecimal integers/floats, without requiring large pre-computed tables for other radixes.</blockquote>
+    <blockquote>With power_of_two enabled, the radixes <code>{2, 4, 8, 10, 16, and 32}</code> are valid, otherwise, only <code>10</code> is valid. This enables common conversions to/from hexadecimal integers/floats, without requiring large pre-computed tables for other radixes.</blockquote>
 - **radix**: &ensp; Allow conversions to and from non-decimal strings.
-    <blockquote>With radix enabled, any radix from 2 to 36 (inclusive) is valid, otherwise, only 10 is valid.</blockquote>
+    <blockquote>With radix enabled, any radix from <code>2</code> to <code>36</code> (inclusive) is valid, otherwise, only <code>10</code> is valid.</blockquote>
 - **format**: &ensp; Customize acceptable number formats for number parsing and writing.
     <blockquote>With format enabled, the number format is dictated through bitflags and masks packed into a <code>u128</code>. These dictate the valid syntax of parsed and written numbers, including enabling digit separators, requiring integer or fraction digits, and toggling case-sensitive exponent characters.</blockquote>
 - **compact**: &ensp; Optimize for binary size at the expense of performance.
@@ -154,7 +156,7 @@ Lexical also places a heavy focus on code bloat: with algorithms both optimized 
 
 Lexical is extensively customizable to support parsing numbers from a wide variety of programming languages, such as `1_2_3`. However, lexical takes the concept of "you don't pay for what you don't use" seriously: enabling the `format` feature does not affect the performance of parsing regular numbers: only those with digit separators.
 
-> ⚠ **WARNING:** When changing the number of significant digits written, disabling the use of exponent notation, or changing exponent notation thresholds, `BUFFER_SIZE` may be insufficient to hold the resulting output. `WriteOptions::buffer_size` will provide a correct upper bound on the number of bytes written. If a buffer of insufficient length is provided, lexical-core will panic.
+> ⚠ **WARNING:** When changing the number of significant digits written, disabling the use of exponent notation, or changing exponent notation thresholds, `BUFFER_SIZE` may be insufficient to hold the resulting output. `WriteOptions::buffer_size_const` will provide a correct upper bound on the number of bytes written. If a buffer of insufficient length is provided, `lexical-core` will panic.
 
 Every language has competing specifications for valid numerical input, meaning a number parser for Rust will incorrectly accept or reject input for different programming or data languages. For example:
 
@@ -165,9 +167,9 @@ let f: f64 = lexical_core::parse(b"3.e7")?;  // 3e7
 
 // Let's only accept JSON floats.
 const JSON: u128 = lexical_core::format::JSON;
-let options = ParseFloatOptions::new();
-let f: f64 = lexical_core::parse_with_options::<JSON>(b"3.0e7", &options)?; // 3e7
-let f: f64 = lexical_core::parse_with_options::<JSON>(b"3.e7", &options)?;  // Errors!
+const OPTIONS: ParseFloatOptions = ParseFloatOptions::new();
+let f: f64 = lexical_core::parse_with_options::<_, JSON>(b"3.0e7", &OPTIONS)?; // 3e7
+let f: f64 = lexical_core::parse_with_options::<_, JSON>(b"3.e7", &OPTIONS)?;  // Errors!
 ```
 
 Due the high variability in the syntax of numbers in different programming and data languages, we provide 2 different APIs to simplify converting numbers with different syntax requirements.
@@ -196,24 +198,30 @@ When the `format` feature is enabled, numerous other syntax and digit separator 
 
 Many pre-defined constants therefore exist to simplify common use-cases,
 including:
+- [`JSON`], [`XML`], [`TOML`], [`YAML`], [`SQLite`], and many more.
+- [`Rust`], [`Python`], [`C#`], [`FORTRAN`], [`COBOL`] literals and strings, and many more.
 
-- JSON, XML, TOML, YAML, SQLite, and many more.
-- Rust, Python, C#, FORTRAN, COBOL literals and strings, and many more.
+[`JSON`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.JSON.html
+[`XML`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.XML.html
+[`TOML`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.TOML.html
+[`YAML`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.YAML.html
+[`SQLite`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.SQLITE.html
+[`Rust`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.RUST_LITERAL.html
+[`Python`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.PYTHON_LITERAL.html
+[`C#`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.CSHARP_LITERAL.html
+[`FORTRAN`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.FORTRAN_LITERAL.html
+[`COBOL`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.COBOL_LITERAL.html
 
 An example of building a custom number format is as follows:
 
 ```rust
+// this will panic if the format is invalid
 const FORMAT: u128 = lexical_core::NumberFormatBuilder::new()
     // Disable exponent notation.
     .no_exponent_notation(true)
     // Disable all special numbers, such as Nan and Inf.
     .no_special(true)
-    .build();
-
-// Due to use in a `const fn`, we can't panic or expect users to unwrap invalid
-// formats, so it's up to the caller to verify the format. If an invalid format
-// is provided to a parser or writer, the function will error or panic, respectively.
-debug_assert!(lexical_core::format_is_valid::<FORMAT>());
+    .build_strict();
 ```
 
 ### Options API
@@ -225,7 +233,7 @@ An example of building a custom options struct is as follows:
 ```rust
 use std::num;
 
-let options = lexical_core::WriteFloatOptions::builder()
+const OPTIONS: lexical_core::WriteFloatOptions = lexical_core::WriteFloatOptions::builder()
     // Only write up to 5 significant digits, IE, `1.23456` becomes `1.2345`.
     .max_significant_digits(num::NonZeroUsize::new(5))
     // Never write less than 5 significant digits, `1.1` becomes `1.1000`.
@@ -238,8 +246,7 @@ let options = lexical_core::WriteFloatOptions::builder()
     .nan_string(None)
     // Write infinity as "Infinity".
     .inf_string(Some(b"Infinity"))
-    .build()
-    .unwrap();
+    .build_strict();
 ```
 
 ## Documentation
@@ -380,17 +387,17 @@ lexical-core should also work on a wide variety of other architectures and ISAs.
 The currently supported versions are:
 - v1.0.x
 
-Due to security considerations, all other versions are not supported and security advisories exist for them..
+Due to security considerations, all other versions are not supported and security advisories exist for them.
 
 **Rustc Compatibility**
 
 - v1.0.x supports 1.63+, including stable, beta, and nightly.
 
-Please report any errors compiling a supported lexical-core version on a compatible Rustc version.
+Please report any errors compiling a supported `lexical` version on a compatible Rustc version.
 
 **Versioning**
 
-lexical uses [semantic versioning](https://semver.org/). Removing support for Rustc versions newer than the latest stable Debian or Ubuntu version is considered an incompatible API change, requiring a major version change.
+`lexical` uses [semantic versioning](https://semver.org/). Removing support for Rustc versions newer than the latest stable Debian or Ubuntu version is considered an incompatible API change, requiring a major version change.
 
 ## Changelog
 
@@ -402,6 +409,6 @@ Lexical is dual licensed under the Apache 2.0 license as well as the MIT license
 
 ## Contributing
 
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in lexical by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions. Contributing to the repository means abiding by the [code of conduct](https://github.com/Alexhuszagh/rust-lexical/blob/main/CODE_OF_CONDUCT.md).
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in `lexical` by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions. Contributing to the repository means abiding by the [code of conduct](https://github.com/Alexhuszagh/rust-lexical/blob/main/CODE_OF_CONDUCT.md).
 
-For the process on how to contribute to lexical, see the [development](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/Development.md) quick-start guide.
+For the process on how to contribute to `lexical`, see the [development](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/Development.md) quick-start guide.

@@ -18,9 +18,6 @@ exclude = [
     "cargo-timing*.html"
 ]
 
-[dependencies]
-static_assertions = "1.1.0"
-
 [dependencies.lexical-util]
 version = "1.0.5"
 path = "../lexical-util"
@@ -48,3 +45,4 @@ lint = ["lexical-util/lint"]
 
 [package.metadata.docs.rs]
 features = ["radix", "format"]
+rustdoc-args = ["--cfg", "docsrs"]

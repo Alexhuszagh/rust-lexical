@@ -33,11 +33,11 @@ roundtrip_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
 #[cfg(feature = "format")]
 fn mandatory_sign_test() {
     let mut buffer = [b'\x00'; 16];
-    let options = Options::new();
-    const FORMAT: u128 = NumberFormatBuilder::new().required_mantissa_sign(true).build();
-    assert_eq!(b"+0", 0i8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &options));
-    assert_eq!(b"-1", (-1i8).to_lexical_with_options::<{ FORMAT }>(&mut buffer, &options));
-    assert_eq!(b"+1", 1i8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &options));
+    const OPTIONS: Options = Options::new();
+    const FORMAT: u128 = NumberFormatBuilder::new().required_mantissa_sign(true).build_strict();
+    assert_eq!(b"+0", 0i8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &OPTIONS));
+    assert_eq!(b"-1", (-1i8).to_lexical_with_options::<{ FORMAT }>(&mut buffer, &OPTIONS));
+    assert_eq!(b"+1", 1i8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &OPTIONS));
 }
 
 #[test]
@@ -186,24 +186,24 @@ fn i128_test() {
 fn proptest_failures_radix() {
     const FORMAT: u128 = from_radix(12);
     let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let options = Options::new();
-    assert_eq!(b"A8", 128u8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &options));
+    const OPTIONS: Options = Options::new();
+    assert_eq!(b"A8", 128u8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &OPTIONS));
 }
 
 #[test]
 fn options_test() {
     let mut buffer = [b'\x00'; 48];
-    let options = Options::new();
-    assert_eq!(b"0", 0u8.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
-    assert_eq!(b"0", 0u16.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
-    assert_eq!(b"0", 0u32.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
-    assert_eq!(b"0", 0u64.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
-    assert_eq!(b"0", 0u128.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
-    assert_eq!(b"0", 0i8.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
-    assert_eq!(b"0", 0i16.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
-    assert_eq!(b"0", 0i32.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
-    assert_eq!(b"0", 0i64.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
-    assert_eq!(b"0", 0i128.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
+    const OPTIONS: Options = Options::new();
+    assert_eq!(b"0", 0u8.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS));
+    assert_eq!(b"0", 0u16.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS));
+    assert_eq!(b"0", 0u32.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS));
+    assert_eq!(b"0", 0u64.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS));
+    assert_eq!(b"0", 0u128.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS));
+    assert_eq!(b"0", 0i8.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS));
+    assert_eq!(b"0", 0i16.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS));
+    assert_eq!(b"0", 0i32.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS));
+    assert_eq!(b"0", 0i64.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS));
+    assert_eq!(b"0", 0i128.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS));
 }
 
 #[test]
@@ -211,8 +211,8 @@ fn options_test() {
 fn options_radix_test() {
     const FORMAT: u128 = from_radix(12);
     let mut buffer = [b'\x00'; 128];
-    let options = Options::new();
-    assert_eq!(b"A8", 128u8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &options));
+    const OPTIONS: Options = Options::new();
+    assert_eq!(b"A8", 128u8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &OPTIONS));
 }
 
 fn roundtrip<T>(x: T) -> T

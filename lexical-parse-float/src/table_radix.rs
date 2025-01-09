@@ -6,7 +6,6 @@
 #![allow(clippy::excessive_precision)] // reason = "auto-generated values that need to be exact"
 
 use lexical_util::assert::debug_assert_radix;
-use static_assertions::const_assert;
 
 use crate::bigint::Limb;
 use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit, u64_power_limit};
@@ -738,15 +737,15 @@ pub const SMALL_INT_POW3: [u64; 41] = [
     4052555153018976267,
     12157665459056928801,
 ];
-const_assert!(SMALL_INT_POW3.len() > f64_mantissa_limit(3) as usize);
-const_assert!(SMALL_INT_POW3.len() == u64_power_limit(3) as usize + 1);
+const _: () = assert!(SMALL_INT_POW3.len() > f64_mantissa_limit(3) as usize);
+const _: () = assert!(SMALL_INT_POW3.len() == u64_power_limit(3) as usize + 1);
 
 /// Pre-computed, small powers-of-3.
 pub const SMALL_F32_POW3: [f32; 16] = [
     1.0, 3.0, 9.0, 27.0, 81.0, 243.0, 729.0, 2187.0, 6561.0, 19683.0, 59049.0, 177147.0, 531441.0,
     1594323.0, 4782969.0, 14348907.0,
 ];
-const_assert!(SMALL_F32_POW3.len() > f32_exponent_limit(3).1 as usize);
+const _: () = assert!(SMALL_F32_POW3.len() > f32_exponent_limit(3).1 as usize);
 
 /// Pre-computed, small powers-of-3.
 pub const SMALL_F64_POW3: [f64; 34] = [
@@ -785,7 +784,7 @@ pub const SMALL_F64_POW3: [f64; 34] = [
     1853020188851841.0,
     5559060566555523.0,
 ];
-const_assert!(SMALL_F64_POW3.len() > f64_exponent_limit(3).1 as usize);
+const _: () = assert!(SMALL_F64_POW3.len() > f64_exponent_limit(3).1 as usize);
 
 /// Pre-computed large power-of-3 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -810,7 +809,7 @@ pub const LARGE_POW3_STEP: u32 = 200;
 /// Pre-computed, small powers-of-5.
 pub const SMALL_F32_POW5: [f32; 11] =
     [1.0, 5.0, 25.0, 125.0, 625.0, 3125.0, 15625.0, 78125.0, 390625.0, 1953125.0, 9765625.0];
-const_assert!(SMALL_F32_POW5.len() > f32_exponent_limit(5).1 as usize);
+const _: () = assert!(SMALL_F32_POW5.len() > f32_exponent_limit(5).1 as usize);
 
 /// Pre-computed, small powers-of-5.
 pub const SMALL_F64_POW5: [f64; 23] = [
@@ -838,7 +837,7 @@ pub const SMALL_F64_POW5: [f64; 23] = [
     476837158203125.0,
     2384185791015625.0,
 ];
-const_assert!(SMALL_F64_POW5.len() > f64_exponent_limit(5).1 as usize);
+const _: () = assert!(SMALL_F64_POW5.len() > f64_exponent_limit(5).1 as usize);
 
 /// Pre-computed, small powers-of-6.
 pub const SMALL_INT_POW6: [u64; 25] = [
@@ -868,8 +867,8 @@ pub const SMALL_INT_POW6: [u64; 25] = [
     789730223053602816,
     4738381338321616896,
 ];
-const_assert!(SMALL_INT_POW6.len() > f64_mantissa_limit(6) as usize);
-const_assert!(SMALL_INT_POW6.len() == u64_power_limit(6) as usize + 1);
+const _: () = assert!(SMALL_INT_POW6.len() > f64_mantissa_limit(6) as usize);
+const _: () = assert!(SMALL_INT_POW6.len() == u64_power_limit(6) as usize + 1);
 
 /// Pre-computed, small powers-of-6.
 pub const SMALL_F32_POW6: [f32; 16] = [
@@ -890,7 +889,7 @@ pub const SMALL_F32_POW6: [f32; 16] = [
     78364164096.0,
     470184984576.0,
 ];
-const_assert!(SMALL_F32_POW6.len() > f32_exponent_limit(6).1 as usize);
+const _: () = assert!(SMALL_F32_POW6.len() > f32_exponent_limit(6).1 as usize);
 
 /// Pre-computed, small powers-of-6.
 pub const SMALL_F64_POW6: [f64; 34] = [
@@ -929,7 +928,7 @@ pub const SMALL_F64_POW6: [f64; 34] = [
     7.958661109946401e+24,
     4.7751966659678405e+25,
 ];
-const_assert!(SMALL_F64_POW6.len() > f64_exponent_limit(6).1 as usize);
+const _: () = assert!(SMALL_F64_POW6.len() > f64_exponent_limit(6).1 as usize);
 
 /// Pre-computed, small powers-of-7.
 pub const SMALL_INT_POW7: [u64; 23] = [
@@ -957,13 +956,13 @@ pub const SMALL_INT_POW7: [u64; 23] = [
     558545864083284007,
     3909821048582988049,
 ];
-const_assert!(SMALL_INT_POW7.len() > f64_mantissa_limit(7) as usize);
-const_assert!(SMALL_INT_POW7.len() == u64_power_limit(7) as usize + 1);
+const _: () = assert!(SMALL_INT_POW7.len() > f64_mantissa_limit(7) as usize);
+const _: () = assert!(SMALL_INT_POW7.len() == u64_power_limit(7) as usize + 1);
 
 /// Pre-computed, small powers-of-7.
 pub const SMALL_F32_POW7: [f32; 9] =
     [1.0, 7.0, 49.0, 343.0, 2401.0, 16807.0, 117649.0, 823543.0, 5764801.0];
-const_assert!(SMALL_F32_POW7.len() > f32_exponent_limit(7).1 as usize);
+const _: () = assert!(SMALL_F32_POW7.len() > f32_exponent_limit(7).1 as usize);
 
 /// Pre-computed, small powers-of-7.
 pub const SMALL_F64_POW7: [f64; 19] = [
@@ -987,7 +986,7 @@ pub const SMALL_F64_POW7: [f64; 19] = [
     232630513987207.0,
     1628413597910449.0,
 ];
-const_assert!(SMALL_F64_POW7.len() > f64_exponent_limit(7).1 as usize);
+const _: () = assert!(SMALL_F64_POW7.len() > f64_exponent_limit(7).1 as usize);
 
 /// Pre-computed large power-of-7 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -1033,12 +1032,12 @@ pub const SMALL_INT_POW9: [u64; 21] = [
     1350851717672992089,
     12157665459056928801,
 ];
-const_assert!(SMALL_INT_POW9.len() > f64_mantissa_limit(9) as usize);
-const_assert!(SMALL_INT_POW9.len() == u64_power_limit(9) as usize + 1);
+const _: () = assert!(SMALL_INT_POW9.len() > f64_mantissa_limit(9) as usize);
+const _: () = assert!(SMALL_INT_POW9.len() == u64_power_limit(9) as usize + 1);
 
 /// Pre-computed, small powers-of-9.
 pub const SMALL_F32_POW9: [f32; 8] = [1.0, 9.0, 81.0, 729.0, 6561.0, 59049.0, 531441.0, 4782969.0];
-const_assert!(SMALL_F32_POW9.len() > f32_exponent_limit(9).1 as usize);
+const _: () = assert!(SMALL_F32_POW9.len() > f32_exponent_limit(9).1 as usize);
 
 /// Pre-computed, small powers-of-9.
 pub const SMALL_F64_POW9: [f64; 17] = [
@@ -1060,7 +1059,7 @@ pub const SMALL_F64_POW9: [f64; 17] = [
     205891132094649.0,
     1853020188851841.0,
 ];
-const_assert!(SMALL_F64_POW9.len() > f64_exponent_limit(9).1 as usize);
+const _: () = assert!(SMALL_F64_POW9.len() > f64_exponent_limit(9).1 as usize);
 
 /// Pre-computed large power-of-9 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -1104,12 +1103,12 @@ pub const SMALL_INT_POW11: [u64; 19] = [
     505447028499293771,
     5559917313492231481,
 ];
-const_assert!(SMALL_INT_POW11.len() > f64_mantissa_limit(11) as usize);
-const_assert!(SMALL_INT_POW11.len() == u64_power_limit(11) as usize + 1);
+const _: () = assert!(SMALL_INT_POW11.len() > f64_mantissa_limit(11) as usize);
+const _: () = assert!(SMALL_INT_POW11.len() == u64_power_limit(11) as usize + 1);
 
 /// Pre-computed, small powers-of-11.
 pub const SMALL_F32_POW11: [f32; 7] = [1.0, 11.0, 121.0, 1331.0, 14641.0, 161051.0, 1771561.0];
-const_assert!(SMALL_F32_POW11.len() > f32_exponent_limit(11).1 as usize);
+const _: () = assert!(SMALL_F32_POW11.len() > f32_exponent_limit(11).1 as usize);
 
 /// Pre-computed, small powers-of-11.
 pub const SMALL_F64_POW11: [f64; 16] = [
@@ -1130,7 +1129,7 @@ pub const SMALL_F64_POW11: [f64; 16] = [
     379749833583241.0,
     4177248169415651.0,
 ];
-const_assert!(SMALL_F64_POW11.len() > f64_exponent_limit(11).1 as usize);
+const _: () = assert!(SMALL_F64_POW11.len() > f64_exponent_limit(11).1 as usize);
 
 /// Pre-computed large power-of-11 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -1173,8 +1172,8 @@ pub const SMALL_INT_POW12: [u64; 18] = [
     184884258895036416,
     2218611106740436992,
 ];
-const_assert!(SMALL_INT_POW12.len() > f64_mantissa_limit(12) as usize);
-const_assert!(SMALL_INT_POW12.len() == u64_power_limit(12) as usize + 1);
+const _: () = assert!(SMALL_INT_POW12.len() > f64_mantissa_limit(12) as usize);
+const _: () = assert!(SMALL_INT_POW12.len() == u64_power_limit(12) as usize + 1);
 
 /// Pre-computed, small powers-of-12.
 pub const SMALL_F32_POW12: [f32; 16] = [
@@ -1195,7 +1194,7 @@ pub const SMALL_F32_POW12: [f32; 16] = [
     1283918464548864.0,
     1.5407021574586368e+16,
 ];
-const_assert!(SMALL_F32_POW12.len() > f32_exponent_limit(12).1 as usize);
+const _: () = assert!(SMALL_F32_POW12.len() > f32_exponent_limit(12).1 as usize);
 
 /// Pre-computed, small powers-of-12.
 pub const SMALL_F64_POW12: [f64; 34] = [
@@ -1234,7 +1233,7 @@ pub const SMALL_F64_POW12: [f64; 34] = [
     3.418218918716685e+34,
     4.101862702460022e+35,
 ];
-const_assert!(SMALL_F64_POW12.len() > f64_exponent_limit(12).1 as usize);
+const _: () = assert!(SMALL_F64_POW12.len() > f64_exponent_limit(12).1 as usize);
 
 /// Pre-computed, small powers-of-13.
 pub const SMALL_INT_POW13: [u64; 18] = [
@@ -1257,12 +1256,12 @@ pub const SMALL_INT_POW13: [u64; 18] = [
     665416609183179841,
     8650415919381337933,
 ];
-const_assert!(SMALL_INT_POW13.len() > f64_mantissa_limit(13) as usize);
-const_assert!(SMALL_INT_POW13.len() == u64_power_limit(13) as usize + 1);
+const _: () = assert!(SMALL_INT_POW13.len() > f64_mantissa_limit(13) as usize);
+const _: () = assert!(SMALL_INT_POW13.len() == u64_power_limit(13) as usize + 1);
 
 /// Pre-computed, small powers-of-13.
 pub const SMALL_F32_POW13: [f32; 7] = [1.0, 13.0, 169.0, 2197.0, 28561.0, 371293.0, 4826809.0];
-const_assert!(SMALL_F32_POW13.len() > f32_exponent_limit(13).1 as usize);
+const _: () = assert!(SMALL_F32_POW13.len() > f32_exponent_limit(13).1 as usize);
 
 /// Pre-computed, small powers-of-13.
 pub const SMALL_F64_POW13: [f64; 15] = [
@@ -1282,7 +1281,7 @@ pub const SMALL_F64_POW13: [f64; 15] = [
     302875106592253.0,
     3937376385699289.0,
 ];
-const_assert!(SMALL_F64_POW13.len() > f64_exponent_limit(13).1 as usize);
+const _: () = assert!(SMALL_F64_POW13.len() > f64_exponent_limit(13).1 as usize);
 
 /// Pre-computed large power-of-13 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -1324,13 +1323,13 @@ pub const SMALL_INT_POW14: [u64; 17] = [
     155568095557812224,
     2177953337809371136,
 ];
-const_assert!(SMALL_INT_POW14.len() > f64_mantissa_limit(14) as usize);
-const_assert!(SMALL_INT_POW14.len() == u64_power_limit(14) as usize + 1);
+const _: () = assert!(SMALL_INT_POW14.len() > f64_mantissa_limit(14) as usize);
+const _: () = assert!(SMALL_INT_POW14.len() == u64_power_limit(14) as usize + 1);
 
 /// Pre-computed, small powers-of-14.
 pub const SMALL_F32_POW14: [f32; 9] =
     [1.0, 14.0, 196.0, 2744.0, 38416.0, 537824.0, 7529536.0, 105413504.0, 1475789056.0];
-const_assert!(SMALL_F32_POW14.len() > f32_exponent_limit(14).1 as usize);
+const _: () = assert!(SMALL_F32_POW14.len() > f32_exponent_limit(14).1 as usize);
 
 /// Pre-computed, small powers-of-14.
 pub const SMALL_F64_POW14: [f64; 19] = [
@@ -1354,7 +1353,7 @@ pub const SMALL_F64_POW14: [f64; 19] = [
     3.0491346729331196e+19,
     4.2687885421063674e+20,
 ];
-const_assert!(SMALL_F64_POW14.len() > f64_exponent_limit(14).1 as usize);
+const _: () = assert!(SMALL_F64_POW14.len() > f64_exponent_limit(14).1 as usize);
 
 /// Pre-computed, small powers-of-15.
 pub const SMALL_INT_POW15: [u64; 17] = [
@@ -1376,12 +1375,12 @@ pub const SMALL_INT_POW15: [u64; 17] = [
     437893890380859375,
     6568408355712890625,
 ];
-const_assert!(SMALL_INT_POW15.len() > f64_mantissa_limit(15) as usize);
-const_assert!(SMALL_INT_POW15.len() == u64_power_limit(15) as usize + 1);
+const _: () = assert!(SMALL_INT_POW15.len() > f64_mantissa_limit(15) as usize);
+const _: () = assert!(SMALL_INT_POW15.len() == u64_power_limit(15) as usize + 1);
 
 /// Pre-computed, small powers-of-15.
 pub const SMALL_F32_POW15: [f32; 7] = [1.0, 15.0, 225.0, 3375.0, 50625.0, 759375.0, 11390625.0];
-const_assert!(SMALL_F32_POW15.len() > f32_exponent_limit(15).1 as usize);
+const _: () = assert!(SMALL_F32_POW15.len() > f32_exponent_limit(15).1 as usize);
 
 /// Pre-computed, small powers-of-15.
 pub const SMALL_F64_POW15: [f64; 14] = [
@@ -1400,7 +1399,7 @@ pub const SMALL_F64_POW15: [f64; 14] = [
     129746337890625.0,
     1946195068359375.0,
 ];
-const_assert!(SMALL_F64_POW15.len() > f64_exponent_limit(15).1 as usize);
+const _: () = assert!(SMALL_F64_POW15.len() > f64_exponent_limit(15).1 as usize);
 
 /// Pre-computed large power-of-15 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -1441,12 +1440,12 @@ pub const SMALL_INT_POW17: [u64; 16] = [
     168377826559400929,
     2862423051509815793,
 ];
-const_assert!(SMALL_INT_POW17.len() > f64_mantissa_limit(17) as usize);
-const_assert!(SMALL_INT_POW17.len() == u64_power_limit(17) as usize + 1);
+const _: () = assert!(SMALL_INT_POW17.len() > f64_mantissa_limit(17) as usize);
+const _: () = assert!(SMALL_INT_POW17.len() == u64_power_limit(17) as usize + 1);
 
 /// Pre-computed, small powers-of-17.
 pub const SMALL_F32_POW17: [f32; 6] = [1.0, 17.0, 289.0, 4913.0, 83521.0, 1419857.0];
-const_assert!(SMALL_F32_POW17.len() > f32_exponent_limit(17).1 as usize);
+const _: () = assert!(SMALL_F32_POW17.len() > f32_exponent_limit(17).1 as usize);
 
 /// Pre-computed, small powers-of-17.
 pub const SMALL_F64_POW17: [f64; 13] = [
@@ -1464,7 +1463,7 @@ pub const SMALL_F64_POW17: [f64; 13] = [
     34271896307633.0,
     582622237229761.0,
 ];
-const_assert!(SMALL_F64_POW17.len() > f64_exponent_limit(17).1 as usize);
+const _: () = assert!(SMALL_F64_POW17.len() > f64_exponent_limit(17).1 as usize);
 
 /// Pre-computed large power-of-17 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -1505,13 +1504,13 @@ pub const SMALL_INT_POW18: [u64; 16] = [
     374813367582081024,
     6746640616477458432,
 ];
-const_assert!(SMALL_INT_POW18.len() > f64_mantissa_limit(18) as usize);
-const_assert!(SMALL_INT_POW18.len() == u64_power_limit(18) as usize + 1);
+const _: () = assert!(SMALL_INT_POW18.len() > f64_mantissa_limit(18) as usize);
+const _: () = assert!(SMALL_INT_POW18.len() == u64_power_limit(18) as usize + 1);
 
 /// Pre-computed, small powers-of-18.
 pub const SMALL_F32_POW18: [f32; 8] =
     [1.0, 18.0, 324.0, 5832.0, 104976.0, 1889568.0, 34012224.0, 612220032.0];
-const_assert!(SMALL_F32_POW18.len() > f32_exponent_limit(18).1 as usize);
+const _: () = assert!(SMALL_F32_POW18.len() > f32_exponent_limit(18).1 as usize);
 
 /// Pre-computed, small powers-of-18.
 pub const SMALL_F64_POW18: [f64; 17] = [
@@ -1533,7 +1532,7 @@ pub const SMALL_F64_POW18: [f64; 17] = [
     6.746640616477458e+18,
     1.2143953109659425e+20,
 ];
-const_assert!(SMALL_F64_POW18.len() > f64_exponent_limit(18).1 as usize);
+const _: () = assert!(SMALL_F64_POW18.len() > f64_exponent_limit(18).1 as usize);
 
 /// Pre-computed, small powers-of-19.
 pub const SMALL_INT_POW19: [u64; 16] = [
@@ -1554,12 +1553,12 @@ pub const SMALL_INT_POW19: [u64; 16] = [
     799006685782884121,
     15181127029874798299,
 ];
-const_assert!(SMALL_INT_POW19.len() > f64_mantissa_limit(19) as usize);
-const_assert!(SMALL_INT_POW19.len() == u64_power_limit(19) as usize + 1);
+const _: () = assert!(SMALL_INT_POW19.len() > f64_mantissa_limit(19) as usize);
+const _: () = assert!(SMALL_INT_POW19.len() == u64_power_limit(19) as usize + 1);
 
 /// Pre-computed, small powers-of-19.
 pub const SMALL_F32_POW19: [f32; 6] = [1.0, 19.0, 361.0, 6859.0, 130321.0, 2476099.0];
-const_assert!(SMALL_F32_POW19.len() > f32_exponent_limit(19).1 as usize);
+const _: () = assert!(SMALL_F32_POW19.len() > f32_exponent_limit(19).1 as usize);
 
 /// Pre-computed, small powers-of-19.
 pub const SMALL_F64_POW19: [f64; 13] = [
@@ -1577,7 +1576,7 @@ pub const SMALL_F64_POW19: [f64; 13] = [
     116490258898219.0,
     2213314919066161.0,
 ];
-const_assert!(SMALL_F64_POW19.len() > f64_exponent_limit(19).1 as usize);
+const _: () = assert!(SMALL_F64_POW19.len() > f64_exponent_limit(19).1 as usize);
 
 /// Pre-computed large power-of-19 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -1617,8 +1616,8 @@ pub const SMALL_INT_POW20: [u64; 15] = [
     81920000000000000,
     1638400000000000000,
 ];
-const_assert!(SMALL_INT_POW20.len() > f64_mantissa_limit(20) as usize);
-const_assert!(SMALL_INT_POW20.len() == u64_power_limit(20) as usize + 1);
+const _: () = assert!(SMALL_INT_POW20.len() > f64_mantissa_limit(20) as usize);
+const _: () = assert!(SMALL_INT_POW20.len() == u64_power_limit(20) as usize + 1);
 
 /// Pre-computed, small powers-of-20.
 pub const SMALL_F32_POW20: [f32; 11] = [
@@ -1634,7 +1633,7 @@ pub const SMALL_F32_POW20: [f32; 11] = [
     512000000000.0,
     10240000000000.0,
 ];
-const_assert!(SMALL_F32_POW20.len() > f32_exponent_limit(20).1 as usize);
+const _: () = assert!(SMALL_F32_POW20.len() > f32_exponent_limit(20).1 as usize);
 
 /// Pre-computed, small powers-of-20.
 pub const SMALL_F64_POW20: [f64; 23] = [
@@ -1662,7 +1661,7 @@ pub const SMALL_F64_POW20: [f64; 23] = [
     2.097152e+27,
     4.194304e+28,
 ];
-const_assert!(SMALL_F64_POW20.len() > f64_exponent_limit(20).1 as usize);
+const _: () = assert!(SMALL_F64_POW20.len() > f64_exponent_limit(20).1 as usize);
 
 /// Pre-computed, small powers-of-21.
 pub const SMALL_INT_POW21: [u64; 15] = [
@@ -1682,12 +1681,12 @@ pub const SMALL_INT_POW21: [u64; 15] = [
     154472377739119461,
     3243919932521508681,
 ];
-const_assert!(SMALL_INT_POW21.len() > f64_mantissa_limit(21) as usize);
-const_assert!(SMALL_INT_POW21.len() == u64_power_limit(21) as usize + 1);
+const _: () = assert!(SMALL_INT_POW21.len() > f64_mantissa_limit(21) as usize);
+const _: () = assert!(SMALL_INT_POW21.len() == u64_power_limit(21) as usize + 1);
 
 /// Pre-computed, small powers-of-21.
 pub const SMALL_F32_POW21: [f32; 6] = [1.0, 21.0, 441.0, 9261.0, 194481.0, 4084101.0];
-const_assert!(SMALL_F32_POW21.len() > f32_exponent_limit(21).1 as usize);
+const _: () = assert!(SMALL_F32_POW21.len() > f32_exponent_limit(21).1 as usize);
 
 /// Pre-computed, small powers-of-21.
 pub const SMALL_F64_POW21: [f64; 13] = [
@@ -1705,7 +1704,7 @@ pub const SMALL_F64_POW21: [f64; 13] = [
     350277500542221.0,
     7355827511386641.0,
 ];
-const_assert!(SMALL_F64_POW21.len() > f64_exponent_limit(21).1 as usize);
+const _: () = assert!(SMALL_F64_POW21.len() > f64_exponent_limit(21).1 as usize);
 
 /// Pre-computed large power-of-21 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -1745,12 +1744,12 @@ pub const SMALL_INT_POW22: [u64; 15] = [
     282810057883082752,
     6221821273427820544,
 ];
-const_assert!(SMALL_INT_POW22.len() > f64_mantissa_limit(22) as usize);
-const_assert!(SMALL_INT_POW22.len() == u64_power_limit(22) as usize + 1);
+const _: () = assert!(SMALL_INT_POW22.len() > f64_mantissa_limit(22) as usize);
+const _: () = assert!(SMALL_INT_POW22.len() == u64_power_limit(22) as usize + 1);
 
 /// Pre-computed, small powers-of-22.
 pub const SMALL_F32_POW22: [f32; 7] = [1.0, 22.0, 484.0, 10648.0, 234256.0, 5153632.0, 113379904.0];
-const_assert!(SMALL_F32_POW22.len() > f32_exponent_limit(22).1 as usize);
+const _: () = assert!(SMALL_F32_POW22.len() > f32_exponent_limit(22).1 as usize);
 
 /// Pre-computed, small powers-of-22.
 pub const SMALL_F64_POW22: [f64; 16] = [
@@ -1771,7 +1770,7 @@ pub const SMALL_F64_POW22: [f64; 16] = [
     6.221821273427821e+18,
     1.3688006801541205e+20,
 ];
-const_assert!(SMALL_F64_POW22.len() > f64_exponent_limit(22).1 as usize);
+const _: () = assert!(SMALL_F64_POW22.len() > f64_exponent_limit(22).1 as usize);
 
 /// Pre-computed, small powers-of-23.
 pub const SMALL_INT_POW23: [u64; 15] = [
@@ -1791,12 +1790,12 @@ pub const SMALL_INT_POW23: [u64; 15] = [
     504036361936467383,
     11592836324538749809,
 ];
-const_assert!(SMALL_INT_POW23.len() > f64_mantissa_limit(23) as usize);
-const_assert!(SMALL_INT_POW23.len() == u64_power_limit(23) as usize + 1);
+const _: () = assert!(SMALL_INT_POW23.len() > f64_mantissa_limit(23) as usize);
+const _: () = assert!(SMALL_INT_POW23.len() == u64_power_limit(23) as usize + 1);
 
 /// Pre-computed, small powers-of-23.
 pub const SMALL_F32_POW23: [f32; 6] = [1.0, 23.0, 529.0, 12167.0, 279841.0, 6436343.0];
-const_assert!(SMALL_F32_POW23.len() > f32_exponent_limit(23).1 as usize);
+const _: () = assert!(SMALL_F32_POW23.len() > f32_exponent_limit(23).1 as usize);
 
 /// Pre-computed, small powers-of-23.
 pub const SMALL_F64_POW23: [f64; 12] = [
@@ -1813,7 +1812,7 @@ pub const SMALL_F64_POW23: [f64; 12] = [
     41426511213649.0,
     952809757913927.0,
 ];
-const_assert!(SMALL_F64_POW23.len() > f64_exponent_limit(23).1 as usize);
+const _: () = assert!(SMALL_F64_POW23.len() > f64_exponent_limit(23).1 as usize);
 
 /// Pre-computed large power-of-23 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -1852,8 +1851,8 @@ pub const SMALL_INT_POW24: [u64; 14] = [
     36520347436056576,
     876488338465357824,
 ];
-const_assert!(SMALL_INT_POW24.len() > f64_mantissa_limit(24) as usize);
-const_assert!(SMALL_INT_POW24.len() == u64_power_limit(24) as usize + 1);
+const _: () = assert!(SMALL_INT_POW24.len() > f64_mantissa_limit(24) as usize);
+const _: () = assert!(SMALL_INT_POW24.len() == u64_power_limit(24) as usize + 1);
 
 /// Pre-computed, small powers-of-24.
 pub const SMALL_F32_POW24: [f32; 16] = [
@@ -1874,7 +1873,7 @@ pub const SMALL_F32_POW24: [f32; 16] = [
     2.1035720123168588e+19,
     5.048572829560461e+20,
 ];
-const_assert!(SMALL_F32_POW24.len() > f32_exponent_limit(24).1 as usize);
+const _: () = assert!(SMALL_F32_POW24.len() > f32_exponent_limit(24).1 as usize);
 
 /// Pre-computed, small powers-of-24.
 pub const SMALL_F64_POW24: [f64; 34] = [
@@ -1913,7 +1912,7 @@ pub const SMALL_F64_POW24: [f64; 34] = [
     1.4681138466456645e+44,
     3.523473231949595e+45,
 ];
-const_assert!(SMALL_F64_POW24.len() > f64_exponent_limit(24).1 as usize);
+const _: () = assert!(SMALL_F64_POW24.len() > f64_exponent_limit(24).1 as usize);
 
 /// Pre-computed, small powers-of-25.
 pub const SMALL_INT_POW25: [u64; 14] = [
@@ -1932,12 +1931,12 @@ pub const SMALL_INT_POW25: [u64; 14] = [
     59604644775390625,
     1490116119384765625,
 ];
-const_assert!(SMALL_INT_POW25.len() > f64_mantissa_limit(25) as usize);
-const_assert!(SMALL_INT_POW25.len() == u64_power_limit(25) as usize + 1);
+const _: () = assert!(SMALL_INT_POW25.len() > f64_mantissa_limit(25) as usize);
+const _: () = assert!(SMALL_INT_POW25.len() == u64_power_limit(25) as usize + 1);
 
 /// Pre-computed, small powers-of-25.
 pub const SMALL_F32_POW25: [f32; 6] = [1.0, 25.0, 625.0, 15625.0, 390625.0, 9765625.0];
-const_assert!(SMALL_F32_POW25.len() > f32_exponent_limit(25).1 as usize);
+const _: () = assert!(SMALL_F32_POW25.len() > f32_exponent_limit(25).1 as usize);
 
 /// Pre-computed, small powers-of-25.
 pub const SMALL_F64_POW25: [f64; 12] = [
@@ -1954,7 +1953,7 @@ pub const SMALL_F64_POW25: [f64; 12] = [
     95367431640625.0,
     2384185791015625.0,
 ];
-const_assert!(SMALL_F64_POW25.len() > f64_exponent_limit(25).1 as usize);
+const _: () = assert!(SMALL_F64_POW25.len() > f64_exponent_limit(25).1 as usize);
 
 /// Pre-computed large power-of-25 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -1993,13 +1992,13 @@ pub const SMALL_INT_POW26: [u64; 14] = [
     95428956661682176,
     2481152873203736576,
 ];
-const_assert!(SMALL_INT_POW26.len() > f64_mantissa_limit(26) as usize);
-const_assert!(SMALL_INT_POW26.len() == u64_power_limit(26) as usize + 1);
+const _: () = assert!(SMALL_INT_POW26.len() > f64_mantissa_limit(26) as usize);
+const _: () = assert!(SMALL_INT_POW26.len() == u64_power_limit(26) as usize + 1);
 
 /// Pre-computed, small powers-of-26.
 pub const SMALL_F32_POW26: [f32; 7] =
     [1.0, 26.0, 676.0, 17576.0, 456976.0, 11881376.0, 308915776.0];
-const_assert!(SMALL_F32_POW26.len() > f32_exponent_limit(26).1 as usize);
+const _: () = assert!(SMALL_F32_POW26.len() > f32_exponent_limit(26).1 as usize);
 
 /// Pre-computed, small powers-of-26.
 pub const SMALL_F64_POW26: [f64; 15] = [
@@ -2019,7 +2018,7 @@ pub const SMALL_F64_POW26: [f64; 15] = [
     2.4811528732037366e+18,
     6.450997470329715e+19,
 ];
-const_assert!(SMALL_F64_POW26.len() > f64_exponent_limit(26).1 as usize);
+const _: () = assert!(SMALL_F64_POW26.len() > f64_exponent_limit(26).1 as usize);
 
 /// Pre-computed, small powers-of-27.
 pub const SMALL_INT_POW27: [u64; 14] = [
@@ -2038,12 +2037,12 @@ pub const SMALL_INT_POW27: [u64; 14] = [
     150094635296999121,
     4052555153018976267,
 ];
-const_assert!(SMALL_INT_POW27.len() > f64_mantissa_limit(27) as usize);
-const_assert!(SMALL_INT_POW27.len() == u64_power_limit(27) as usize + 1);
+const _: () = assert!(SMALL_INT_POW27.len() > f64_mantissa_limit(27) as usize);
+const _: () = assert!(SMALL_INT_POW27.len() == u64_power_limit(27) as usize + 1);
 
 /// Pre-computed, small powers-of-27.
 pub const SMALL_F32_POW27: [f32; 6] = [1.0, 27.0, 729.0, 19683.0, 531441.0, 14348907.0];
-const_assert!(SMALL_F32_POW27.len() > f32_exponent_limit(27).1 as usize);
+const _: () = assert!(SMALL_F32_POW27.len() > f32_exponent_limit(27).1 as usize);
 
 /// Pre-computed, small powers-of-27.
 pub const SMALL_F64_POW27: [f64; 12] = [
@@ -2060,7 +2059,7 @@ pub const SMALL_F64_POW27: [f64; 12] = [
     205891132094649.0,
     5559060566555523.0,
 ];
-const_assert!(SMALL_F64_POW27.len() > f64_exponent_limit(27).1 as usize);
+const _: () = assert!(SMALL_F64_POW27.len() > f64_exponent_limit(27).1 as usize);
 
 /// Pre-computed large power-of-27 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -2099,13 +2098,13 @@ pub const SMALL_INT_POW28: [u64; 14] = [
     232218265089212416,
     6502111422497947648,
 ];
-const_assert!(SMALL_INT_POW28.len() > f64_mantissa_limit(28) as usize);
-const_assert!(SMALL_INT_POW28.len() == u64_power_limit(28) as usize + 1);
+const _: () = assert!(SMALL_INT_POW28.len() > f64_mantissa_limit(28) as usize);
+const _: () = assert!(SMALL_INT_POW28.len() == u64_power_limit(28) as usize + 1);
 
 /// Pre-computed, small powers-of-28.
 pub const SMALL_F32_POW28: [f32; 9] =
     [1.0, 28.0, 784.0, 21952.0, 614656.0, 17210368.0, 481890304.0, 13492928512.0, 377801998336.0];
-const_assert!(SMALL_F32_POW28.len() > f32_exponent_limit(28).1 as usize);
+const _: () = assert!(SMALL_F32_POW28.len() > f32_exponent_limit(28).1 as usize);
 
 /// Pre-computed, small powers-of-28.
 pub const SMALL_F64_POW28: [f64; 19] = [
@@ -2129,7 +2128,7 @@ pub const SMALL_F64_POW28: [f64; 19] = [
     3.9965617985068985e+24,
     1.1190373035819316e+26,
 ];
-const_assert!(SMALL_F64_POW28.len() > f64_exponent_limit(28).1 as usize);
+const _: () = assert!(SMALL_F64_POW28.len() > f64_exponent_limit(28).1 as usize);
 
 /// Pre-computed, small powers-of-29.
 pub const SMALL_INT_POW29: [u64; 14] = [
@@ -2148,12 +2147,12 @@ pub const SMALL_INT_POW29: [u64; 14] = [
     353814783205469041,
     10260628712958602189,
 ];
-const_assert!(SMALL_INT_POW29.len() > f64_mantissa_limit(29) as usize);
-const_assert!(SMALL_INT_POW29.len() == u64_power_limit(29) as usize + 1);
+const _: () = assert!(SMALL_INT_POW29.len() > f64_mantissa_limit(29) as usize);
+const _: () = assert!(SMALL_INT_POW29.len() == u64_power_limit(29) as usize + 1);
 
 /// Pre-computed, small powers-of-29.
 pub const SMALL_F32_POW29: [f32; 5] = [1.0, 29.0, 841.0, 24389.0, 707281.0];
-const_assert!(SMALL_F32_POW29.len() > f32_exponent_limit(29).1 as usize);
+const _: () = assert!(SMALL_F32_POW29.len() > f32_exponent_limit(29).1 as usize);
 
 /// Pre-computed, small powers-of-29.
 pub const SMALL_F64_POW29: [f64; 11] = [
@@ -2169,7 +2168,7 @@ pub const SMALL_F64_POW29: [f64; 11] = [
     14507145975869.0,
     420707233300201.0,
 ];
-const_assert!(SMALL_F64_POW29.len() > f64_exponent_limit(29).1 as usize);
+const _: () = assert!(SMALL_F64_POW29.len() > f64_exponent_limit(29).1 as usize);
 
 /// Pre-computed large power-of-29 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -2208,13 +2207,13 @@ pub const SMALL_INT_POW30: [u64; 14] = [
     531441000000000000,
     15943230000000000000,
 ];
-const_assert!(SMALL_INT_POW30.len() > f64_mantissa_limit(30) as usize);
-const_assert!(SMALL_INT_POW30.len() == u64_power_limit(30) as usize + 1);
+const _: () = assert!(SMALL_INT_POW30.len() > f64_mantissa_limit(30) as usize);
+const _: () = assert!(SMALL_INT_POW30.len() == u64_power_limit(30) as usize + 1);
 
 /// Pre-computed, small powers-of-30.
 pub const SMALL_F32_POW30: [f32; 7] =
     [1.0, 30.0, 900.0, 27000.0, 810000.0, 24300000.0, 729000000.0];
-const_assert!(SMALL_F32_POW30.len() > f32_exponent_limit(30).1 as usize);
+const _: () = assert!(SMALL_F32_POW30.len() > f32_exponent_limit(30).1 as usize);
 
 /// Pre-computed, small powers-of-30.
 pub const SMALL_F64_POW30: [f64; 14] = [
@@ -2233,7 +2232,7 @@ pub const SMALL_F64_POW30: [f64; 14] = [
     5.31441e+17,
     1.594323e+19,
 ];
-const_assert!(SMALL_F64_POW30.len() > f64_exponent_limit(30).1 as usize);
+const _: () = assert!(SMALL_F64_POW30.len() > f64_exponent_limit(30).1 as usize);
 
 /// Pre-computed, small powers-of-31.
 pub const SMALL_INT_POW31: [u64; 13] = [
@@ -2251,12 +2250,12 @@ pub const SMALL_INT_POW31: [u64; 13] = [
     25408476896404831,
     787662783788549761,
 ];
-const_assert!(SMALL_INT_POW31.len() > f64_mantissa_limit(31) as usize);
-const_assert!(SMALL_INT_POW31.len() == u64_power_limit(31) as usize + 1);
+const _: () = assert!(SMALL_INT_POW31.len() > f64_mantissa_limit(31) as usize);
+const _: () = assert!(SMALL_INT_POW31.len() == u64_power_limit(31) as usize + 1);
 
 /// Pre-computed, small powers-of-31.
 pub const SMALL_F32_POW31: [f32; 5] = [1.0, 31.0, 961.0, 29791.0, 923521.0];
-const_assert!(SMALL_F32_POW31.len() > f32_exponent_limit(31).1 as usize);
+const _: () = assert!(SMALL_F32_POW31.len() > f32_exponent_limit(31).1 as usize);
 
 /// Pre-computed, small powers-of-31.
 pub const SMALL_F64_POW31: [f64; 11] = [
@@ -2272,7 +2271,7 @@ pub const SMALL_F64_POW31: [f64; 11] = [
     26439622160671.0,
     819628286980801.0,
 ];
-const_assert!(SMALL_F64_POW31.len() > f64_exponent_limit(31).1 as usize);
+const _: () = assert!(SMALL_F64_POW31.len() > f64_exponent_limit(31).1 as usize);
 
 /// Pre-computed large power-of-31 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -2310,12 +2309,12 @@ pub const SMALL_INT_POW33: [u64; 13] = [
     50542106513726817,
     1667889514952984961,
 ];
-const_assert!(SMALL_INT_POW33.len() > f64_mantissa_limit(33) as usize);
-const_assert!(SMALL_INT_POW33.len() == u64_power_limit(33) as usize + 1);
+const _: () = assert!(SMALL_INT_POW33.len() > f64_mantissa_limit(33) as usize);
+const _: () = assert!(SMALL_INT_POW33.len() == u64_power_limit(33) as usize + 1);
 
 /// Pre-computed, small powers-of-33.
 pub const SMALL_F32_POW33: [f32; 5] = [1.0, 33.0, 1089.0, 35937.0, 1185921.0];
-const_assert!(SMALL_F32_POW33.len() > f32_exponent_limit(33).1 as usize);
+const _: () = assert!(SMALL_F32_POW33.len() > f32_exponent_limit(33).1 as usize);
 
 /// Pre-computed, small powers-of-33.
 pub const SMALL_F64_POW33: [f64; 11] = [
@@ -2331,7 +2330,7 @@ pub const SMALL_F64_POW33: [f64; 11] = [
     46411484401953.0,
     1531578985264449.0,
 ];
-const_assert!(SMALL_F64_POW33.len() > f64_exponent_limit(33).1 as usize);
+const _: () = assert!(SMALL_F64_POW33.len() > f64_exponent_limit(33).1 as usize);
 
 /// Pre-computed large power-of-33 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -2369,12 +2368,12 @@ pub const SMALL_INT_POW34: [u64; 13] = [
     70188843638032384,
     2386420683693101056,
 ];
-const_assert!(SMALL_INT_POW34.len() > f64_mantissa_limit(34) as usize);
-const_assert!(SMALL_INT_POW34.len() == u64_power_limit(34) as usize + 1);
+const _: () = assert!(SMALL_INT_POW34.len() > f64_mantissa_limit(34) as usize);
+const _: () = assert!(SMALL_INT_POW34.len() == u64_power_limit(34) as usize + 1);
 
 /// Pre-computed, small powers-of-34.
 pub const SMALL_F32_POW34: [f32; 6] = [1.0, 34.0, 1156.0, 39304.0, 1336336.0, 45435424.0];
-const_assert!(SMALL_F32_POW34.len() > f32_exponent_limit(34).1 as usize);
+const _: () = assert!(SMALL_F32_POW34.len() > f32_exponent_limit(34).1 as usize);
 
 /// Pre-computed, small powers-of-34.
 pub const SMALL_F64_POW34: [f64; 13] = [
@@ -2392,7 +2391,7 @@ pub const SMALL_F64_POW34: [f64; 13] = [
     7.018884363803238e+16,
     2.386420683693101e+18,
 ];
-const_assert!(SMALL_F64_POW34.len() > f64_exponent_limit(34).1 as usize);
+const _: () = assert!(SMALL_F64_POW34.len() > f64_exponent_limit(34).1 as usize);
 
 /// Pre-computed, small powers-of-35.
 pub const SMALL_INT_POW35: [u64; 13] = [
@@ -2410,12 +2409,12 @@ pub const SMALL_INT_POW35: [u64; 13] = [
     96549157373046875,
     3379220508056640625,
 ];
-const_assert!(SMALL_INT_POW35.len() > f64_mantissa_limit(35) as usize);
-const_assert!(SMALL_INT_POW35.len() == u64_power_limit(35) as usize + 1);
+const _: () = assert!(SMALL_INT_POW35.len() > f64_mantissa_limit(35) as usize);
+const _: () = assert!(SMALL_INT_POW35.len() == u64_power_limit(35) as usize + 1);
 
 /// Pre-computed, small powers-of-35.
 pub const SMALL_F32_POW35: [f32; 5] = [1.0, 35.0, 1225.0, 42875.0, 1500625.0];
-const_assert!(SMALL_F32_POW35.len() > f32_exponent_limit(35).1 as usize);
+const _: () = assert!(SMALL_F32_POW35.len() > f32_exponent_limit(35).1 as usize);
 
 /// Pre-computed, small powers-of-35.
 pub const SMALL_F64_POW35: [f64; 11] = [
@@ -2431,7 +2430,7 @@ pub const SMALL_F64_POW35: [f64; 11] = [
     78815638671875.0,
     2758547353515625.0,
 ];
-const_assert!(SMALL_F64_POW35.len() > f64_exponent_limit(35).1 as usize);
+const _: () = assert!(SMALL_F64_POW35.len() > f64_exponent_limit(35).1 as usize);
 
 /// Pre-computed large power-of-35 for 32-bit limbs.
 #[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
@@ -2469,13 +2468,13 @@ pub const SMALL_INT_POW36: [u64; 13] = [
     131621703842267136,
     4738381338321616896,
 ];
-const_assert!(SMALL_INT_POW36.len() > f64_mantissa_limit(36) as usize);
-const_assert!(SMALL_INT_POW36.len() == u64_power_limit(36) as usize + 1);
+const _: () = assert!(SMALL_INT_POW36.len() > f64_mantissa_limit(36) as usize);
+const _: () = assert!(SMALL_INT_POW36.len() == u64_power_limit(36) as usize + 1);
 
 /// Pre-computed, small powers-of-36.
 pub const SMALL_F32_POW36: [f32; 8] =
     [1.0, 36.0, 1296.0, 46656.0, 1679616.0, 60466176.0, 2176782336.0, 78364164096.0];
-const_assert!(SMALL_F32_POW36.len() > f32_exponent_limit(36).1 as usize);
+const _: () = assert!(SMALL_F32_POW36.len() > f32_exponent_limit(36).1 as usize);
 
 /// Pre-computed, small powers-of-36.
 pub const SMALL_F64_POW36: [f64; 17] = [
@@ -2497,4 +2496,4 @@ pub const SMALL_F64_POW36: [f64; 17] = [
     2.2107391972073336e+23,
     7.958661109946401e+24,
 ];
-const_assert!(SMALL_F64_POW36.len() > f64_exponent_limit(36).1 as usize);
+const _: () = assert!(SMALL_F64_POW36.len() > f64_exponent_limit(36).1 as usize);

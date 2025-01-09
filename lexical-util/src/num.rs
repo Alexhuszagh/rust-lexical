@@ -16,28 +16,65 @@ use crate::f16::f16;
 // AS PRIMITIVE
 // ------------
 
-/// Type that can be converted to primitive with `as`.
+/// Type that can be converted to [`primitive`] values with `as`.
+///
+/// [`primitive`]: https://doc.rust-lang.org/rust-by-example/primitives.html
 pub trait AsPrimitive: Copy + PartialEq + PartialOrd + Send + Sync + Sized {
+    /// Convert the value to a [`u8`], as if by `value as u8`.
     fn as_u8(self) -> u8;
+
+    /// Convert the value to a [`u16`], as if by `value as u16`.
     fn as_u16(self) -> u16;
+
+    /// Convert the value to a [`u32`], as if by `value as u32`.
     fn as_u32(self) -> u32;
+
+    /// Convert the value to a [`u64`], as if by `value as u64`.
     fn as_u64(self) -> u64;
+
+    /// Convert the value to a [`u128`], as if by `value as u128`.
     fn as_u128(self) -> u128;
+
+    /// Convert the value to a [`usize`], as if by `value as usize`.
     fn as_usize(self) -> usize;
+
+    /// Convert the value to an [`i8`], as if by `value as i8`.
     fn as_i8(self) -> i8;
+
+    /// Convert the value to an [`i16`], as if by `value as i16`.
     fn as_i16(self) -> i16;
+
+    /// Convert the value to an [`i32`], as if by `value as i32`.
     fn as_i32(self) -> i32;
+
+    /// Convert the value to an [`i64`], as if by `value as i64`.
     fn as_i64(self) -> i64;
+
+    /// Convert the value to an [`i128`], as if by `value as i128`.
     fn as_i128(self) -> i128;
+
+    /// Convert the value to an [`isize`], as if by `value as isize`.
     fn as_isize(self) -> isize;
+
+    /// Convert the value to an [`f32`], as if by `value as f32`.
     fn as_f32(self) -> f32;
+
+    /// Convert the value to an [`f64`], as if by `value as f64`.
     fn as_f64(self) -> f64;
+
+    /// Convert the value from a [`u32`], as if by `value as _`.
     fn from_u32(value: u32) -> Self;
+
+    /// Convert the value from a [`u64`], as if by `value as _`.
     fn from_u64(value: u64) -> Self;
 
+    /// Convert the value to an [`struct@f16`], identical to `value as f16`
+    /// if [`struct@f16`] was a primitive type.
     #[cfg(feature = "f16")]
     fn as_f16(self) -> f16;
 
+    /// Convert the value to an [`struct@bf16`], identical to `value as bf16`
+    /// if [`struct@bf16`] was a primitive type.
     #[cfg(feature = "f16")]
     fn as_bf16(self) -> bf16;
 }
@@ -247,14 +284,34 @@ half_as_primitive! { f16 bf16 }
 // AS CAST
 // -------
 
-/// An interface for casting between machine scalars.
+/// An interface for casting between machine scalars, as if `as` was used.
+///
+/// All values that the type can be cast to must be [`primitive`] values.
+///
+/// [`primitive`]: https://doc.rust-lang.org/rust-by-example/primitives.html
 pub trait AsCast: AsPrimitive {
     /// Creates a number from another value that can be converted into
-    /// a primitive via the `AsPrimitive` trait.
+    /// a primitive via the [`AsPrimitive`] trait.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lexical_util::num::AsCast;
+    ///
+    /// assert_eq!(u8::as_cast(256u16), 256u16 as u8); // 0
+    /// ```
     fn as_cast<N: AsPrimitive>(n: N) -> Self;
 }
 
 /// Allows the high-level conversion of generic types as if `as` was used.
+///
+/// # Examples
+///
+/// ```rust
+/// use lexical_util::num::as_cast;
+///
+/// assert_eq!(as_cast::<u8, u16>(256u16), 256u16 as u8); // 0
+/// ```
 #[inline(always)]
 pub fn as_cast<U: AsCast, T: AsCast>(t: T) -> U {
     U::as_cast(t)
@@ -298,7 +355,9 @@ as_cast!(
 // PRIMITIVE
 // ---------
 
-/// Primitive type trait (which all have static lifetimes).
+/// The base trait for all [`primitive`] types.
+///
+/// [`primitive`]: https://doc.rust-lang.org/rust-by-example/primitives.html
 pub trait Primitive: 'static + fmt::Debug + fmt::Display + AsCast {}
 
 macro_rules! primitive {
@@ -315,7 +374,7 @@ primitive! { f16 bf16 }
 // NUMBER
 // ------
 
-/// Numerical type trait.
+/// The base trait for all numbers (integers and floating-point numbers).
 pub trait Number:
     Default +
     Primitive +
@@ -331,7 +390,7 @@ pub trait Number:
     ops::Sub<Output=Self> +
     ops::SubAssign
 {
-    /// If the number is a signed type.
+    /// If the number can hold negative values.
     const IS_SIGNED: bool;
 }
 
@@ -370,7 +429,9 @@ number_impl! {
 // INTEGER
 // -------
 
-/// Defines a trait that supports integral operations.
+/// The base trait for all signed and unsigned [`integers`].
+///
+/// [`integers`]: https://en.wikipedia.org/wiki/Integer_(computer_science)
 pub trait Integer:
     // Basic
     Number + Eq + Ord +
@@ -389,35 +450,160 @@ pub trait Integer:
     ops::ShrAssign<i32> +
 {
     // CONSTANTS
+    /// A value equal to `0`.
     const ZERO: Self;
+
+    /// A value equal to `1`.
     const ONE: Self;
+
+    /// A value equal to `2`.
     const TWO: Self;
+
+    /// The largest value that can be represented by this integer type.
+    ///
+    /// See [`u32::MAX`].
     const MAX: Self;
+
+    /// The smallest value that can be represented by this integer type.
+    ///
+    /// See [`u32::MIN`].
     const MIN: Self;
+
+    /// The size of this integer type in bits.
+    ///
+    /// See [`u32::BITS`].
     const BITS: usize;
 
     // FUNCTIONS (INHERITED)
+    /// Returns the number of leading zeros in the binary representation
+    /// of `self`.
+    ///
+    /// See [`u32::leading_zeros`].
     fn leading_zeros(self) -> u32;
+
+    /// Returns the number of trailing zeros in the binary representation
+    /// of `self`.
+    ///
+    /// See [`u32::trailing_zeros`].
     fn trailing_zeros(self) -> u32;
+
+    /// Raises self to the power of `exp`, using exponentiation by squaring.
+    ///
+    /// See [`u32::pow`].
     fn pow(self, exp: u32) -> Self;
+
+    /// Checked exponentiation. Computes `self.pow(exp)`, returning
+    /// `None` if overflow occurred.
+    ///
+    /// See [`u32::checked_pow`].
     fn checked_pow(self, exp: u32) -> Option<Self>;
+
+    /// Raises self to the power of `exp`, using exponentiation by squaring.
+    ///
+    /// Returns a tuple of the exponentiation along with a bool indicating
+    /// whether an overflow happened.
+    ///
+    /// See [`u32::overflowing_pow`].
     fn overflowing_pow(self, exp: u32) -> (Self, bool);
+
+    /// Checked integer addition. Computes `self + i`, returning `None` if
+    /// overflow occurred.
+    ///
+    /// See [`u32::checked_add`].
     fn checked_add(self, i: Self) -> Option<Self>;
+
+    /// Checked integer subtraction. Computes `self - i`, returning `None`
+    /// if overflow occurred.
+    ///
+    /// See [`u32::checked_sub`].
     fn checked_sub(self, i: Self) -> Option<Self>;
+
+    /// Checked integer multiplication. Computes `self * rhs`, returning `None`
+    /// if overflow occurred.
+    ///
+    /// See [`u32::checked_mul`].
     fn checked_mul(self, i: Self) -> Option<Self>;
+
+    /// Calculates `self + i`.
+    ///
+    /// Returns a tuple of the addition along with a boolean indicating whether
+    /// an arithmetic overflow would occur. If an overflow would have occurred
+    /// then the wrapped value is returned. See [`u32::overflowing_add`].
     fn overflowing_add(self, i: Self) -> (Self, bool);
+
+    /// Calculates `self - i`.
+    ///
+    /// Returns a tuple of the addition along with a boolean indicating whether
+    /// an arithmetic overflow would occur. If an overflow would have occurred
+    /// then the wrapped value is returned. See [`u32::overflowing_sub`].
     fn overflowing_sub(self, i: Self) -> (Self, bool);
+
+    /// Calculates `self * i`.
+    ///
+    /// Returns a tuple of the addition along with a boolean indicating whether
+    /// an arithmetic overflow would occur. If an overflow would have occurred
+    /// then the wrapped value is returned. See [`u32::overflowing_mul`].
     fn overflowing_mul(self, i: Self) -> (Self, bool);
+
+    /// Wrapping (modular) addition. Computes `self + i`, wrapping around at
+    /// the boundary of the type.
+    ///
+    /// See [`u32::wrapping_add`].
     fn wrapping_add(self, i: Self) -> Self;
+
+    /// Wrapping (modular) subtraction. Computes `self - i`, wrapping around at
+    /// the boundary of the type.
+    ///
+    /// See [`u32::wrapping_sub`].
     fn wrapping_sub(self, i: Self) -> Self;
+
+    /// Wrapping (modular) multiplication. Computes `self * i`, wrapping around at
+    /// the boundary of the type.
+    ///
+    /// See [`u32::wrapping_mul`].
     fn wrapping_mul(self, i: Self) -> Self;
+
+    /// Wrapping (modular) negation. Computes `-self`, wrapping around at
+    /// the boundary of the type.
+    ///
+    /// See [`u32::wrapping_neg`].
     fn wrapping_neg(self) -> Self;
+
+    /// Saturating integer addition. Computes `self + i`, saturating at the
+    /// numeric bounds instead of overflowing.
+    ///
+    /// See [`u32::saturating_add`].
     fn saturating_add(self, i: Self) -> Self;
+
+    /// Saturating integer subtraction. Computes `self - i`, saturating at the
+    /// numeric bounds instead of overflowing.
+    ///
+    /// See [`u32::saturating_sub`].
     fn saturating_sub(self, i: Self) -> Self;
+
+    /// Saturating integer multiplication. Computes `self * i`, saturating at
+    /// the numeric bounds instead of overflowing.
+    ///
+    /// See [`u32::saturating_mul`].
     fn saturating_mul(self, i: Self) -> Self;
 
     /// Get the fast ceiling of the quotient from integer division.
-    /// Not safe, since the remainder can easily overflow.
+    ///
+    /// The remainder may wrap to the numerical boundaries for the type.
+    /// See [`u32::div_ceil`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lexical_util::num::Integer;
+    ///
+    /// assert_eq!(250u16.ceil_divmod(10), (25, 0));
+    /// assert_eq!(256u16.ceil_divmod(10), (26, -4));
+    /// assert_eq!(i32::MAX.ceil_divmod(-2), (-0x3FFFFFFE, 3));
+    ///
+    /// // notice how `-1` wraps since `i32` cannot hold `i128::MAX`.
+    /// assert_eq!((i128::MAX - 1).ceil_divmod(i128::MAX), (1, -1));
+    /// ```
     #[inline(always)]
     fn ceil_divmod(self, y: Self) -> (Self, i32) {
         let q = self / y;
@@ -429,14 +615,41 @@ pub trait Integer:
     }
 
     /// Get the fast ceiling of the quotient from integer division.
-    /// Not safe, since the remainder can easily overflow.
+    ///
+    /// This is identical to [`u32::div_ceil`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lexical_util::num::Integer;
+    ///
+    /// assert_eq!(250u16.ceil_div(10), 25);
+    /// assert_eq!(256u16.ceil_div(10), 26);
+    /// assert_eq!(i32::MAX.ceil_div(-2), -0x3FFFFFFE);
+    /// assert_eq!((i128::MAX - 1).ceil_div(i128::MAX), 1);
+    /// ```
     #[inline(always)]
     fn ceil_div(self, y: Self) -> Self {
         self.ceil_divmod(y).0
     }
 
     /// Get the fast ceiling modulus from integer division.
-    /// Not safe, since the remainder can easily overflow.
+    ///
+    /// The remainder is not guaranteed to be valid since it can
+    /// overflow if the remainder is not 0. See [`Self::ceil_divmod`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lexical_util::num::Integer;
+    ///
+    /// assert_eq!(250u16.ceil_mod(10), 0);
+    /// assert_eq!(256u16.ceil_mod(10), -4);
+    /// assert_eq!(i32::MAX.ceil_mod(-2), 3);
+    ///
+    /// // notice how `-1` wraps since `i32` cannot hold `i128::MAX`.
+    /// assert_eq!((i128::MAX - 1).ceil_mod(i128::MAX), -1);
+    /// ```
     #[inline(always)]
     fn ceil_mod(self, y: Self) -> i32 {
         self.ceil_divmod(y).1
@@ -445,6 +658,17 @@ pub trait Integer:
     // PROPERTIES
 
     /// Get the number of bits in a value.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lexical_util::num::Integer;
+    ///
+    /// assert_eq!(1u64.bit_length(), 1);
+    /// assert_eq!(2u64.bit_length(), 2);
+    /// assert_eq!(3u64.bit_length(), 2);
+    /// assert_eq!(16u64.bit_length(), 5);
+    /// ```
     #[inline(always)]
     fn bit_length(self) -> u32 {
         Self::BITS as u32 - self.leading_zeros()
@@ -464,7 +688,7 @@ pub trait Integer:
 
     /// Get the maximum number of digits before the slice will overflow.
     ///
-    /// This is effectively the floor(log(2**BITS-1, radix)), but we can
+    /// This is effectively the `floor(log(2^BITS-1, radix))`, but we can
     /// try to go a bit lower without worrying too much.
     #[inline(always)]
     fn overflow_digits(radix: u32) -> usize {
@@ -587,7 +811,10 @@ integer_impl! { u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 usize isize }
 // SIGNED INTEGER
 // --------------
 
-/// Defines a trait that supports signed integral operations.
+/// The trait for types that support [`signed`] integral operations, that is,
+/// they can hold negative numbers.
+///
+/// [`signed`]: https://en.wikipedia.org/wiki/Integer_(computer_science)#Value_and_representation
 pub trait SignedInteger: Integer + ops::Neg<Output = Self> {}
 
 macro_rules! signed_integer_impl {
@@ -601,7 +828,10 @@ signed_integer_impl! { i8 i16 i32 i64 i128 isize }
 // UNSIGNED INTEGER
 // ----------------
 
-/// Defines a trait that supports unsigned integral operations.
+/// The trait for types that support [`unsigned`] integral operations, that is,
+/// they can only hold positive numbers.
+///
+/// [`unsigned`]: https://en.wikipedia.org/wiki/Integer_(computer_science)#Value_and_representation
 pub trait UnsignedInteger: Integer {}
 
 macro_rules! unsigned_integer_impl {
@@ -615,32 +845,74 @@ unsigned_integer_impl! { u8 u16 u32 u64 u128 usize }
 // FLOAT
 // -----
 
-/// Float information for native float types.
+/// The trait for floating-point [`numbers`][`floats`].
+///
+/// Floating-point numbers are numbers that may contain a fraction
+/// and are stored internally as the significant digits and an
+/// exponent of base 2.
+///
+/// [`floats`]: https://en.wikipedia.org/wiki/Floating-point_arithmetic
 #[cfg(feature = "floats")]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "write-floats"))))]
 pub trait Float: Number + ops::Neg<Output = Self> {
     /// Unsigned type of the same size.
     type Unsigned: UnsignedInteger;
 
     // CONSTANTS
+
+    /// A value equal to `0`.
     const ZERO: Self;
+
+    /// A value equal to `1`.
     const ONE: Self;
+
+    /// A value equal to `2`.
     const TWO: Self;
+
+    /// Largest finite value.
+    ///
+    /// See [`f64::MAX`].
     const MAX: Self;
+
+    /// Smallest finite value.
+    ///
+    /// See [`f64::MIN`].
     const MIN: Self;
+
+    /// Infinity (`∞`).
+    ///
+    /// See [`f64::INFINITY`].
     const INFINITY: Self;
+
+    /// Negative infinity (`−∞`).
+    ///
+    /// See [`f64::NEG_INFINITY`].
     const NEG_INFINITY: Self;
+
+    /// Not a Number (NaN).
+    ///
+    /// See [`f64::NAN`].
     const NAN: Self;
+
+    /// The size of this float type in bits.
+    ///
+    /// Analogous to [`u32::BITS`].
     const BITS: usize;
 
-    /// Bitmask for the sign bit.
+    /// Bitmask to extract the sign from the float.
     const SIGN_MASK: Self::Unsigned;
-    /// Bitmask for the exponent, including the hidden bit.
+
+    /// Bitmask to extract the biased exponent, including the hidden bit.
     const EXPONENT_MASK: Self::Unsigned;
-    /// Bitmask for the hidden bit in exponent, which is an implicit 1 in the
-    /// fraction.
+
+    /// Bitmask to extract the hidden bit in the exponent, which is an
+    /// implicit 1 in the significant digits.
     const HIDDEN_BIT_MASK: Self::Unsigned;
-    /// Bitmask for the mantissa (fraction), excluding the hidden bit.
+
+    /// Bitmask to extract the mantissa (significant digits), excluding
+    /// the hidden bit.
     const MANTISSA_MASK: Self::Unsigned;
+
     /// Mask to determine if a full-carry occurred (1 in bit above hidden bit).
     const CARRY_MASK: Self::Unsigned;
 
@@ -655,36 +927,78 @@ pub trait Float: Number + ops::Neg<Output = Self> {
 
     /// Positive infinity as bits.
     const INFINITY_BITS: Self::Unsigned;
+
     /// Positive infinity as bits.
     const NEGATIVE_INFINITY_BITS: Self::Unsigned;
-    /// Size of the exponent.
+
+    /// The number of bits in the exponent.
     const EXPONENT_SIZE: i32;
-    /// Size of the significand (mantissa) without hidden bit.
+
+    /// Size of the significand (mantissa) without the hidden bit.
     const MANTISSA_SIZE: i32;
-    /// Bias of the exponent.
+
+    /// Bias of the exponent. See [`exponent bias`].
+    ///
+    /// [`exponent bias`]: https://en.wikipedia.org/wiki/Exponent_bias
     const EXPONENT_BIAS: i32;
-    /// Exponent portion of a denormal float.
+
+    /// Exponent portion of a [`denormal`] float.
+    ///
+    /// [`denormal`]: https://en.wikipedia.org/wiki/Subnormal_number
     const DENORMAL_EXPONENT: i32;
-    /// Maximum exponent value in float.
+
+    /// Maximum (unbiased) exponent value in the float.
     const MAX_EXPONENT: i32;
 
     // FUNCTIONS (INHERITED)
 
     // Re-export the to and from bits methods.
+
+    /// Raw transmutation to the unsigned integral type.
+    ///
+    /// See [`f64::to_bits`].
     fn to_bits(self) -> Self::Unsigned;
+
+    /// Raw transmutation from the unsigned integral type.
+    ///
+    /// See [`f64::from_bits`].
     fn from_bits(u: Self::Unsigned) -> Self;
+
+    /// Returns the natural logarithm of the number.
+    ///
+    /// See [`f64::ln`].
     fn ln(self) -> Self;
+
+    /// Returns the largest integer less than or equal to `self`.
+    ///
+    /// See [`f64::floor`].
     fn floor(self) -> Self;
+
+    /// Returns true if `self` has a positive sign, including `+0.0`,
+    /// NaNs with positive sign bit and positive infinity.
+    ///
+    /// See [`f64::is_sign_positive`].
     fn is_sign_positive(self) -> bool;
+
+    /// Returns true if `self` has a negative sign, including `-0.0`,
+    /// NaNs with negative sign bit and negative infinity.
+    ///
+    /// See [`f64::is_sign_negative`].
     fn is_sign_negative(self) -> bool;
 
-    /// Returns true if the float is a denormal.
+    /// Returns true if the float is [`denormal`].
+    ///
+    /// Denormal (subnormal) numbers fall below the range of numbers
+    /// that can be stored as `mantissa * 2^exp`, and therefore
+    /// always have the minimum exponent.
+    ///
+    /// [`denormal`]: https://en.wikipedia.org/wiki/Subnormal_number
     #[inline(always)]
     fn is_denormal(self) -> bool {
         self.to_bits() & Self::EXPONENT_MASK == Self::Unsigned::ZERO
     }
 
-    /// Returns true if the float is a NaN or Infinite.
+    /// Returns true if the float is NaN, positive infinity, or negative infinity.
     #[inline(always)]
     fn is_special(self) -> bool {
         self.to_bits() & Self::EXPONENT_MASK == Self::EXPONENT_MASK
@@ -696,7 +1010,7 @@ pub trait Float: Number + ops::Neg<Output = Self> {
         self.is_special() && (self.to_bits() & Self::MANTISSA_MASK) != Self::Unsigned::ZERO
     }
 
-    /// Returns true if the float is infinite.
+    /// Returns true if the float is positive or negative infinity.
     #[inline(always)]
     fn is_inf(self) -> bool {
         self.is_special() && (self.to_bits() & Self::MANTISSA_MASK) == Self::Unsigned::ZERO
@@ -723,7 +1037,7 @@ pub trait Float: Number + ops::Neg<Output = Self> {
         self.is_sign_negative() && !self.is_nan()
     }
 
-    /// Get exponent component from the float.
+    /// Get the unbiased exponent component from the float.
     #[inline(always)]
     fn exponent(self) -> i32 {
         if self.is_denormal() {
@@ -735,7 +1049,7 @@ pub trait Float: Number + ops::Neg<Output = Self> {
         biased_e - Self::EXPONENT_BIAS
     }
 
-    /// Get mantissa (significand) component from float.
+    /// Get the mantissa (significand) component from float.
     #[inline(always)]
     fn mantissa(self) -> Self::Unsigned {
         let bits = self.to_bits();
@@ -748,6 +1062,16 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     }
 
     /// Get next greater float.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lexical_util::num::Float;
+    ///
+    /// assert_eq!(1f32.next(), 1.0000001);
+    /// assert_eq!((-0.0f32).next(), 0.0); // +0.0
+    /// assert_eq!(0f32.next(), 1e-45);
+    /// ```
     #[inline(always)]
     fn next(self) -> Self {
         let bits = self.to_bits();
@@ -764,6 +1088,7 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     }
 
     /// Get next greater float for a positive float.
+    ///
     /// Value must be >= 0.0 and < INFINITY.
     #[inline(always)]
     fn next_positive(self) -> Self {
@@ -772,6 +1097,16 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     }
 
     /// Get previous greater float, such that `self.prev().next() == self`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lexical_util::num::Float;
+    ///
+    /// assert_eq!(1f32.prev(), 0.99999994);
+    /// assert_eq!(0.0f32.prev(), 0.0); // -0.0
+    /// assert_eq!((-0.0f32).prev(), -1e-45);
+    /// ```
     #[inline(always)]
     fn prev(self) -> Self {
         let bits = self.to_bits();
@@ -806,6 +1141,14 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     }
 
     /// Get the max of two finite numbers.
+    ///
+    /// This assumes that both floats form a [`total ord`],
+    /// that is, `x < y` is always `y >= x`. Non-finite floats,
+    /// such as NaN, break this criteria, but finite floats enable
+    /// simpler (and faster) comparison criteria while remaining
+    /// accurate.
+    ///
+    /// [`total ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
     #[inline(always)]
     fn max_finite(self, f: Self) -> Self {
         debug_assert!(!self.is_special() && !f.is_special(), "max_finite self={} f={}", self, f);
@@ -817,6 +1160,14 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     }
 
     /// Get the min of two finite numbers.
+    ///
+    /// This assumes that both floats form a [`total ord`],
+    /// that is, `x < y` is always `y >= x`. Non-finite floats,
+    /// such as NaN, break this criteria, but finite floats enable
+    /// simpler (and faster) comparison criteria while remaining
+    /// accurate.
+    ///
+    /// [`total ord`]: https://doc.rust-lang.org/std/cmp/trait.Ord.html
     #[inline(always)]
     fn min_finite(self, f: Self) -> Self {
         debug_assert!(!self.is_special() && !f.is_special(), "min_finite self={} f={}", self, f);

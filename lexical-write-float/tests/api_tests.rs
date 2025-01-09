@@ -33,12 +33,12 @@ fn special_test() {
     let actual = unsafe { std::str::from_utf8_unchecked(f64::INFINITY.to_lexical(&mut buffer)) };
     assert_eq!(actual, "inf");
 
-    let options =
-        Options::builder().nan_string(Some(b"nan")).inf_string(Some(b"Infinity")).build().unwrap();
-    let bytes = f64::NAN.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options);
+    const OPTIONS: Options =
+        Options::builder().nan_string(Some(b"nan")).inf_string(Some(b"Infinity")).build_strict();
+    let bytes = f64::NAN.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS);
     let actual = unsafe { std::str::from_utf8_unchecked(bytes) };
     assert_eq!(actual, "nan");
-    let bytes = f64::INFINITY.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options);
+    let bytes = f64::INFINITY.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS);
     let actual = unsafe { std::str::from_utf8_unchecked(bytes) };
     assert_eq!(actual, "Infinity");
 }
@@ -47,16 +47,16 @@ fn special_test() {
 #[should_panic]
 fn invalid_nan_test() {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let options = Options::builder().nan_string(None).build().unwrap();
-    f64::NAN.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options);
+    const OPTIONS: Options = Options::builder().nan_string(None).build_strict();
+    f64::NAN.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS);
 }
 
 #[test]
 #[should_panic]
 fn invalid_inf_test() {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let options = Options::builder().inf_string(None).build().unwrap();
-    f64::INFINITY.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options);
+    const OPTIONS: Options = Options::builder().inf_string(None).build_strict();
+    f64::INFINITY.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &OPTIONS);
 }
 
 #[test]
@@ -70,7 +70,7 @@ fn hex_test() {
         .mantissa_radix(16)
         .exponent_base(num::NonZeroU8::new(2))
         .exponent_radix(num::NonZeroU8::new(10))
-        .build();
+        .build_strict();
     const HEX_OPTIONS: Options = Options::builder().exponent(b'^').build_unchecked();
 
     let mut buffer = [b'\x00'; BUFFER_SIZE];

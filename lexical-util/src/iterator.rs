@@ -5,6 +5,7 @@
 //! including containers or iterators of any kind.
 
 #![cfg(feature = "parse")]
+#![cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
 
 use core::mem;
 
@@ -35,7 +36,6 @@ pub use crate::skip::{AsBytes, Bytes};
 /// [`step_by_unchecked`]: `Iter::step_by_unchecked`
 /// [`step_unchecked`]: `Iter::step_unchecked`
 /// [`peek_many_unchecked`]: `Iter::peek_many_unchecked`
-#[cfg(feature = "parse")]
 pub unsafe trait Iter<'a> {
     /// Determine if the buffer is contiguous in memory.
     const IS_CONTIGUOUS: bool;

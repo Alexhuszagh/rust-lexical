@@ -1,13 +1,49 @@
 //! Configuration options for writing integers.
 //!
-//! This is a dummy implementation, since writing integers never have options.
+//! This currently has no functionality, since we do not
+//! support any features for writing integers at this time.
+//!
+//! # Examples
+//!
+//! ```rust
+//! # use core::str;
+//! use lexical_write_integer::{Options, ToLexicalWithOptions};
+//! use lexical_write_integer::format::STANDARD;
+//!
+//! const OPTIONS: Options = Options::builder()
+//!     .build_strict();
+//!
+//! const BUFFER_SIZE: usize = OPTIONS.buffer_size_const::<u64, STANDARD>();
+//! let mut buffer = [0u8; BUFFER_SIZE];
+//! let value = 1234u64;
+//! let digits = value.to_lexical_with_options::<STANDARD>(&mut buffer, &OPTIONS);
+//! assert_eq!(str::from_utf8(digits), Ok("1234"));
+//! ```
 
 use lexical_util::constants::FormattedSize;
+use lexical_util::format::NumberFormat;
 use lexical_util::options::WriteOptions;
 use lexical_util::result::Result;
-use static_assertions::const_assert;
 
-/// Builder for `Options`.
+/// Builder for [`Options`].
+///
+/// # Examples
+///
+/// ```rust
+/// use core::str;
+///
+/// use lexical_write_integer::{Options, ToLexicalWithOptions};
+/// use lexical_write_integer::format::STANDARD;
+///
+/// const OPTIONS: Options = Options::builder()
+///     .build_strict();
+///
+/// const BUFFER_SIZE: usize = OPTIONS.buffer_size_const::<u64, STANDARD>();
+/// let mut buffer = [0u8; BUFFER_SIZE];
+/// let value = 1234u64;
+/// let digits = value.to_lexical_with_options::<STANDARD>(&mut buffer, &OPTIONS);
+/// assert_eq!(str::from_utf8(digits), Ok("1234"));
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct OptionsBuilder {}
 
@@ -26,13 +62,32 @@ impl OptionsBuilder {
         true
     }
 
-    /// Build the `Options` struct with bounds validation.
+    /// Build the [`Options`] struct without validation.
+    ///
+    /// <div class="warning">
+    ///
+    /// This is completely safe, however, misusing this could cause panics at
+    /// runtime. Always check if [`is_valid`] prior to using the built
+    /// options.
+    ///
+    /// </div>
+    ///
+    /// [`is_valid`]: Self::is_valid
     #[inline(always)]
     pub const fn build_unchecked(&self) -> Options {
         Options {}
     }
 
-    /// Build the `Options` struct.
+    /// Build the [`Options`] struct. This can never panic.
+    #[inline(always)]
+    pub const fn build_strict(&self) -> Options {
+        match self.build() {
+            Ok(value) => value,
+            Err(error) => core::panic!("{}", error.description()),
+        }
+    }
+
+    /// Build the [`Options`] struct.
     #[inline(always)]
     pub const fn build(&self) -> Result<Options> {
         Ok(self.build_unchecked())
@@ -51,14 +106,22 @@ impl Default for OptionsBuilder {
 /// # Examples
 ///
 /// ```rust
-/// use lexical_write_integer::options::Options;
+/// use core::str;
 ///
-/// # pub fn main() {
-/// let options = Options::builder()
-///     .build()
-///     .unwrap();
-/// # }
+/// use lexical_write_integer::{Options, ToLexicalWithOptions};
+/// use lexical_write_integer::format::STANDARD;
+///
+/// const OPTIONS: Options = Options::builder()
+///     .build_strict();
+///
+/// const BUFFER_SIZE: usize = OPTIONS.buffer_size_const::<u64, STANDARD>();
+/// let mut buffer = [0u8; BUFFER_SIZE];
+/// let value = 1234u64;
+/// let digits = value.to_lexical_with_options::<STANDARD>(&mut buffer, &OPTIONS);
+/// assert_eq!(str::from_utf8(digits), Ok("1234"));
 /// ```
+// FIXME: Add phantom data for private fields.
+//  This is a BREAKING change so requires a major API release.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Options {}
 
@@ -75,15 +138,29 @@ impl Options {
         true
     }
 
+    /// Get an upper bound on the required buffer size.
+    ///
+    /// This is always [`FORMATTED_SIZE`][FormattedSize::FORMATTED_SIZE]
+    /// or [`FORMATTED_SIZE_DECIMAL`][FormattedSize::FORMATTED_SIZE_DECIMAL],
+    /// depending on the radix.
+    #[inline(always)]
+    pub const fn buffer_size_const<T: FormattedSize, const FORMAT: u128>(&self) -> usize {
+        if (NumberFormat::<FORMAT> {}.radix()) == 10 {
+            T::FORMATTED_SIZE_DECIMAL
+        } else {
+            T::FORMATTED_SIZE
+        }
+    }
+
     // BUILDERS
 
-    /// Get `OptionsBuilder` as a static function.
+    /// Get [`OptionsBuilder`] as a static function.
     #[inline(always)]
     pub const fn builder() -> OptionsBuilder {
         OptionsBuilder::new()
     }
 
-    /// Create `OptionsBuilder` using existing values.
+    /// Create [`OptionsBuilder`] using existing values.
     #[inline(always)]
     pub const fn rebuild(&self) -> OptionsBuilder {
         OptionsBuilder {}
@@ -103,9 +180,10 @@ impl WriteOptions for Options {
         Self::is_valid(self)
     }
 
+    #[doc = lexical_util::write_options_doc!()]
     #[inline(always)]
     fn buffer_size<T: FormattedSize, const FORMAT: u128>(&self) -> usize {
-        T::FORMATTED_SIZE
+        self.buffer_size_const::<T, FORMAT>()
     }
 }
 
@@ -115,4 +193,3 @@ impl WriteOptions for Options {
 /// Standard number format.
 #[rustfmt::skip]
 pub const STANDARD: Options = Options::new();
-const_assert!(STANDARD.is_valid());

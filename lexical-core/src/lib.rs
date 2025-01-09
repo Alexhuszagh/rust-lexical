@@ -1,135 +1,313 @@
-//! Fast lexical conversion routines for a `no_std` environment.
+//! Fast lexical conversion routines for a [`no_std`] environment.
 //!
-//! lexical-core is a low-level API for number-to-string and
+//! `lexical-core` is a high-performance library for number-to-string and
 //! string-to-number conversions, without requiring a system
-//! allocator. If you would like to use a high-level API that
-//! writes to and parses from `String` and `&str`, respectively,
-//! please look at [lexical](https://crates.io/crates/lexical)
-//! instead.
+//! allocator. If you would like to use a library that writes to [`String`],
+//! look at [lexical](https://crates.io/crates/lexical) instead. In addition
+//! to high performance, it's also highly configurable, supporting nearly
+//! every float and integer format available.
 //!
-//! Despite the low-level API and focus on performance, lexical-core
-//! strives to be simple and yet configurable: despite supporting nearly
-//! every float and integer format available, it only exports 4 write
-//! functions and 4 parse functions.
-//!
-//! lexical-core is well-tested, and has been downloaded more than 5 million
-//! times and currently has no known errors in correctness. lexical-core
-//! prioritizes performance above all else, and aims to be competitive
-//! or faster than any other float or integer parser and writer.
+//! `lexical-core` is well-tested, and has been downloaded more than 50 million
+//! times and currently has no known errors in correctness. `lexical-core`
+//! prioritizes performance above all else, and is competitive or faster
+//! than any other float or integer parser and writer.
 //!
 //! In addition, despite having a large number of features, configurability,
-//! and a focus on performance, we also strive for fast compile times.
-//! Recent versions also add support for smaller binary sizes, as well
-//! ideal for embedded or web environments, where executable bloat can
+//! and a focus on performance, it also aims to have fast compile times.
+//! Recent versions also add [`support`](#compact) for smaller binary sizes, as
+//! well ideal for embedded or web environments, where executable bloat can
 //! be much more detrimental than performance.
+//!
+//! [`no_std`]: https://docs.rust-embedded.org/book/intro/no-std.html
 //!
 //! # Getting Started
 //!
-//! ```rust
-//! # #[cfg(all(
-//! #     feature = "parse-floats",
-//! #     feature = "parse-integers",
-//! #     feature = "write-floats",
-//! #     feature = "write-integers",
-//! # ))]
-//! # {
+//! #### Parse API
 //!
+//! The main parsing API is [`parse`] and [`parse_partial`]. For example,
+//! to parse a number from bytes, validating the entire input is a number:
+//!
+//! ```rust
+//! # #[cfg(all(feature = "parse-floats", feature = "parse-integers"))] {
 //! // String to number using Rust slices.
 //! // The argument is the byte string parsed.
 //! let f: f32 = lexical_core::parse(b"3.5").unwrap();   // 3.5
 //! let i: i32 = lexical_core::parse(b"15").unwrap();    // 15
+//! # }
+//! ```
 //!
-//! // All lexical_core parsers are checked, they validate the
-//! // input data is entirely correct, and stop parsing when invalid data
-//! // is found, or upon numerical overflow.
+//! All `lexical-core` parsers are validating, they check the that entire
+//! input data is correct, and stop parsing when invalid data is found,
+//! numerical overflow, or other errors:
+//!
+//! ```rust
+//! # #[cfg(all(feature = "parse-floats", feature = "parse-integers"))] {
 //! let r = lexical_core::parse::<u8>(b"256"); // Err(ErrorCode::Overflow.into())
 //! let r = lexical_core::parse::<u8>(b"1a5"); // Err(ErrorCode::InvalidDigit.into())
+//! # }
+//! ```
 //!
-//! // In order to extract and parse a number from a substring of the input
-//! // data, use `parse_partial`. These functions return the parsed value and
-//! // the number of processed digits, allowing you to extract and parse the
-//! // number in a single pass.
+//! For streaming APIs or those incrementally parsing data fed to a parser,
+//! where the input data is known to be a float but where the float ends is
+//! currently unknown, the partial parsers will both return the data it was
+//! able to parse and the number of bytes processed:
+//!
+//! ```rust
+//! # #[cfg(feature = "parse-integers")] {
 //! let r = lexical_core::parse_partial::<i8>(b"3a5"); // Ok((3, 1))
+//! # }
+//! ```
 //!
-//! // If an insufficiently long buffer is passed, the serializer will panic.
+//! #### Write API
 //!
-//! // PANICS
-//! let mut buf = [b'0'; 1];
-//! //let slc = lexical_core::write::<i64>(15, &mut buf);
+//! The main parsing API is [`write`]. For example, to write a number to an
+//! existing buffer:
 //!
-//! // In order to guarantee the buffer is long enough, always ensure there
-//! // are at least `T::FORMATTED_SIZE` bytes, which requires the
-//! // `lexical_core::FormattedSize` trait to be in scope.
+//! ```rust
+//! # #[cfg(feature = "write-floats")] {
 //! use lexical_core::FormattedSize;
+//!
 //! let mut buf = [b'0'; f64::FORMATTED_SIZE];
 //! let slc = lexical_core::write::<f64>(15.1, &mut buf);
 //! assert_eq!(slc, b"15.1");
+//! # }
+//! ```
 //!
-//! // When the `radix` feature is enabled, for decimal floats, using
-//! // `T::FORMATTED_SIZE` may significantly overestimate the space
-//! // required to format the number. Therefore, the
-//! // `T::FORMATTED_SIZE_DECIMAL` constants allow you to get a much
-//! // tighter bound on the space required.
-//! let mut buf = [b'0'; f64::FORMATTED_SIZE_DECIMAL];
+//! If a buffer of an insufficient size is provided, the writer will panic:
+//!
+//! ```should_panic
+//! # #[cfg(feature = "write-integers")] {
+//! let mut buf = [b'0'; 1];
+//! let digits = lexical_core::write::<i64>(15, &mut buf);
+//! # }
+//! # #[cfg(not(feature = "write-integers"))] {
+//! # panic!("hidden, for the doctest to pass if the feature isn't enabled.");
+//! # }
+//! ```
+//!
+//! In order to guarantee the buffer is large enough, always ensure there
+//! are at least [`T::FORMATTED_SIZE_DECIMAL`] bytes, which requires the
+//! [`FormattedSize`] trait to be in scope.
+//!
+//! <!-- References -->
+#![cfg_attr(
+    feature = "write",
+    doc = "
+[`FormattedSize`]: FormattedSize
+[`T::FORMATTED_SIZE_DECIMAL`]: FormattedSize::FORMATTED_SIZE_DECIMAL
+"
+)]
+#![cfg_attr(
+    not(feature = "write"),
+    doc = "
+[`FormattedSize`]: https://docs.rs/lexical-core/latest/lexical_core/trait.FormattedSize.html
+[`T::FORMATTED_SIZE_DECIMAL`]: https://docs.rs/lexical-core/latest/lexical_core/trait.FormattedSize.html#associatedconstant.FORMATTED_SIZE_DECIMAL
+"
+)]
+//!
+//! ```rust
+//! # #[cfg(feature = "write-integers")] {
+//! use lexical_core::FormattedSize;
+//!
+//! let mut buf = [b'0'; f64::FORMATTED_SIZE];
 //! let slc = lexical_core::write::<f64>(15.1, &mut buf);
 //! assert_eq!(slc, b"15.1");
 //! # }
 //! ```
 //!
 //! # Conversion API
-#![cfg_attr(feature = "write", doc = " **Write**")]
-#![cfg_attr(feature = "write", doc = "")]
-#![cfg_attr(feature = "write", doc = " - [`write`]")]
-#![cfg_attr(feature = "write", doc = " - [`write_with_options`]")]
 //!
-#![cfg_attr(feature = "write", doc = " **From String**")]
-#![cfg_attr(feature = "write", doc = "")]
-#![cfg_attr(feature = "parse", doc = " - [`parse`]")]
-#![cfg_attr(feature = "parse", doc = " - [`parse_partial`]")]
-#![cfg_attr(feature = "parse", doc = " - [`parse_with_options`]")]
-#![cfg_attr(feature = "parse", doc = " - [`parse_partial_with_options`]")]
+//! This writes and parses numbers to and from a format identical to
+//! Rust's [`parse`][`core-parse`] and [`write`][`core-write`].
+//!
+//! [`core-parse`]: core::str::FromStr::from_str
+//! [`core-write`]: core::fmt::Display::fmt
+//!
+//! <!-- Spacer for rustfmt -->
+#![cfg_attr(feature = "write", doc = "- [`write`]: Write a number to string.")]
+#![cfg_attr(
+    feature = "parse",
+    doc = "
+- [`parse`]: Parse a number from string validating the complete string is a number.
+- [`parse_partial`]: Parse a number from string returning the number and the number
+  of digits it was able to parse.
+"
+)]
+//!
+//! ```rust
+//! # #[cfg(all(feature = "parse-floats", feature = "write-floats"))] {
+//! # use core::str;
+//! use lexical_core::FormattedSize;
+//!
+//! // parse
+//! let f: f64 = lexical_core::parse(b"3.5").unwrap();
+//! assert_eq!(f, 3.5);
+//!
+//! let (f, count): (f64, usize) = lexical_core::parse_partial(b"3.5").unwrap();
+//! assert_eq!(f, 3.5);
+//! assert_eq!(count, 3);
+//!
+//! // write
+//! let mut buffer = [0u8; f64::FORMATTED_SIZE_DECIMAL];
+//! let digits = lexical_core::write(f, &mut buffer);
+//! assert_eq!(str::from_utf8(digits), Ok("3.5"));
+//! # }
+//! ```
+//!
+//! # Options/Formatting API
+//!
+//! Each number parser and writer contains extensive formatting control
+//! through options and [`mod@format`] specifications, including digit
+//! [`separator`] support (that is, numbers such as `1_2__3.4_5`), if
+//! integral, fractional, or any significant digits are required, if to
+//! disable parsing or writing of non-finite values, if `+` signs are
+//! invalid or required, and much more.
+//!
+//! [`separator`]: NumberFormat::digit_separator
+//!
+//! <!-- Spacer for rustfmt -->
+#![cfg_attr(
+    all(feature = "write", feature = "floats"),
+    doc = "[`nan_string`]: WriteFloatOptionsBuilder::nan_string"
+)]
+#![cfg_attr(
+    all(not(feature = "write"), feature = "parse", feature = "floats"),
+    doc = "[`nan_string`]: ParseFloatOptionsBuilder::nan_string"
+)]
+#![cfg_attr(
+    any(not(feature = "floats"), all(not(feature = "write"), not(feature = "parse"))),
+    doc = "[`nan_string`]: https://docs.rs/lexical-core/latest/lexical_core/struct.WriteFloatOptionsBuilder.html#method.nan_string"
+)]
+//!
+//! <!-- Spacer for rustfmt -->
+#![cfg_attr(
+    feature = "write",
+    doc = "- [`write_with_options`]: Write a number to string using custom formatting options."
+)]
+#![cfg_attr(
+    feature = "parse",
+    doc = "
+- [`parse_with_options`]: Parse a number from string using custom formatting options,
+    validating the complete string is a number.
+- [`parse_partial_with_options`]: Parse a number from string using custom formatting
+    options, returning the number and the number of digits it was able to parse.
+"
+)]
+//!
+//! Some options, such as custom string representations of non-finite
+//! floats (such as [`NaN`][`nan_string`]), are available without the
+//! [`format`](crate#format) feature. For more comprehensive examples, see the
+//! [`format`](#format) and [Comprehensive Configuration] sections
+//! below.
+//!
+//! ```rust
+//! # #[cfg(all(feature = "parse-floats", feature = "write-floats", feature = "format"))] {
+//! # use core::str;
+//! use lexical_core::{format, parse_float_options, write_float_options, FormattedSize};
+//!
+//! // parse
+//! let f: f64 = lexical_core::parse_with_options::<_, { format::JSON }>(
+//!     b"3.5",
+//!     &parse_float_options::JSON
+//! ).unwrap();
+//!
+//! // write
+//! const BUFFER_SIZE: usize = write_float_options::
+//!     JSON.buffer_size_const::<f64, { format::JSON }>();
+//! let mut buffer = [0u8; BUFFER_SIZE];
+//! let digits = lexical_core::write_with_options::<_, { format::JSON }>(
+//!     f,
+//!     &mut buffer,
+//!     &write_float_options::JSON
+//! );
+//! assert_eq!(str::from_utf8(digits), Ok("3.5"));
+//! # }
+//! ```
+//!
+//! [Comprehensive Configuration]: #comprehensive-configuration
 //!
 //! # Features
 //!
 //! In accordance with the Rust ethos, all features are additive: the crate
-//! may be build with `--all-features` without issue.  The following features
+//! may be build with `--all-features` without issue. The following features
 //! are enabled by default:
 //!
-//! * `std`
-//! * `write-integers`
-//! * `write-floats`
-//! * `parse-integers`
-//! * `parse-floats`
+//! * `write-integers` (Default) - Enable writing of integers.
+//! * `write-floats` (Default) - Enable writing of floats.
+//! * `parse-integers` (Default) - Enable parsing of integers.
+//! * `parse-floats` (Default) - Enable parsing of floats.
+//! * `power-of-two` - Add support for writing power-of-two number strings.
+//! * `radix` - Add support for strings of any radix.
+//! * `compact` - Reduce code size at the cost of performance.
+//! * `format` - Add support for custom number formatting.
+//! * `f16` - Enable support for half-precision [`f16`][`ieee-f16`] and
+//!   [`bf16`][`brain-float`] floats.
+//! * `std` (Default) - Disable to allow use in a [`no_std`] environment.
+//!
+//! [`ieee-f16`]: https://en.wikipedia.org/wiki/Half-precision_floating-point_format
+//! [`brain-float`]: https://en.wikipedia.org/wiki/Bfloat16_floating-point_format
 //!
 //! A complete description of supported features includes:
-//!
-//! #### std
-//!
-//! Enable use of the standard library. Currently, the standard library
-//! is not used for any functionality, and may be disabled without any
-//! change in functionality on stable.
 //!
 //! #### write-integers
 //!
 //! Enable support for writing integers to string.
 //!
+//! ```rust
+//! # #[cfg(feature = "write-integers")] {
+//! # use core::str;
+//! use lexical_core::FormattedSize;
+//!
+//! let mut buffer = [0u8; i64::FORMATTED_SIZE_DECIMAL];
+//! let digits = lexical_core::write(1234, &mut buffer);
+//! assert_eq!(str::from_utf8(digits), Ok("1234"));
+//! # }
+//! ```
+//!
 //! #### write-floats
 //!
 //! Enable support for writing floating-point numbers to string.
+//!
+//! ```rust
+//! # #[cfg(feature = "write-floats")] {
+//! # use core::str;
+//! use lexical_core::FormattedSize;
+//!
+//! let mut buffer = [0u8; f64::FORMATTED_SIZE_DECIMAL];
+//! let digits = lexical_core::write(1.234, &mut buffer);
+//! assert_eq!(str::from_utf8(digits), Ok("1.234"));
+//! # }
+//! ```
 //!
 //! #### parse-integers
 //!
 //! Enable support for parsing integers from string.
 //!
+//! ```rust
+//! # #[cfg(feature = "parse-integers")] {
+//! let f: i64 = lexical_core::parse(b"1234").unwrap();
+//! assert_eq!(f, 1234);
+//! # }
+//! ```
+//!
 //! #### parsing-floats
 //!
 //! Enable support for parsing floating-point numbers from string.
 //!
+//! ```rust
+//! # #[cfg(feature = "parse-integers")] {
+//! let f: f64 = lexical_core::parse(b"1.234").unwrap();
+//! assert_eq!(f, 1.234);
+//! # }
+//! ```
+//!
 //! #### format
 //!
-//! Adds support for the entire format API (using [`NumberFormatBuilder`]).
-//! This allows extensive configurability for parsing and writing numbers
+//! Adds support for the entire format [API][NumberFormatBuilder]. This
+//! allows extensive configurability for parsing and writing numbers
 //! in custom formats, with different valid syntax requirements.
+//!
+//! ##### JSON
 //!
 //! For example, in JSON, the following floats are valid or invalid:
 //!
@@ -145,36 +323,96 @@
 //! Infinity    // invalid
 //! ```
 //!
-//! All of the finite numbers are valid in Rust, and Rust provides constants
-//! for non-finite floats. In order to parse standard-conforming JSON floats
-//! using lexical, you may use the following approach:
+//! All of the finite numbers are valid in Rust, and Rust supports non-finite
+//! floats. In order to parse standard-conforming JSON floats using
+//! `lexical-core`, you may use the following approach:
 //!
 //! ```rust
 //! # #[cfg(all(feature = "parse-floats", feature = "format"))] {
-//! use lexical_core::{format, parse_with_options, ParseFloatOptions, Result};
+//! use lexical_core::{format, parse_float_options, parse_with_options, Result};
 //!
 //! fn parse_json_float<Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<f64> {
-//!     let options = ParseFloatOptions::new();
-//!     parse_with_options::<_, { format::JSON }>(bytes.as_ref(), &options)
+//!     parse_with_options::<_, { format::JSON }>(bytes.as_ref(), &parse_float_options::JSON)
 //! }
 //! # }
 //! ```
 //!
-//! See the [Number Format](#number-format) section below for more information.
+//! Enabling the [`format`](crate#format) API significantly increases compile
+//! times, however, it enables a large amount of customization in how floats are
+//! written.
 //!
 //! #### power-of-two
 //!
-//! Enable doing numeric conversions to and from strings with power-of-two
-//! radixes. This avoids most of the overhead and binary bloat of the radix
-//! feature, while enabling support for the most commonly-used radixes.
+//! Enable doing numeric conversions to and from strings radixes that are powers
+//! of two, that is, `2`, `4`, `8`, `16`, and `32`. This avoids most of the
+//! overhead and binary bloat of the [`radix`](#radix) feature, while enabling
+//! support for the most commonly-used radixes.
+//!
+//! ```rust
+//! # #[cfg(all(feature = "parse-floats", feature = "write-floats", feature = "power-of-two"))] {
+//! # use core::str;
+//! use lexical_core::{
+//!     ParseFloatOptions,
+//!     WriteFloatOptions,
+//!     FormattedSize,
+//!     NumberFormatBuilder
+//! };
+//!
+//! // parse
+//! const BINARY: u128 = NumberFormatBuilder::binary();
+//! let value = "1.0011101111100111011011001000101101000011100101011";
+//! let f: f64 = lexical_core::parse_with_options::<_, { BINARY }>(
+//!     value.as_bytes(),
+//!     &ParseFloatOptions::new()
+//! ).unwrap();
+//!
+//! // write
+//! let mut buffer = [0u8; f64::FORMATTED_SIZE];
+//! let digits = lexical_core::write_with_options::<_, { BINARY }>(
+//!     f,
+//!     &mut buffer,
+//!     &WriteFloatOptions::new()
+//! );
+//! assert_eq!(str::from_utf8(digits), Ok(value));
+//! # }
+//! ```
 //!
 //! #### radix
 //!
 //! Enable doing numeric conversions to and from strings for all radixes.
-//! This requires substantially more static storage than `power-of-two`,
-//! and increases compile times by a fair amount, but can be quite useful
+//! This requires more static storage than [`power-of-two`](#power-of-two),
+//! and increases compile times, but can be quite useful
 //! for esoteric programming languages which use duodecimal floats, for
 //! example.
+//!
+//! ```rust
+//! # #[cfg(all(feature = "parse-floats", feature = "write-floats", feature = "radix"))] {
+//! # use core::str;
+//! use lexical_core::{
+//!     ParseFloatOptions,
+//!     WriteFloatOptions,
+//!     FormattedSize,
+//!     NumberFormatBuilder
+//! };
+//!
+//! // parse
+//! const FORMAT: u128 = NumberFormatBuilder::from_radix(12);
+//! let value = "1.29842830A44BAA2";
+//! let f: f64 = lexical_core::parse_with_options::<_, { FORMAT }>(
+//!     value.as_bytes(),
+//!     &ParseFloatOptions::new()
+//! ).unwrap();
+//!
+//! // write
+//! let mut buffer = [0u8; f64::FORMATTED_SIZE];
+//! let digits = lexical_core::write_with_options::<_, { FORMAT }>(
+//!     f,
+//!     &mut buffer,
+//!     &WriteFloatOptions::new()
+//! );
+//! assert_eq!(str::from_utf8(digits), Ok(value));
+//! # }
+//! ```
 //!
 //! #### compact
 //!
@@ -182,33 +420,29 @@
 //! the number of static tables, inlining, and generics used, drastically
 //! reducing the size of the generated binaries.
 //!
-//! #### safe
+//! #### std
 //!
-//! This replaces most unchecked indexing, required in cases where the
-//! compiler cannot elide the check, with checked indexing. However,
-//! it does not fully replace all unsafe behavior with safe behavior.
-//! To minimize the risk of undefined behavior and out-of-bounds reads/writers,
-//! extensive edge-cases, property-based tests, and fuzzing is done with both
-//! the safe feature enabled and disabled, with the tests verified by Miri
-//! and Valgrind.
+//! Enable use of the standard library. Currently, the standard library
+//! is not used, and may be disabled without any change in functionality
+//! on stable.
 //!
-//! # Configuration API
+//! # Comprehensive Configuration
 //!
-//! Lexical provides two main levels of configuration:
+//! `lexical-core` provides two main levels of configuration:
 //! - The [`NumberFormatBuilder`], creating a packed struct with custom
 //!   formatting options.
 //! - The Options API.
 //!
 //! ## Number Format
 //!
-//! The number format class provides numerous flags to specify
-//! number parsing or writing. When the `power-of-two` feature is
+//! The number format class provides numerous flags to specify number parsing or
+//! writing. When the [`power-of-two`](#power-of-two) feature is
 //! enabled, additional flags are added:
 //! - The radix for the significant digits (default `10`).
 //! - The radix for the exponent base (default `10`).
 //! - The radix for the exponent digits (default `10`).
 //!
-//! When the `format` feature is enabled, numerous other syntax and
+//! When the [`format`](#format) feature is enabled, numerous other syntax and
 //! digit separator flags are enabled, including:
 //! - A digit separator character, to group digits for increased legibility.
 //! - Whether leading, trailing, internal, and consecutive digit separators are
@@ -219,22 +453,87 @@
 //!
 //! Many pre-defined constants therefore exist to simplify common use-cases,
 //! including:
-//! - `JSON`, `XML`, `TOML`, `YAML`, `SQLite`, and many more.
-//! - `Rust`, `Python`, `C#`, `FORTRAN`, `COBOL` literals and strings, and many
-//!   more.
+//! - [`JSON`], [`XML`], [`TOML`], [`YAML`], [`SQLite`], and many more.
+//! - [`Rust`], [`Python`], [`C#`], [`FORTRAN`], [`COBOL`] literals and strings,
+//!   and many more.
+//!
+//! For a list of all supported fields, see
+//! [Fields][NumberFormatBuilder#fields-1].
+//!
+//! <!-- Spacer for rustfmt -->
+#![cfg_attr(
+    feature = "format",
+    doc = "
+[`JSON`]: format::JSON
+[`XML`]: format::XML
+[`TOML`]: format::TOML
+[`YAML`]: format::YAML
+[`SQLite`]: format::SQLITE
+[`Rust`]: format::RUST_LITERAL
+[`Python`]: format::PYTHON_LITERAL
+[`C#`]: format::CSHARP_LITERAL
+[`FORTRAN`]: format::FORTRAN_LITERAL
+[`COBOL`]: format::COBOL_LITERAL
+"
+)]
+#![cfg_attr(
+    not(feature = "format"),
+    doc = "
+[`JSON`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.JSON.html
+[`XML`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.XML.html
+[`TOML`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.TOML.html
+[`YAML`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.YAML.html
+[`SQLite`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.SQLITE.html
+[`Rust`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.RUST_LITERAL.html
+[`Python`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.PYTHON_LITERAL.html
+[`C#`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.CSHARP_LITERAL.html
+[`FORTRAN`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.FORTRAN_LITERAL.html
+[`COBOL`]: https://docs.rs/lexical-core/latest/lexical_core/format/constant.COBOL_LITERAL.html
+"
+)]
 //!
 //! ## Options API
 //!
 //! The Options API provides high-level options to specify number parsing
 //! or writing, options not intrinsically tied to a number format.
 //! For example, the Options API provides:
-//! - The exponent character (default `b'e'`, or `b'^'`).
-//! - The decimal point character (default `b'.'`).
-//! - Custom `NaN`, `Infinity` string representations.
-//! - Whether to trim the fraction component from integral floats.
-//! - The exponent break point for scientific notation.
-//! - The maximum and minimum number of significant digits to write.
-//! - The rounding mode when truncating significant digits while writing.
+//!
+//! - The [`exponent`][`write-float-exponent`] character (defaults to `b'e'` or `b'^'`, depending on the radix).
+//! - The [`decimal point`][`write-float-decimal_point`] character (defaults to `b'.'`).
+//! - Custom [`NaN`][f64::NAN] and [`Infinity`][f64::INFINITY] string
+//!   [`representations`][`write-float-nan_string`].
+//! - Whether to [`trim`][`write-float-trim_floats`] the fraction component from integral floats.
+//! - The exponent [`break-point`][`write-float-positive_exponent_break`] for scientific notation.
+//! - The [`maximum`][`write-float-max_significant_digits`] and [`minimum`][`write-float-min_significant_digits`] number of significant digits to write.
+//! - The rounding [`mode`][`write-float-round_mode`] when truncating significant digits while writing.
+//!
+//! <!-- Spacer for Rustfmt -->
+#![cfg_attr(
+    feature = "write-floats",
+    doc = "
+[`write-float-exponent`]: WriteFloatOptionsBuilder::exponent
+[`write-float-decimal_point`]: WriteFloatOptionsBuilder::decimal_point
+[`write-float-nan_string`]: WriteFloatOptionsBuilder::nan_string
+[`write-float-trim_floats`]: WriteFloatOptionsBuilder::trim_floats
+[`write-float-positive_exponent_break`]: WriteFloatOptionsBuilder::positive_exponent_break
+[`write-float-max_significant_digits`]: WriteFloatOptionsBuilder::max_significant_digits
+[`write-float-min_significant_digits`]: WriteFloatOptionsBuilder::min_significant_digits
+[`write-float-round_mode`]: WriteFloatOptionsBuilder::round_mode
+"
+)]
+#![cfg_attr(
+    not(feature = "write-floats"),
+    doc = "
+[`write-float-exponent`]: https://docs.rs/lexical-core/latest/lexical_core/struct.WriteFloatOptionsBuilder.html#method.exponent
+[`write-float-decimal_point`]: https://docs.rs/lexical-core/latest/lexical_core/struct.WriteFloatOptionsBuilder.html#method.decimal_point
+[`write-float-nan_string`]: https://docs.rs/lexical-core/latest/lexical_core/struct.WriteFloatOptionsBuilder.html#method.nan_string
+[`write-float-trim_floats`]: https://docs.rs/lexical-core/latest/lexical_core/struct.WriteFloatOptionsBuilder.html#method.trim_floats
+[`write-float-positive_exponent_break`]: https://docs.rs/lexical-core/latest/lexical_core/struct.WriteFloatOptionsBuilder.html#method.positive_exponent_break
+[`write-float-max_significant_digits`]: https://docs.rs/lexical-core/latest/lexical_core/struct.WriteFloatOptionsBuilder.html#method.max_significant_digits
+[`write-float-min_significant_digits`]: https://docs.rs/lexical-core/latest/lexical_core/struct.WriteFloatOptionsBuilder.html#method.min_significant_digits
+[`write-float-round_mode`]: https://docs.rs/lexical-core/latest/lexical_core/struct.WriteFloatOptionsBuilder.html#method.round_mode
+"
+)]
 //!
 //! The available options are:
 #![cfg_attr(feature = "parse-floats", doc = " - [`ParseFloatOptions`]")]
@@ -243,46 +542,57 @@
 #![cfg_attr(feature = "write-integers", doc = " - [`WriteIntegerOptions`]")]
 //!
 //! In addition, pre-defined constants for each category of options may
-//! be found in their respective modules.
+//! be found in their respective modules, for example, [`JSON`][`JSON-OPTS`].
 //!
-//! ## Example
+//! <!-- Spacer for Rustfmt -->
+#![cfg_attr(feature = "parse-floats", doc = "[`JSON-OPTS`]: parse_float_options::JSON")]
+#![cfg_attr(
+    not(feature = "parse-floats"),
+    doc = "[`JSON-OPTS`]: https://docs.rs/lexical-core/latest/lexical_core/parse_float_options/constant.JSON.html"
+)]
+//!
+//! ## Examples
 //!
 //! An example of creating your own options to parse European-style
 //! numbers (which use commas as decimal points, and periods as digit
 //! separators) is as follows:
 //!
 //! ```
-//! # pub fn main() {
-//! # #[cfg(all(feature = "parse_floats", feature = "format"))] {
+//! # #[cfg(all(feature = "parse-floats", feature = "format"))] {
+//! # use core::num;
 //! // This creates a format to parse a European-style float number.
 //! // The decimal point is a comma, and the digit separators (optional)
 //! // are periods.
 //! const EUROPEAN: u128 = lexical_core::NumberFormatBuilder::new()
-//!     .digit_separator(b'.')
-//!     .build();
-//! let options = lexical_core::ParseFloatOptions::builder()
+//!     .digit_separator(num::NonZeroU8::new(b'.'))
+//!     .build_strict();
+//! const COMMA_OPTIONS: lexical_core::ParseFloatOptions = lexical_core::ParseFloatOptions::builder()
 //!     .decimal_point(b',')
-//!     .build()
-//!     .unwrap();
+//!     .build_strict();
 //! assert_eq!(
-//!     lexical_core::parse_with_options::<f32, EUROPEAN>(b"300,10", &options),
+//!     lexical_core::parse_with_options::<f32, EUROPEAN>(b"300,10", &COMMA_OPTIONS),
 //!     Ok(300.10)
 //! );
 //!
 //! // Another example, using a pre-defined constant for JSON.
 //! const JSON: u128 = lexical_core::format::JSON;
-//! let options = lexical_core::ParseFloatOptions::new();
+//! const JSON_OPTIONS: lexical_core::ParseFloatOptions = lexical_core::ParseFloatOptions::new();
 //! assert_eq!(
-//!     lexical_core::parse_with_options::<f32, JSON>(b"0e1", &options),
+//!     lexical_core::parse_with_options::<f32, JSON>(b"0e1", &JSON_OPTIONS),
 //!     Ok(0.0)
 //! );
 //! assert_eq!(
-//!     lexical_core::parse_with_options::<f32, JSON>(b"1E+2", &options),
+//!     lexical_core::parse_with_options::<f32, JSON>(b"1E+2", &JSON_OPTIONS),
 //!     Ok(100.0)
 //! );
 //! # }
-//! # }
 //! ```
+//!
+//! # Version Support
+//!
+//! The minimum, standard, required version is [`1.63.0`][`rust-1.63.0`], for
+//! const generic support. Older versions of lexical support older Rust
+//! versions.
 //!
 //! # Algorithms
 //!
@@ -308,38 +618,66 @@
 //! - [Build Timings](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/BuildTimings.md)
 //! - [Digit Separators](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/DigitSeparators.md)
 //!
-//! # Version Support
+//! # Safety Guarantees
 //!
-//! The minimum, standard, required version is 1.63.0, for const generic
-//! support. Older versions of lexical support older Rust versions.
-//!
-//! # Safety
-//!
-//! There is no non-trivial unsafe behavior in [lexical][crate] itself,
+//! There is no non-trivial unsafe behavior in `lexical-core` itself,
 //! however, any incorrect safety invariants in our parsers and writers
-//! (`lexical-parse-float`, `lexical-parse-integer`, `lexical-write-float`,
-//! and `lexical-write-integer`) could cause those safety invariants to
-//! be broken.
+//! ([`lexical-parse-float`], [`lexical-parse-integer`],
+//! [`lexical-write-float`], and [`lexical-write-integer`]) could cause those
+//! safety invariants to be broken.
 //!
-//! [`write`]: crate::write
-//! [`write_with_options`]: crate::write_with_options
-//! [`parse`]: crate::parse
-//! [`parse_partial`]: crate::parse_partial
-//! [`parse_with_options`]: crate::parse_with_options
-//! [`parse_partial_with_options`]: crate::parse_partial_with_options
+//! <!-- Spacer for Rustfmt -->
+#![cfg_attr(
+    feature = "write",
+    doc = "
+[`write`]: crate::write
+[`write_with_options`]: crate::write_with_options
+"
+)]
+#![cfg_attr(
+    not(feature = "write"),
+    doc = "
+[`write`]: https://docs.rs/lexical-core/latest/lexical_core/fn.write.html
+[`write_with_options`]: https://docs.rs/lexical-core/latest/lexical_core/fn.write_with_options.html
+"
+)]
+#![cfg_attr(
+    feature = "parse",
+    doc = "
+[`parse`]: crate::parse
+[`parse_partial`]: crate::parse_partial
+[`parse_with_options`]: crate::parse_with_options
+[`parse_partial_with_options`]: crate::parse_partial_with_options
+"
+)]
+#![cfg_attr(
+    not(feature = "parse"),
+    doc = "
+[`parse`]: https://docs.rs/lexical-core/latest/lexical_core/fn.parse.html
+[`parse_partial`]: https://docs.rs/lexical-core/latest/lexical_core/fn.parse_partial.html
+[`parse_with_options`]: https://docs.rs/lexical-core/latest/lexical_core/fn.parse_with_options.html
+[`parse_partial_with_options`]: https://docs.rs/lexical-core/latest/lexical_core/fn.parse_partial_with_options.html
+"
+)]
 //!
+//! <!-- Space for Rustfmt -->
+#![cfg_attr(feature = "parse-floats", doc = "[`ParseFloatOptions`]: crate::ParseFloatOptions")]
+#![cfg_attr(feature = "parse-integers", doc = "[`ParseIntegerOptions`]: crate::ParseIntegerOptions")]
+#![cfg_attr(feature = "write-floats", doc = "[`WriteFloatOptions`]: crate::WriteFloatOptions")]
+#![cfg_attr(feature = "write-integers", doc = "[`WriteIntegerOptions`]: crate::WriteIntegerOptions")]
+//!
+//! [`String`]: https://doc.rust-lang.org/alloc/string/struct.String.html
 //! [`NumberFormatBuilder`]: crate::NumberFormatBuilder
-//! [`ParseFloatOptions`]: crate::ParseFloatOptions
-//! [`ParseIntegerOptions`]: crate::ParseIntegerOptions
-//! [`WriteFloatOptions`]: crate::WriteFloatOptions
-//! [`WriteIntegerOptions`]: crate::WriteIntegerOptions
-//! [benchmarks]: <https://github.com/Alexhuszagh/lexical-benchmarks>
+//! [benchmarks]: https://github.com/Alexhuszagh/lexical-benchmarks
+//! [`rust-1.63.0`]: https://blog.rust-lang.org/2022/08/11/Rust-1.63.0.html
 
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
 #![allow(unused_unsafe)]
 #![cfg_attr(feature = "lint", warn(unsafe_op_in_unsafe_fn))]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![deny(
     clippy::doc_markdown,
     clippy::unnecessary_safety_comment,
@@ -364,14 +702,64 @@
     // we use this for inline formatting for unsafe blocks
     clippy::semicolon_inside_block,
 )]
+#![cfg_attr(rustfmt, rustfmt_skip)]  // reason = "this simplifies our imports"
+
+// Ensure our features are properly enabled. This means no parse without
+// parse support, etc.
+#[cfg(all(feature = "parse", not(any(feature = "parse-integers", feature = "parse-floats"))))]
+compile_error!(
+    "Do not use the `parse` feature directly. Use `parse-integers` and/or `parse-floats` instead."
+);
+
+#[cfg(all(feature = "write", not(any(feature = "write-integers", feature = "write-floats"))))]
+compile_error!(
+    "Do not use the `write` feature directly. Use `write-integers` and/or `write-floats` instead."
+);
+
+#[cfg(all(feature = "integers", not(any(feature = "write-integers", feature = "parse-integers"))))]
+compile_error!("Do not use the `integers` feature directly. Use `write-integers` and/or `parse-integers` instead.");
+
+#[cfg(all(feature = "floats", not(any(feature = "write-floats", feature = "parse-floats"))))]
+compile_error!(
+    "Do not use the `floats` feature directly. Use `write-floats` and/or `parse-floats` instead."
+);
 
 // Re-exports
+pub use lexical_util::Error;
+pub use lexical_util::result::Result;
+
+pub use lexical_util::format::{
+    self,
+    // FIXME: Do not export in the next breaking release.
+    format_error,
+    // FIXME: Do not export in the next breaking release.
+    format_is_valid,
+    NumberFormat,
+    NumberFormatBuilder,
+};
+
+#[cfg(feature = "f16")]
+pub use lexical_util::bf16::bf16;
+
+#[cfg(feature = "f16")]
+pub use lexical_util::f16::f16;
+
+// PARSE
+
+#[cfg(feature = "parse")]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+pub use lexical_util::options::ParseOptions;
+
+#[cfg(feature = "parse")]
+use lexical_util::{from_lexical, from_lexical_with_options};
+
 #[cfg(feature = "parse-floats")]
 pub use lexical_parse_float::{
     options as parse_float_options,
     Options as ParseFloatOptions,
     OptionsBuilder as ParseFloatOptionsBuilder,
 };
+
 #[cfg(feature = "parse-floats")]
 use lexical_parse_float::{
     FromLexical as FromFloat,
@@ -388,25 +776,20 @@ use lexical_parse_integer::{
     FromLexical as FromInteger,
     FromLexicalWithOptions as FromIntegerWithOptions,
 };
-#[cfg(feature = "f16")]
-pub use lexical_util::bf16::bf16;
+
+// WRITE
+
 #[cfg(feature = "write")]
-pub use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
-#[cfg(feature = "parse")]
-pub use lexical_util::error::Error;
-#[cfg(feature = "f16")]
-pub use lexical_util::f16::f16;
-pub use lexical_util::format::{self, format_error, format_is_valid, NumberFormatBuilder};
-#[cfg(feature = "parse")]
-pub use lexical_util::options::ParseOptions;
-#[cfg(feature = "write")]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
 pub use lexical_util::options::WriteOptions;
-#[cfg(feature = "parse")]
-pub use lexical_util::result::Result;
-#[cfg(feature = "parse")]
-use lexical_util::{from_lexical, from_lexical_with_options};
+
 #[cfg(feature = "write")]
 use lexical_util::{to_lexical, to_lexical_with_options};
+
+#[cfg(feature = "write")]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+pub use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
+
 #[cfg(feature = "write-floats")]
 pub use lexical_write_float::{
     options as write_float_options,
@@ -415,12 +798,14 @@ pub use lexical_write_float::{
 };
 #[cfg(feature = "write-floats")]
 use lexical_write_float::{ToLexical as ToFloat, ToLexicalWithOptions as ToFloatWithOptions};
+
 #[cfg(feature = "write-integers")]
 pub use lexical_write_integer::{
     options as write_integer_options,
     Options as WriteIntegerOptions,
     OptionsBuilder as WriteIntegerOptionsBuilder,
 };
+
 #[cfg(feature = "write-integers")]
 use lexical_write_integer::{ToLexical as ToInteger, ToLexicalWithOptions as ToIntegerWithOptions};
 
@@ -428,13 +813,40 @@ use lexical_write_integer::{ToLexical as ToInteger, ToLexicalWithOptions as ToIn
 // ---
 
 #[cfg(feature = "parse")]
-from_lexical!();
+from_lexical!(
+    "lexical_core",
+    1234,
+    u64,
+    4,
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+);
+
 #[cfg(feature = "parse")]
-from_lexical_with_options!();
+from_lexical_with_options!(
+    "lexical_core",
+    1234,
+    u64,
+    4,
+    ParseIntegerOptions,
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+);
+
 #[cfg(feature = "write")]
-to_lexical!();
+to_lexical!(
+    "lexical_core",
+    1234,
+    u64,
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+);
+
 #[cfg(feature = "write")]
-to_lexical_with_options!();
+to_lexical_with_options!(
+    "lexical_core",
+    1234,
+    u64,
+    WriteIntegerOptions,
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+);
 
 /// Implement `FromLexical` and `FromLexicalWithOptions` for numeric types.
 ///
@@ -571,11 +983,10 @@ float_to_lexical! { f32 f64 }
 /// number. In order to ensure the function will not panic, provide a
 /// buffer with at least `{integer}::FORMATTED_SIZE` elements.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
-/// # pub fn main() {
-/// #[cfg(feature = "write-floats")] {
+/// # #[cfg(feature = "write-floats")] {
 /// // import `BUFFER_SIZE` to get the maximum bytes written by the number.
 /// use lexical_core::BUFFER_SIZE;
 ///
@@ -585,7 +996,6 @@ float_to_lexical! { f32 f64 }
 /// lexical_core::write(float, &mut buffer);
 ///
 /// assert_eq!(&buffer[0..9], b"3.1415927");
-/// # }
 /// # }
 /// ```
 ///
@@ -605,6 +1015,7 @@ float_to_lexical! { f32 f64 }
 /// ```
 #[inline]
 #[cfg(feature = "write")]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
 pub fn write<N: ToLexical>(n: N, bytes: &mut [u8]) -> &mut [u8] {
     n.to_lexical(bytes)
 }
@@ -633,11 +1044,10 @@ pub fn write<N: ToLexical>(n: N, bytes: &mut [u8]) -> &mut [u8] {
 /// ensure `is_valid()` is called prior to using the format, or checking
 /// its validity using a static assertion.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
-/// # pub fn main() {
-/// #[cfg(feature = "write-floats")] {
+/// # #[cfg(feature = "write-floats")] {
 /// // import `BUFFER_SIZE` to get the maximum bytes written by the number.
 /// use lexical_core::BUFFER_SIZE;
 ///
@@ -645,11 +1055,10 @@ pub fn write<N: ToLexical>(n: N, bytes: &mut [u8]) -> &mut [u8] {
 /// let float = 3.14159265359_f32;
 ///
 /// const FORMAT: u128 = lexical_core::format::STANDARD;
-/// let options = lexical_core::WriteFloatOptions::new();
-/// lexical_core::write_with_options::<_, FORMAT>(float, &mut buffer, &options);
+/// const OPTIONS: lexical_core::WriteFloatOptions = lexical_core::WriteFloatOptions::new();
+/// lexical_core::write_with_options::<_, FORMAT>(float, &mut buffer, &OPTIONS);
 ///
 /// assert_eq!(&buffer[0..9], b"3.1415927");
-/// # }
 /// # }
 /// ```
 ///
@@ -662,8 +1071,8 @@ pub fn write<N: ToLexical>(n: N, bytes: &mut [u8]) -> &mut [u8] {
 /// let float = 3.14159265359_f32;
 ///
 /// const FORMAT: u128 = lexical_core::format::STANDARD;
-/// let options = lexical_core::WriteFloatOptions::new();
-/// lexical_core::write_with_options::<_, FORMAT>(float, &mut buffer, &options);
+/// const OPTIONS: lexical_core::WriteFloatOptions = lexical_core::WriteFloatOptions::new();
+/// lexical_core::write_with_options::<_, FORMAT>(float, &mut buffer, &OPTIONS);
 /// # }
 /// # #[cfg(not(feature = "write-floats"))] {
 /// #     panic!("");
@@ -671,6 +1080,7 @@ pub fn write<N: ToLexical>(n: N, bytes: &mut [u8]) -> &mut [u8] {
 /// ```
 #[inline]
 #[cfg(feature = "write")]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
 pub fn write_with_options<'a, N: ToLexicalWithOptions, const FORMAT: u128>(
     n: N,
     bytes: &'a mut [u8],
@@ -686,19 +1096,18 @@ pub fn write_with_options<'a, N: ToLexicalWithOptions, const FORMAT: u128>(
 ///
 /// * `bytes`   - Byte slice containing a numeric string.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
-/// # pub fn main() {
-/// #[cfg(feature = "parse-floats")] {
+/// # #[cfg(feature = "parse-floats")] {
 /// let string = "3.14159265359";
 /// let result = lexical_core::parse::<f32>(string.as_bytes());
 /// assert_eq!(result, Ok(3.14159265359_f32));
 /// # }
-/// # }
 /// ```
 #[inline]
 #[cfg(feature = "parse")]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
 pub fn parse<N: FromLexical>(bytes: &[u8]) -> Result<N> {
     N::from_lexical(bytes)
 }
@@ -711,19 +1120,18 @@ pub fn parse<N: FromLexical>(bytes: &[u8]) -> Result<N> {
 ///
 /// * `bytes`   - Byte slice containing a numeric string.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
-/// # pub fn main() {
-/// #[cfg(feature = "parse-floats")] {
+/// # #[cfg(feature = "parse-floats")] {
 /// let string = "3.14159265359 hello";
 /// let result = lexical_core::parse_partial::<f32>(string.as_bytes());
 /// assert_eq!(result, Ok((3.14159265359_f32, 13)));
 /// # }
-/// # }
 /// ```
 #[inline]
 #[cfg(feature = "parse")]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
 pub fn parse_partial<N: FromLexical>(bytes: &[u8]) -> Result<(N, usize)> {
     N::from_lexical_partial(bytes)
 }
@@ -737,21 +1145,20 @@ pub fn parse_partial<N: FromLexical>(bytes: &[u8]) -> Result<(N, usize)> {
 /// * `bytes`   - Byte slice containing a numeric string.
 /// * `options` - Options to customize number parsing.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
-/// # pub fn main() {
-/// #[cfg(all(feature = "parse-floats", feature = "format"))] {
+/// # #[cfg(all(feature = "parse-floats", feature = "format"))] {
 /// const JSON: u128 = lexical_core::format::JSON;
-/// let options = lexical_core::ParseFloatOptions::new();
+/// const OPTIONS: lexical_core::ParseFloatOptions = lexical_core::ParseFloatOptions::new();
 /// let string = "3.14159265359";
-/// let result = lexical_core::parse_with_options::<f32, JSON>(string.as_bytes(), &options);
+/// let result = lexical_core::parse_with_options::<f32, JSON>(string.as_bytes(), &OPTIONS);
 /// assert_eq!(result, Ok(3.14159265359_f32));
-/// # }
 /// # }
 /// ```
 #[inline]
 #[cfg(feature = "parse")]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
 pub fn parse_with_options<N: FromLexicalWithOptions, const FORMAT: u128>(
     bytes: &[u8],
     options: &N::Options,
@@ -769,21 +1176,20 @@ pub fn parse_with_options<N: FromLexicalWithOptions, const FORMAT: u128>(
 /// * `bytes`   - Byte slice containing a numeric string.
 /// * `options` - Options to customize number parsing.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
-/// # pub fn main() {
-/// #[cfg(all(feature = "parse-floats", feature = "format"))] {
+/// # #[cfg(all(feature = "parse-floats", feature = "format"))] {
 /// const JSON: u128 = lexical_core::format::JSON;
-/// let options = lexical_core::ParseFloatOptions::new();
+/// const OPTIONS: lexical_core::ParseFloatOptions = lexical_core::ParseFloatOptions::new();
 /// let string = "3.14159265359 hello";
-/// let result = lexical_core::parse_partial_with_options::<f32, JSON>(string.as_bytes(), &options);
+/// let result = lexical_core::parse_partial_with_options::<f32, JSON>(string.as_bytes(), &OPTIONS);
 /// assert_eq!(result, Ok((3.14159265359_f32, 13)));
-/// # }
 /// # }
 /// ```
 #[inline]
 #[cfg(feature = "parse")]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
 pub fn parse_partial_with_options<N: FromLexicalWithOptions, const FORMAT: u128>(
     bytes: &[u8],
     options: &N::Options,

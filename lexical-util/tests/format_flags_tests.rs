@@ -9,7 +9,7 @@ const fn from_digit_separator(digit_separator: u8) -> u128 {
     format::NumberFormatBuilder::new()
         .digit_separator(num::NonZeroU8::new(digit_separator))
         .digit_separator_flags(true)
-        .build()
+        .build_unchecked()
 }
 
 #[cfg(feature = "format")]
@@ -31,8 +31,9 @@ fn test_is_valid_digit_separator() {
     // Try with a custom radix.
     #[cfg(feature = "radix")]
     {
-        let format =
-            format::NumberFormat::<{ from_digit_separator(b'e') }>::rebuild().radix(16).build();
+        let format = format::NumberFormat::<{ from_digit_separator(b'e') }>::rebuild()
+            .radix(16)
+            .build_unchecked();
         assert_eq!(format::is_valid_digit_separator(format), false);
     }
 }
@@ -44,7 +45,7 @@ fn is_valid_punctuation(digit_separator: u8, base_prefix: u8, base_suffix: u8) -
         .digit_separator_flags(true)
         .base_prefix(num::NonZeroU8::new(base_prefix))
         .base_suffix(num::NonZeroU8::new(base_suffix))
-        .build();
+        .build_unchecked();
     format::is_valid_punctuation(fmt)
 }
 

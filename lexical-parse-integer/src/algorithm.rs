@@ -4,8 +4,8 @@
 //! to read multiple digits at-a-time with less multiplication instructions,
 //! as well as other optimizations to avoid unnecessary compile-time branching.
 //!
-//! See [Algorithm.md](/docs/Algorithm.md) for a more detailed description of
-//! the algorithm choice here. See [Benchmarks.md](/docs/Benchmarks.md) for
+//! See [Algorithm](/docs/Algorithm.md) for a more detailed description of
+//! the algorithm choice here. See [Benchmarks.md](/docs/Benchmarks) for
 //! recent benchmark data.
 //!
 //! These allow implementations of partial and complete parsers
@@ -184,6 +184,7 @@ macro_rules! fmt_invalid_digit {
 ///
 /// Returns if the value is negative, or any values detected when
 /// validating the input.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! parse_sign {
     (

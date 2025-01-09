@@ -101,8 +101,8 @@ macro_rules! unsigned_to_lexical {
     )*)
 }
 
-to_lexical! {}
-to_lexical_with_options! {}
+to_lexical!("lexical_write_integer", 1234, u64);
+to_lexical_with_options!("lexical_write_integer", 1234, u64, Options);
 unsigned_to_lexical! { u8 u16 u32 u64 u128 usize }
 
 // Implement `ToLexical` for numeric type.

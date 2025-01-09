@@ -5,7 +5,7 @@
 //! reasons, it makes no sense to pre-compute the number of digits,
 //! and therefore
 //!
-//! See [Algorithm.md](/docs/Algorithm.md) for a more detailed description of
+//! See [Algorithm](/docs/Algorithm.md) for a more detailed description of
 //! the algorithm choice here.
 
 #![cfg(not(feature = "compact"))]

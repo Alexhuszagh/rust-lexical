@@ -13,8 +13,8 @@ fn u8_decimal_test() {
     assert_eq!(Err(Error::InvalidDigit(0)), u8::from_lexical(b"-1"));
     assert_eq!(Ok((1, 1)), u8::from_lexical_partial(b"1a"));
 
-    let options = Options::default();
-    assert_eq!(Ok((0, 1)), u8::from_lexical_partial_with_options::<{ STANDARD }>(b"0", &options));
+    const OPTIONS: Options = Options::new();
+    assert_eq!(Ok((0, 1)), u8::from_lexical_partial_with_options::<{ STANDARD }>(b"0", &OPTIONS));
 }
 
 #[test]
@@ -22,13 +22,13 @@ fn u8_decimal_test() {
 fn u8_decimal_format_test() {
     // Test an invalid format.
     const FORMAT: u128 = NumberFormatBuilder::from_radix(1);
-    let options = Options::default();
+    const OPTIONS: Options = Options::new();
     assert_eq!(
         Err(Error::InvalidMantissaRadix),
-        u8::from_lexical_with_options::<FORMAT>(b"0", &options)
+        u8::from_lexical_with_options::<FORMAT>(b"0", &OPTIONS)
     );
     assert_eq!(
         Err(Error::InvalidMantissaRadix),
-        u8::from_lexical_partial_with_options::<FORMAT>(b"0", &options)
+        u8::from_lexical_partial_with_options::<FORMAT>(b"0", &OPTIONS)
     );
 }

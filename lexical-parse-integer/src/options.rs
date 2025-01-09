@@ -1,10 +1,48 @@
 //! Configuration options for parsing integers.
+//!
+//! # Pre-Defined Formats
+//!
+//! This contains pre-defined options optimized for either the parsing of large
+//! or small numbers.
+//! - [`SMALL_NUMBERS`][`SMALL_NUMBERS`]: Optimize the parsing of small
+//!   integers, at a major performance cost to larger values.
+//! - [`LARGE_NUMBERS`][`LARGE_NUMBERS`]: Optimize the parsing of large
+//!   integers, at a slight performance cost to smaller values.
+//!
+//! # Examples
+//!
+//! ```rust
+//! use lexical_parse_integer::{FromLexicalWithOptions, Options};
+//! use lexical_parse_integer::format::STANDARD;
+//!
+//! const OPTIONS: Options = Options::builder()
+//!     .no_multi_digit(true)
+//!     .build_strict();
+//!
+//! let value = "1234";
+//! let result = u64::from_lexical_with_options::<STANDARD>(value.as_bytes(), &OPTIONS);
+//! assert_eq!(result, Ok(1234));
+//! ```
 
 use lexical_util::options::ParseOptions;
 use lexical_util::result::Result;
-use static_assertions::const_assert;
 
-/// Builder for `Options`.
+/// Builder for [`Options`].
+///
+/// # Examples
+///
+/// ```rust
+/// use lexical_parse_integer::{FromLexicalWithOptions, Options};
+/// use lexical_parse_integer::format::STANDARD;
+///
+/// const OPTIONS: Options = Options::builder()
+///     .no_multi_digit(true)
+///     .build_strict();
+///
+/// let value = "1234";
+/// let result = u64::from_lexical_with_options::<STANDARD>(value.as_bytes(), &OPTIONS);
+/// assert_eq!(result, Ok(1234));
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct OptionsBuilder {
     /// Disable multi-digit optimizations.
@@ -29,6 +67,17 @@ impl OptionsBuilder {
     // GETTERS
 
     /// Get if we disable the use of multi-digit optimizations.
+    ///
+    /// Defaults to [`true`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lexical_parse_integer::Options;
+    ///
+    /// let builder = Options::builder();
+    /// assert_eq!(builder.get_no_multi_digit(), true);
+    /// ```
     #[inline(always)]
     pub const fn get_no_multi_digit(&self) -> bool {
         self.no_multi_digit
@@ -37,6 +86,19 @@ impl OptionsBuilder {
     // SETTERS
 
     /// Set if we disable the use of multi-digit optimizations.
+    ///
+    /// Defaults to [`true`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lexical_parse_integer::Options;
+    ///
+    /// const OPTIONS: Options = Options::builder()
+    ///     .no_multi_digit(false)
+    ///     .build_strict();
+    /// assert_eq!(OPTIONS.get_no_multi_digit(), false);
+    /// ```
     #[inline(always)]
     pub const fn no_multi_digit(mut self, no_multi_digit: bool) -> Self {
         self.no_multi_digit = no_multi_digit;
@@ -45,13 +107,23 @@ impl OptionsBuilder {
 
     // BUILDERS
 
-    /// Check if the builder state is valid.
+    /// Check if the builder state is valid (always [`true`]).
     #[inline(always)]
     pub const fn is_valid(&self) -> bool {
         true
     }
 
-    /// Build the Options struct with bounds validation.
+    /// Build the [`Options`] struct without validation.
+    ///
+    /// <div class="warning">
+    ///
+    /// This is completely safe, however, misusing this could cause panics at
+    /// runtime. Always check if [`is_valid`] prior to using the built
+    /// options.
+    ///
+    /// </div>
+    ///
+    /// [`is_valid`]: Self::is_valid
     #[inline(always)]
     pub const fn build_unchecked(&self) -> Options {
         Options {
@@ -59,7 +131,16 @@ impl OptionsBuilder {
         }
     }
 
-    /// Build the Options struct.
+    /// Build the [`Options`] struct. This can never panic.
+    #[inline(always)]
+    pub const fn build_strict(&self) -> Options {
+        match self.build() {
+            Ok(value) => value,
+            Err(error) => core::panic!("{}", error.description()),
+        }
+    }
+
+    /// Build the [`Options`] struct. Always [`Ok`].
     #[inline(always)]
     pub const fn build(&self) -> Result<Options> {
         Ok(self.build_unchecked())
@@ -73,18 +154,21 @@ impl Default for OptionsBuilder {
     }
 }
 
-/// Immutable options to customize writing integers.
+/// Options to customize the parsing integers.
 ///
 /// # Examples
 ///
 /// ```rust
-/// use lexical_parse_integer::options::Options;
+/// use lexical_parse_integer::{FromLexicalWithOptions, Options};
+/// use lexical_parse_integer::format::STANDARD;
 ///
-/// # pub fn main() {
-/// let options = Options::builder()
-///     .build()
-///     .unwrap();
-/// # }
+/// const OPTIONS: Options = Options::builder()
+///     .no_multi_digit(true)
+///     .build_strict();
+///
+/// let value = "1234";
+/// let result = u64::from_lexical_with_options::<STANDARD>(value.as_bytes(), &OPTIONS);
+/// assert_eq!(result, Ok(1234));
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Options {
@@ -99,7 +183,7 @@ pub struct Options {
 }
 
 impl Options {
-    /// Create options with default values.
+    /// Create [`Options`] with default values.
     #[must_use]
     #[inline(always)]
     pub const fn new() -> Self {
@@ -108,13 +192,26 @@ impl Options {
 
     // GETTERS
 
-    /// Check if the options state is valid.
+    /// Check if the builder state is valid (always [`true`]).
     #[inline(always)]
     pub const fn is_valid(&self) -> bool {
         self.rebuild().is_valid()
     }
 
     /// Get if we disable the use of multi-digit optimizations.
+    ///
+    /// Defaults to [`true`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lexical_parse_integer::options::Options;
+    ///
+    /// const OPTIONS: Options = Options::builder()
+    ///     .no_multi_digit(true)
+    ///     .build_strict();
+    /// assert_eq!(OPTIONS.get_no_multi_digit(), true);
+    /// ```
     #[inline(always)]
     pub const fn get_no_multi_digit(&self) -> bool {
         self.no_multi_digit
@@ -123,20 +220,28 @@ impl Options {
     // SETTERS
 
     /// Set if we disable the use of multi-digit optimizations.
+    #[deprecated = "Setters should have a `set_` prefix. Use `set_no_multi_digit` instead. Will be removed in 2.0."]
     #[inline(always)]
     pub fn no_multi_digit(&mut self, no_multi_digit: bool) {
         self.no_multi_digit = no_multi_digit;
     }
 
+    /// Set if we disable the use of multi-digit optimizations.
+    #[deprecated = "Options should be treated as immutable, use `OptionsBuilder` instead. Will be removed in 2.0."]
+    #[inline(always)]
+    pub fn set_no_multi_digit(&mut self, no_multi_digit: bool) {
+        self.no_multi_digit = no_multi_digit;
+    }
+
     // BUILDERS
 
-    /// Get `OptionsBuilder` as a static function.
+    /// Get [`OptionsBuilder`] as a static function.
     #[inline(always)]
     pub const fn builder() -> OptionsBuilder {
         OptionsBuilder::new()
     }
 
-    /// Create `OptionsBuilder` using existing values.
+    /// Create [`OptionsBuilder`] using existing values.
     #[inline(always)]
     pub const fn rebuild(&self) -> OptionsBuilder {
         OptionsBuilder {
@@ -165,18 +270,15 @@ impl ParseOptions for Options {
 /// Standard number format.
 #[rustfmt::skip]
 pub const STANDARD: Options = Options::new();
-const_assert!(STANDARD.is_valid());
 
 /// Options optimized for small numbers.
 #[rustfmt::skip]
 pub const SMALL_NUMBERS: Options = Options::builder()
-        .no_multi_digit(true)
-        .build_unchecked();
-const_assert!(SMALL_NUMBERS.is_valid());
+    .no_multi_digit(true)
+    .build_strict();
 
 /// Options optimized for large numbers and long strings.
 #[rustfmt::skip]
 pub const LARGE_NUMBERS: Options = Options::builder()
-        .no_multi_digit(false)
-        .build_unchecked();
-const_assert!(LARGE_NUMBERS.is_valid());
+    .no_multi_digit(false)
+    .build_strict();

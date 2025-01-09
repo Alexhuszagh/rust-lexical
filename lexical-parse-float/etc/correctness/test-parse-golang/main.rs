@@ -40,7 +40,7 @@ fn run_test<Random: Rng>(line: &str, rng: &mut Random) {
     let hex32 = line[5..13].to_lowercase();
     let hex64 = line[14..30].to_lowercase();
     let string = &line[31..];
-    let options = Options::new();
+    const OPTIONS: Options = Options::new();
 
     // now we want to add the number of digit separators we'll use
     let count = rng.gen_range(1..=4);
@@ -55,8 +55,8 @@ fn run_test<Random: Rng>(line: &str, rng: &mut Random) {
     let string = str::from_utf8(&vec).unwrap();
     let valid = SIGN.replace(string, "${2}${1}");
 
-    let float32 = f32::from_lexical_with_options::<FMT>(valid.as_bytes(), &options).unwrap();
-    let float64 = f64::from_lexical_with_options::<FMT>(valid.as_bytes(), &options).unwrap();
+    let float32 = f32::from_lexical_with_options::<FMT>(valid.as_bytes(), &OPTIONS).unwrap();
+    let float64 = f64::from_lexical_with_options::<FMT>(valid.as_bytes(), &OPTIONS).unwrap();
     assert_eq!(hex32, format!("{:0>8x}", float32.to_bits()));
     assert_eq!(hex64, format!("{:0>16x}", float64.to_bits()));
 }
@@ -74,10 +74,10 @@ fn run_test<Random: Rng>(line: &str, _: &mut Random) {
     let hex32 = line[5..13].to_lowercase();
     let hex64 = line[14..30].to_lowercase();
     let string = &line[31..];
-    let options = Options::new();
+    const OPTIONS: Options = Options::new();
 
-    let float32 = f32::from_lexical_with_options::<FMT>(string.as_bytes(), &options).unwrap();
-    let float64 = f64::from_lexical_with_options::<FMT>(string.as_bytes(), &options).unwrap();
+    let float32 = f32::from_lexical_with_options::<FMT>(string.as_bytes(), &OPTIONS).unwrap();
+    let float64 = f64::from_lexical_with_options::<FMT>(string.as_bytes(), &OPTIONS).unwrap();
     assert_eq!(hex32, format!("{:0>8x}", float32.to_bits()));
     assert_eq!(hex64, format!("{:0>16x}", float64.to_bits()));
 }

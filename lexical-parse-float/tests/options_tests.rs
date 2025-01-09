@@ -111,6 +111,7 @@ fn builder_test() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn options_test() {
     let mut opts = Options::new();
 

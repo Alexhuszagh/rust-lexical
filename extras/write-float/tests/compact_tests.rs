@@ -15,12 +15,12 @@ const DECIMAL: u128 = NumberFormatBuilder::decimal();
 default_quickcheck! {
     fn f32_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
-        let options = Options::builder().build().unwrap();
+        const OPTIONS: Options = Options::builder().build_strict();
         let f = f.abs();
         if f.is_special() {
             true
         } else {
-            let count = compact::write_float::<_, DECIMAL>(f, &mut buffer, &options);
+            let count = compact::write_float::<_, DECIMAL>(f, &mut buffer, &OPTIONS);
             let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
             let roundtrip = actual.parse::<f32>();
             roundtrip == Ok(f)
@@ -29,12 +29,12 @@ default_quickcheck! {
 
     fn f64_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
-        let options = Options::builder().build().unwrap();
+        const OPTIONS: Options = Options::builder().build_strict();
         let f = f.abs();
         if f.is_special() {
             true
         } else {
-            let count = compact::write_float::<_, DECIMAL>(f, &mut buffer, &options);
+            let count = compact::write_float::<_, DECIMAL>(f, &mut buffer, &OPTIONS);
             let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
             let roundtrip = actual.parse::<f64>();
             roundtrip == Ok(f)
@@ -48,10 +48,10 @@ proptest! {
     #[test]
     fn f32_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
-        let options = Options::builder().build().unwrap();
+        const OPTIONS: Options = Options::builder().build_strict();
         let f = f.abs();
         if !f.is_special() {
-            let count = compact::write_float::<_, DECIMAL>(f, &mut buffer, &options);
+            let count = compact::write_float::<_, DECIMAL>(f, &mut buffer, &OPTIONS);
             let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
             let roundtrip = actual.parse::<f32>();
             prop_assert_eq!(roundtrip, Ok(f))
@@ -61,10 +61,10 @@ proptest! {
     #[test]
     fn f64_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
-        let options = Options::builder().build().unwrap();
+        const OPTIONS: Options = Options::builder().build_strict();
         let f = f.abs();
         if !f.is_special() {
-            let count = compact::write_float::<_, DECIMAL>(f, &mut buffer, &options);
+            let count = compact::write_float::<_, DECIMAL>(f, &mut buffer, &OPTIONS);
             let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
             let roundtrip = actual.parse::<f64>();
             prop_assert_eq!(roundtrip, Ok(f))
