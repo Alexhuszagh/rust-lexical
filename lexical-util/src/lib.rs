@@ -150,6 +150,7 @@ mod format_builder;
 mod format_flags;
 mod noskip;
 mod not_feature_format;
+mod prebuilt_formats;
 mod skip;
 
 #[cfg(feature = "write")]

@@ -632,6 +632,8 @@ pub use crate::format_builder::*;
 pub use crate::format_flags::*;
 #[cfg(not(feature = "format"))]
 pub use crate::not_feature_format::*;
+#[cfg(feature = "format")]
+pub use crate::prebuilt_formats::*;
 
 /// Determine if the format packed struct is valid.
 #[inline(always)]
