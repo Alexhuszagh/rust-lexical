@@ -332,16 +332,19 @@
 )]
 //!
 #![cfg_attr(
-    feature = "parse",
+    any(feature = "parse-floats", feature = "parse-integers"),
     doc = "[`FromLexicalWithOptions`]: crate::from_lexical_with_options"
 )]
 #![cfg_attr(
-    not(feature = "parse"),
+    not(any(feature = "parse-floats", feature = "parse-integers")),
     doc = "[`FromLexicalWithOptions`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/api.rs#L45"
 )]
-#![cfg_attr(feature = "write", doc = "[`ToLexicalWithOptions`]: crate::to_lexical_with_options")]
 #![cfg_attr(
-    not(feature = "write"),
+    any(feature = "write-floats", feature = "write-integers"),
+    doc = "[`ToLexicalWithOptions`]: crate::to_lexical_with_options"
+)]
+#![cfg_attr(
+    not(any(feature = "write-floats", feature = "write-integers")),
     doc = "[`ToLexicalWithOptions`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/api.rs#L151"
 )]
 //!

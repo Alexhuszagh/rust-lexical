@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deprecated `Options::set_*` in our write float API since options should be considered immutable.
 - Removed `static_assertions` dependency.
 - Migrate to using an external crate for our half-precision floats.
+- Simplify feature detection internally to make auto-doc more reliable.
 
 ### Fixed
 

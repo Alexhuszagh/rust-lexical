@@ -41,14 +41,8 @@
 //! [`etc/div128.py`]: https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-util/etc/div128.py
 
 #![cfg(not(feature = "compact"))]
-#![cfg(feature = "write")]
-#![cfg_attr(
-    docsrs,
-    doc(cfg(all(
-        any(feature = "write-floats", feature = "write-integers"),
-        not(feature = "compact")
-    )))
-)]
+#![cfg(any(feature = "write-floats", feature = "write-integers"))]
+
 use crate::assert::debug_assert_radix;
 use crate::mul::mulhi;
 

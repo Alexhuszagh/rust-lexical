@@ -29,13 +29,13 @@ default = ["std", "write-integers", "write-floats", "parse-integers", "parse-flo
 # Use the standard library.
 std = ["lexical-core/std"]
 # Add support for writing integers.
-write-integers = ["lexical-core/write-integers", "write", "integers"]
+write-integers = ["lexical-core/write-integers"]
 # Add support for writing floats.
-write-floats = ["lexical-core/write-floats", "write", "floats"]
+write-floats = ["lexical-core/write-floats"]
 # Add support for parsing integers.
-parse-integers = ["lexical-core/parse-integers", "parse", "integers"]
+parse-integers = ["lexical-core/parse-integers"]
 # Add support for parsing floats.
-parse-floats = ["lexical-core/parse-floats", "parse", "floats"]
+parse-floats = ["lexical-core/parse-floats"]
 # Add support for parsing power-of-two float strings.
 power-of-two = ["lexical-core/power-of-two"]
 # Add support for parsing non-decimal float strings.
@@ -52,18 +52,6 @@ f16 = ["lexical-core/f16"]
 # Internal only features. These are not meant to be used directly.
 # Enable the lint checks.
 lint = ["lexical-core/lint"]
-# Add support for writing numbers.
-# Library users should use `write-integers` and `write-floats` instead.
-write = ["lexical-core/write"]
-# Add support for parsing numbers.
-# Library users should use `parse-integers` and `parse-floats` instead.
-parse = ["lexical-core/parse"]
-# Add support for conversions to or from integers.
-# Library users should use `write-integers` and `parse-integers` instead.
-integers = ["lexical-core/integers"]
-# Add support for conversions to or from floats.
-# Library users should use `write-floats` and `parse-floats` instead.
-floats = ["lexical-core/floats"]
 
 # UNSUPPORTED
 # -----------

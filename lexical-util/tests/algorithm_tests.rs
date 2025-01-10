@@ -1,8 +1,8 @@
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 use lexical_util::algorithm;
 
 #[test]
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 fn copy_to_dest_test() {
     let src = b"12345";
     let mut dst = [b'0'; 16];
@@ -12,7 +12,7 @@ fn copy_to_dest_test() {
 }
 
 #[test]
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 fn ltrim_char_test() {
     let w = "0001";
     let x = "1010";

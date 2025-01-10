@@ -39,7 +39,7 @@
 //!  For example, `next_ilt` means that consumer can skip internal,
 //! leading, and trailing digit separators, but not consecutive ones.
 
-#![cfg(all(feature = "format", feature = "parse"))]
+#![cfg(all(feature = "format", any(feature = "parse-floats", feature = "parse-integers")))]
 
 use core::{mem, ptr};
 

@@ -54,15 +54,7 @@ pub const fn char_is_digit_const(c: u8, radix: u32) -> bool {
 /// This optimizes for cases where radix is <= 10, and uses a decent,
 /// match-based fallback algorithm.
 #[inline(always)]
-#[cfg(any(feature = "write", feature = "floats"))]
-#[cfg_attr(
-    docsrs,
-    doc(cfg(any(
-        feature = "parse-floats",
-        feature = "write-floats",
-        feature = "write-integers",
-    )))
-)]
+#[cfg(any(feature = "parse-floats", feature = "write-floats", feature = "write-integers"))]
 pub const fn digit_to_char_const(digit: u32, radix: u32) -> u8 {
     if radix <= 10 || digit < 10 {
         // Can short-circuit if we know the radix is small at compile time.
@@ -81,8 +73,7 @@ pub const fn digit_to_char_const(digit: u32, radix: u32) -> u8 {
 
 /// Convert a character to a digit.
 #[inline(always)]
-#[cfg(feature = "parse")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub const fn char_to_digit(c: u8, radix: u32) -> Option<u32> {
     // Fallback, still decently fast.
     let digit = match c {
@@ -100,8 +91,7 @@ pub const fn char_to_digit(c: u8, radix: u32) -> Option<u32> {
 
 /// Determine if a character is a digit.
 #[inline(always)]
-#[cfg(feature = "parse")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub const fn char_is_digit(c: u8, radix: u32) -> bool {
     char_to_digit(c, radix).is_some()
 }
@@ -113,8 +103,7 @@ pub const fn char_is_digit(c: u8, radix: u32) -> bool {
 ///
 /// Panics if `digit >= 36`.
 #[inline(always)]
-#[cfg(feature = "write")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub fn digit_to_char(digit: u32) -> u8 {
     const TABLE: [u8; 36] = [
         b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'A', b'B', b'C', b'D', b'E',

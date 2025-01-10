@@ -106,26 +106,6 @@
     clippy::semicolon_inside_block,
 )]
 
-// Ensure our features are properly enabled. This means no parse without
-// parse support, etc.
-#[cfg(all(feature = "parse", not(any(feature = "parse-integers", feature = "parse-floats"))))]
-compile_error!(
-    "Do not use the `parse` feature directly. Use `parse-integers` and/or `parse-floats` instead."
-);
-
-#[cfg(all(feature = "write", not(any(feature = "write-integers", feature = "write-floats"))))]
-compile_error!(
-    "Do not use the `write` feature directly. Use `write-integers` and/or `write-floats` instead."
-);
-
-#[cfg(all(feature = "integers", not(any(feature = "write-integers", feature = "parse-integers"))))]
-compile_error!("Do not use the `integers` feature directly. Use `write-integers` and/or `parse-integers` instead.");
-
-#[cfg(all(feature = "floats", not(any(feature = "write-floats", feature = "parse-floats"))))]
-compile_error!(
-    "Do not use the `floats` feature directly. Use `write-floats` and/or `parse-floats` instead."
-);
-
 pub mod algorithm;
 pub mod ascii;
 pub mod assert;
@@ -148,17 +128,18 @@ mod api;
 mod feature_format;
 mod format_builder;
 mod format_flags;
+mod libm;
 mod noskip;
 mod not_feature_format;
 mod prebuilt_formats;
 mod skip;
 
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub use constants::{FormattedSize, BUFFER_SIZE};
 pub use error::Error;
 pub use format::{NumberFormat, NumberFormatBuilder};
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub use options::ParseOptions;
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub use options::WriteOptions;
 pub use result::Result;

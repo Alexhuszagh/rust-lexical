@@ -18,7 +18,7 @@
 //! - Long infinity: (`*_INFINITY`): `Infinity` (including `+Infinity` and
 //!   `-Infinity`)
 
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 use crate::constants::FormattedSize;
 
 // TRAITS
@@ -54,8 +54,7 @@ depending on the radix.
 }
 
 /// Shared trait for all writer options.
-#[cfg_attr(docsrs, doc(cfg(any(feature = "power-of-two", feature = "write-integers"))))]
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub trait WriteOptions: Default {
     /// Determine if the options are valid.
     fn is_valid(&self) -> bool;
@@ -89,8 +88,7 @@ pub trait WriteOptions: Default {
 }
 
 /// Shared trait for all parser options.
-#[cfg_attr(docsrs, doc(cfg(any(feature = "power-of-two", feature = "write-integers"))))]
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub trait ParseOptions: Default {
     /// Determine if the options are valid.
     fn is_valid(&self) -> bool;

@@ -1,4 +1,4 @@
-#![cfg(feature = "parse")]
+#![cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 
 use lexical_util::iterator::{AsBytes, Bytes, DigitsIter, Iter};
 
