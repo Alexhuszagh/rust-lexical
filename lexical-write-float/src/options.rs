@@ -596,11 +596,10 @@ impl OptionsBuilder {
     /// # Examples
     ///
     /// ```rust
-    /// use core::num::NonZeroUsize;
-    ///
+    /// # use core::num;
     /// use lexical_write_float::Options;
     ///
-    /// let max_digits = NonZeroUsize::new(300);
+    /// let max_digits = num::NonZeroUsize::new(300);
     /// let builder = Options::builder()
     ///     .max_significant_digits(max_digits);
     /// assert_eq!(builder.get_max_significant_digits(), max_digits);
@@ -629,11 +628,10 @@ impl OptionsBuilder {
     /// # Examples
     ///
     /// ```rust
-    /// use core::num::NonZeroUsize;
-    ///
+    /// # use core::num;
     /// use lexical_write_float::Options;
     ///
-    /// let min_digits = NonZeroUsize::new(10);
+    /// let min_digits = num::NonZeroUsize::new(10);
     /// let builder = Options::builder()
     ///     .min_significant_digits(min_digits);
     /// assert_eq!(builder.get_min_significant_digits(), min_digits);
@@ -661,11 +659,10 @@ impl OptionsBuilder {
     /// # Examples
     ///
     /// ```rust
-    /// use core::num::NonZeroI32;
-    ///
+    /// # use core::num;
     /// use lexical_write_float::Options;
     ///
-    /// let pos_break = NonZeroI32::new(3);
+    /// let pos_break = num::NonZeroI32::new(3);
     /// let builder = Options::builder()
     ///     .positive_exponent_break(pos_break);
     /// assert_eq!(builder.get_positive_exponent_break(), pos_break);
@@ -690,11 +687,10 @@ impl OptionsBuilder {
     /// # Examples
     ///
     /// ```rust
-    /// use core::num::NonZeroI32;
-    ///
+    /// # use core::num;
     /// use lexical_write_float::Options;
     ///
-    /// let neg_break = NonZeroI32::new(-3);
+    /// let neg_break = num::NonZeroI32::new(-3);
     /// let builder = Options::builder()
     ///     .negative_exponent_break(neg_break);
     /// assert_eq!(builder.get_negative_exponent_break(), neg_break);
@@ -720,8 +716,7 @@ impl OptionsBuilder {
     ///
     /// ```rust
     /// # #[cfg(all(feature = "format", feature = "radix"))] {
-    /// use core::{num, str};
-    ///
+    /// # use core::{num, str};
     /// use lexical_write_float::{RoundMode, Options, ToLexicalWithOptions};
     /// use lexical_write_float::format::STANDARD;
     ///
@@ -845,7 +840,6 @@ impl OptionsBuilder {
     /// should always build the format using [`build_strict`] or checking
     /// [`is_valid`] prior to using the format, to avoid unexpected panics.
     ///
-    /// [`FORMATTED_SIZE`]: `lexical_util::constants::FormattedSize::FORMATTED_SIZE`
     /// [`build_strict`]: Self::build_strict
     /// [`is_valid`]: Self::is_valid
     #[inline(always)]
@@ -876,7 +870,6 @@ impl OptionsBuilder {
     /// should always build the format using [`build_strict`] or checking
     /// [`is_valid`] prior to using the format, to avoid unexpected panics.
     ///
-    /// [`FORMATTED_SIZE`]: `lexical_util::constants::FormattedSize::FORMATTED_SIZE`
     /// [`build_strict`]: Self::build_strict
     /// [`is_valid`]: Self::is_valid
     #[inline(always)]
@@ -909,7 +902,6 @@ impl OptionsBuilder {
     /// should always build the format using [`build_strict`] or checking
     /// [`is_valid`] prior to using the format, to avoid unexpected panics.
     ///
-    /// [`FORMATTED_SIZE`]: `lexical_util::constants::FormattedSize::FORMATTED_SIZE`
     /// [`build_strict`]: Self::build_strict
     /// [`is_valid`]: Self::is_valid
     #[inline(always)]
@@ -1366,11 +1358,10 @@ impl Options {
     /// # Examples
     ///
     /// ```rust
-    /// use core::num::NonZeroUsize;
-    ///
+    /// # use core::num;
     /// use lexical_write_float::Options;
     ///
-    /// const MAX_DIGITS: Option<NonZeroUsize> = NonZeroUsize::new(300);
+    /// const MAX_DIGITS: Option<num::NonZeroUsize> = num::NonZeroUsize::new(300);
     /// const OPTIONS: Options = Options::builder()
     ///     .max_significant_digits(MAX_DIGITS)
     ///     .build_strict();
@@ -1393,11 +1384,10 @@ impl Options {
     /// # Examples
     ///
     /// ```rust
-    /// use core::num::NonZeroUsize;
-    ///
+    /// # use core::num;
     /// use lexical_write_float::Options;
     ///
-    /// const MIN_DIGITS: Option<NonZeroUsize> = NonZeroUsize::new(10);
+    /// const MIN_DIGITS: Option<num::NonZeroUsize> = num::NonZeroUsize::new(10);
     /// const OPTIONS: Options = Options::builder()
     ///     .min_significant_digits(MIN_DIGITS)
     ///     .build_strict();
@@ -1418,11 +1408,10 @@ impl Options {
     /// # Examples
     ///
     /// ```rust
-    /// use core::num::NonZeroI32;
-    ///
+    /// # use core::num;
     /// use lexical_write_float::Options;
     ///
-    /// const POS_BREAK: Option<NonZeroI32> = NonZeroI32::new(3);
+    /// const POS_BREAK: Option<num::NonZeroI32> = num::NonZeroI32::new(3);
     /// const OPTIONS: Options = Options::builder()
     ///     .positive_exponent_break(POS_BREAK)
     ///     .build_strict();
@@ -1443,11 +1432,10 @@ impl Options {
     /// # Examples
     ///
     /// ```rust
-    /// use core::num::NonZeroI32;
-    ///
+    /// # use core::num;
     /// use lexical_write_float::Options;
     ///
-    /// const NEG_BREAK: Option<NonZeroI32> = NonZeroI32::new(-3);
+    /// const NEG_BREAK: Option<num::NonZeroI32> = num::NonZeroI32::new(-3);
     /// const OPTIONS: Options = Options::builder()
     ///     .negative_exponent_break(NEG_BREAK)
     ///     .build_strict();

@@ -14,8 +14,7 @@
 //!
 //! ```rust
 //! # #[cfg(feature = "format")] {
-//! use core::num;
-//!
+//! # use core::num;
 //! use lexical_util::{NumberFormat, NumberFormatBuilder};
 //!
 //! // create the format for literal Rustt floats

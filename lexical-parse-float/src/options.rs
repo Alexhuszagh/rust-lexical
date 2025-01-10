@@ -339,8 +339,6 @@ impl OptionsBuilder {
     /// The first character must start with `I` or `i` and all characters must
     /// be valid ASCII letters (`A-Z` or `a-z`). Defaults to `infinity`.
     ///
-    /// [`get_inf_string`]: Self::get_inf_string
-    ///
     /// # Examples
     ///
     /// ```rust

@@ -8,6 +8,15 @@ use crate::bf16::bf16;
 #[cfg(feature = "f16")]
 use crate::f16::f16;
 
+/// Enumerated numeric types.
+pub enum NumberType {
+    /// Integer types.
+    Integer,
+
+    /// Floating-point types.
+    Float,
+}
+
 /// The size, in bytes, of formatted values.
 pub trait FormattedSize {
     /// Maximum number of bytes required to serialize a number to string.
@@ -52,63 +61,67 @@ pub trait FormattedSize {
     /// [`WriteOptions::buffer_size`]: crate::options::WriteOptions::buffer_size
     /// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-write-float
     const FORMATTED_SIZE_DECIMAL: usize;
+
+    /// The type of the number (integer or float).
+    const NUMBER_TYPE: NumberType;
 }
 
 macro_rules! formatted_size_impl {
-    ($($t:tt $decimal:literal $radix:literal ; )*) => ($(
+    ($($t:tt $decimal:literal $radix:literal $type:ident ; )*) => ($(
         impl FormattedSize for $t {
             #[cfg(feature = "power-of-two")]
             const FORMATTED_SIZE: usize = $radix;
             #[cfg(not(feature = "power-of-two"))]
             const FORMATTED_SIZE: usize = $decimal;
             const FORMATTED_SIZE_DECIMAL: usize = $decimal;
+            const NUMBER_TYPE: NumberType = NumberType::$type;
         }
     )*);
 }
 
 formatted_size_impl! {
-    i8 4 16 ;
-    i16 6 32 ;
-    i32 11 64 ;
-    i64 20 128 ;
-    i128 40 256 ;
-    u8 3 16 ;
-    u16 5 32 ;
-    u32 10 64 ;
-    u64 20 128 ;
-    u128 39 256 ;
+    i8 4 16 Integer ;
+    i16 6 32 Integer ;
+    i32 11 64 Integer ;
+    i64 20 128 Integer ;
+    i128 40 256 Integer ;
+    u8 3 16 Integer ;
+    u16 5 32 Integer ;
+    u32 10 64 Integer ;
+    u64 20 128 Integer ;
+    u128 39 256 Integer ;
     // The f64 buffer is actually a size of 60, but use 64 since it's a power of 2.
     // Use 256 for non-decimal values, actually, since we seem to have memory
     // issues with f64. Clearly not sufficient memory allocated for non-decimal
     // values.
-    //bf16 64 256 ;
-    //f16 64 256 ;
-    f32 64 256 ;
-    f64 64 256 ;
-    //f128 128 512 ;
-    //f256 256 1024 ;
+    //bf16 64 256 Float ;
+    //f16 64 256 Float ;
+    f32 64 256 Float ;
+    f64 64 256 Float ;
+    //f128 128 512 Float ;
+    //f256 256 1024 Float ;
 }
 
 #[cfg(feature = "f16")]
 formatted_size_impl! {
-    f16 64 256 ;
-    bf16 64 256 ;
+    f16 64 256 Float ;
+    bf16 64 256 Float ;
 }
 
 #[cfg(target_pointer_width = "16")]
-formatted_size_impl! { isize 6 32 ; }
+formatted_size_impl! { isize 6 32 Integer ; }
 #[cfg(target_pointer_width = "16")]
-formatted_size_impl! { usize 5 32 ; }
+formatted_size_impl! { usize 5 32 Integer ; }
 
 #[cfg(target_pointer_width = "32")]
-formatted_size_impl! { isize 11 64 ; }
+formatted_size_impl! { isize 11 64 Integer ; }
 #[cfg(target_pointer_width = "32")]
-formatted_size_impl! { usize 10 64 ; }
+formatted_size_impl! { usize 10 64 Integer ; }
 
 #[cfg(target_pointer_width = "64")]
-formatted_size_impl! { isize 20 128 ; }
+formatted_size_impl! { isize 20 128 Integer ; }
 #[cfg(target_pointer_width = "64")]
-formatted_size_impl! { usize 20 128 ; }
+formatted_size_impl! { usize 20 128 Integer ; }
 
 /// Maximum number of bytes required to serialize any number with default
 /// options to string.
