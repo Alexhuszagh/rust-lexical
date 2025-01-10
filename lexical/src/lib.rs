@@ -77,9 +77,12 @@
 //! [`core-write`]: core::fmt::Display::fmt
 //!
 //! <!-- Spacer for rustfmt -->
-#![cfg_attr(feature = "write", doc = "- [`to_string`]:  Write a number to string.")]
 #![cfg_attr(
-    feature = "parse",
+    any(feature = "write-floats", feature = "write-integers"),
+    doc = "- [`to_string`]:  Write a number to string."
+)]
+#![cfg_attr(
+    any(feature = "parse-floats", feature = "parse-integers"),
     doc = "
 - [`parse`]: Parse a number from string validating the complete string is a number.
 - [`parse_partial`]: Parse a number from string returning the number and the number
@@ -116,25 +119,25 @@
 //!
 //! <!-- Spacer for rustfmt -->
 #![cfg_attr(
-    all(feature = "write", feature = "floats"),
+    feature = "write-floats",
     doc = "[`nan_string`]: WriteFloatOptionsBuilder::nan_string"
 )]
 #![cfg_attr(
-    all(not(feature = "write"), feature = "parse", feature = "floats"),
+    all(not(feature = "write-floats"), feature = "parse-floats"),
     doc = "[`nan_string`]: ParseFloatOptionsBuilder::nan_string"
 )]
 #![cfg_attr(
-    any(not(feature = "floats"), all(not(feature = "write"), not(feature = "parse"))),
+    all(not(feature = "write-floats"), not(feature = "parse-floats")),
     doc = "[`nan_string`]: https://docs.rs/lexical-core/latest/lexical_core/struct.WriteFloatOptionsBuilder.html#method.nan_string"
 )]
 //!
 //! <!-- Spacer for rustfmt -->
 #![cfg_attr(
-    feature = "write",
+    any(feature = "write-floats", feature = "write-integers"),
     doc = "- [`to_string_with_options`]: Write a number to string using custom formatting options."
 )]
 #![cfg_attr(
-    feature = "parse",
+    any(feature = "parse-floats", feature = "parse-integers"),
     doc = "
 - [`parse_with_options`]: Parse a number from string using custom formatting options,
     validating the complete string is a number.
@@ -555,21 +558,21 @@
 //!
 //! <!-- Space for Rustfmt -->
 #![cfg_attr(
-    feature = "write",
+    any(feature = "write-floats", feature = "write-integers"),
     doc = "
 [`to_string`]: crate::to_string
 [`to_string_with_options`]: crate::to_string_with_options
 "
 )]
 #![cfg_attr(
-    not(feature = "write"),
+    not(any(feature = "write-floats", feature = "write-integers")),
     doc = "
 [`to_string`]: https://docs.rs/lexical/latest/lexical/fn.to_string.html
 [`to_string_with_options`]: https://docs.rs/lexical/latest/lexical/fn.to_string_with_options.html
 "
 )]
 #![cfg_attr(
-    feature = "parse",
+    any(feature = "parse-floats", feature = "parse-integers"),
     doc = "
 [`parse`]: crate::parse
 [`parse_partial`]: crate::parse_partial
@@ -578,7 +581,7 @@
 "
 )]
 #![cfg_attr(
-    not(feature = "parse"),
+    not(any(feature = "parse-floats", feature = "parse-integers")),
     doc = "
 [`parse`]: https://docs.rs/lexical/latest/lexical/fn.parse.html
 [`parse_partial`]: https://docs.rs/lexical/latest/lexical/fn.parse_partial.html
@@ -630,32 +633,12 @@
 )]
 #![cfg_attr(rustfmt, rustfmt_skip)]  // reason = "this simplifies our imports"
 
-// Ensure our features are properly enabled. This means no parse without
-// parse support, etc.
-#[cfg(all(feature = "parse", not(any(feature = "parse-integers", feature = "parse-floats"))))]
-compile_error!(
-    "Do not use the `parse` feature directly. Use `parse-integers` and/or `parse-floats` instead."
-);
-
-#[cfg(all(feature = "write", not(any(feature = "write-integers", feature = "write-floats"))))]
-compile_error!(
-    "Do not use the `write` feature directly. Use `write-integers` and/or `write-floats` instead."
-);
-
-#[cfg(all(feature = "integers", not(any(feature = "write-integers", feature = "parse-integers"))))]
-compile_error!("Do not use the `integers` feature directly. Use `write-integers` and/or `parse-integers` instead.");
-
-#[cfg(all(feature = "floats", not(any(feature = "write-floats", feature = "parse-floats"))))]
-compile_error!(
-    "Do not use the `floats` feature directly. Use `write-floats` and/or `parse-floats` instead."
-);
-
 // Need an allocator for String/Vec.
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 #[macro_use(vec)]
 extern crate alloc;
 
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 use alloc::string::String;
 
 // Re-exports
@@ -677,12 +660,10 @@ pub use lexical_core::{bf16, f16};
 
 // PARSE
 
-#[cfg(feature = "parse")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub use lexical_core::ParseOptions;
 
-#[cfg(feature = "parse")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub use lexical_core::{FromLexical, FromLexicalWithOptions};
 
 #[cfg(feature = "parse-floats")]
@@ -693,16 +674,13 @@ pub use lexical_core::{parse_integer_options, ParseIntegerOptions, ParseIntegerO
 
 // WRITE
 
-#[cfg(feature = "write")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub use lexical_core::WriteOptions;
 
-#[cfg(feature = "write")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub use lexical_core::{ToLexical, ToLexicalWithOptions};
 
-#[cfg(feature = "write")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub use lexical_core::{FormattedSize, BUFFER_SIZE};
 
 #[cfg(feature = "write-floats")]
@@ -746,7 +724,7 @@ pub use lexical_core::{write_integer_options, WriteIntegerOptions, WriteIntegerO
 /// assert_eq!(lexical::to_string(0.0), "0.0");
 /// ```
 #[inline]
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub fn to_string<N: ToLexical>(n: N) -> String {
     let mut buf = vec![0u8; N::FORMATTED_SIZE_DECIMAL];
     let len = lexical_core::write(n, buf.as_mut_slice()).len();
@@ -776,7 +754,7 @@ pub fn to_string<N: ToLexical>(n: N) -> String {
 /// assert_eq!(lexical::to_string_with_options::<_, FORMAT>(123.456, &OPTIONS), "123.456");
 /// ```
 #[inline]
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 #[allow(deprecated)] // reason = "allow the user of `buffer_size`"
 pub fn to_string_with_options<N: ToLexicalWithOptions, const FORMAT: u128>(
     n: N,
@@ -830,7 +808,7 @@ pub fn to_string_with_options<N: ToLexicalWithOptions, const FORMAT: u128>(
 /// # assert_eq!(lexical::parse::<f64, _>(b"5.002868148396374"), Ok(5.002868148396374));
 /// ```
 #[inline]
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
     N::from_lexical(bytes.as_ref())
 }
@@ -865,7 +843,7 @@ pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
 /// # assert_eq!(lexical::parse_partial::<f64, _>(b"5.002868148396374"), Ok((5.002868148396374, 17)));
 /// ```
 #[inline]
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<(N, usize)> {
     N::from_lexical_partial(bytes.as_ref())
 }
@@ -898,7 +876,7 @@ pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result
 /// assert_eq!(lexical::parse_with_options::<f32, _, FORMAT>("1,2345^4", &OPTIONS), Ok(12345.0));
 /// ```
 #[inline]
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub fn parse_with_options<N: FromLexicalWithOptions, Bytes: AsRef<[u8]>, const FORMAT: u128>(
     bytes: Bytes,
     options: &N::Options,
@@ -938,7 +916,7 @@ pub fn parse_with_options<N: FromLexicalWithOptions, Bytes: AsRef<[u8]>, const F
 /// assert_eq!(lexical::parse_partial_with_options::<f32, _, FORMAT>("1,2345^4", &OPTIONS), Ok((12345.0, 8)));
 /// ```
 #[inline]
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub fn parse_partial_with_options<
     N: FromLexicalWithOptions,
     Bytes: AsRef<[u8]>,

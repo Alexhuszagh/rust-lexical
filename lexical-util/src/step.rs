@@ -11,7 +11,12 @@
 //!
 //! [`etc/step.py`]: https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-util/etc/step.py
 
-#![cfg(any(feature = "parse", feature = "write"))]
+#![cfg(any(
+    feature = "parse-floats",
+    feature = "parse-integers",
+    feature = "write-floats",
+    feature = "write-integers",
+))]
 
 // NOTE:
 //  Fallback radixes use 1 for the value to avoid infinite loops,

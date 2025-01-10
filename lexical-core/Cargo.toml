@@ -59,13 +59,13 @@ std = [
     "lexical-parse-float/std"
 ]
 # Add support for writing integers.
-write-integers = ["lexical-write-integer", "write", "integers"]
+write-integers = ["lexical-write-integer"]
 # Add support for writing floats.
-write-floats = ["lexical-write-float", "write", "floats"]
+write-floats = ["lexical-write-float"]
 # Add support for parsing integers.
-parse-integers = ["lexical-parse-integer", "parse", "integers"]
+parse-integers = ["lexical-parse-integer"]
 # Add support for parsing floats.
-parse-floats = ["lexical-parse-float", "parse", "floats"]
+parse-floats = ["lexical-parse-float"]
 
 # Add support for parsing power-of-two float strings.
 power-of-two = [
@@ -117,18 +117,6 @@ lint = [
     "lexical-parse-integer?/lint",
     "lexical-parse-float?/lint"
 ]
-# Add support for writing numbers.
-# Library users should use `write-integers` and `write-floats` instead.
-write = ["lexical-util/write"]
-# Add support for parsing numbers.
-# Library users should use `parse-integers` and `parse-floats` instead.
-parse = ["lexical-util/parse"]
-# Add support for conversions to or from integers.
-# Library users should use `write-integers` and `parse-integers` instead.
-integers = ["lexical-util/integers"]
-# Add support for conversions to or from floats.
-# Library users should use `write-floats` and `parse-floats` instead.
-floats = ["lexical-util/floats"]
 
 # UNSUPPORTED
 # -----------

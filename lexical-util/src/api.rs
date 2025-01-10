@@ -22,8 +22,7 @@
 ///
 /// [`FromLexical`]: https://docs.rs/lexical-core/latest/lexical_core/trait.FromLexical.html
 #[macro_export]
-#[cfg(feature = "parse")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 macro_rules! from_lexical {
     ($name:literal, $value:literal, $t:ty, $len:literal $(, #[$attr:meta])? $(,)?) => {
         /// Trait for numerical types that can be parsed from bytes.
@@ -92,8 +91,7 @@ macro_rules! from_lexical {
 ///
 /// [`FromLexicalWithOptions`]: https://docs.rs/lexical-core/latest/lexical_core/trait.FromLexicalWithOptions.html
 #[macro_export]
-#[cfg(feature = "parse")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 macro_rules! from_lexical_with_options {
     ($name:literal, $value:literal, $t:ty, $len:literal, $ops_t:ty $(, #[$attr:meta])? $(,)?) => {
         /// Trait for numerical types that can be parsed from bytes with custom options.
@@ -206,8 +204,7 @@ macro_rules! from_lexical_with_options {
 ///
 /// [`ToLexical`]: https://docs.rs/lexical-core/latest/lexical_core/trait.ToLexical.html
 #[macro_export]
-#[cfg(feature = "write")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 macro_rules! to_lexical {
     ($name:literal, $value:literal, $t:ty $(, #[$attr:meta])? $(,)?) => {
         /// Trait for numerical types that can be serialized to bytes.
@@ -277,8 +274,7 @@ macro_rules! to_lexical {
 ///
 /// [`ToLexicalWithOptions`]: https://docs.rs/lexical-core/latest/lexical_core/trait.ToLexicalWithOptions.html
 #[macro_export]
-#[cfg(feature = "write")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 macro_rules! to_lexical_with_options {
     ($name:literal, $value:literal, $t:ty, $ops_t:ty $(, #[$attr:meta])? $(,)?) => {
         /// Trait for numerical types that can be serialized to bytes with custom

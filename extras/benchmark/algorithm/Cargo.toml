@@ -24,8 +24,8 @@ serde_json = "1.0"
 [features]
 default = ["std", "integers", "floats", "json"]
 std = ["lexical-util/std", "lexical-parse-float/std"]
-integers = ["lexical-util/integers"]
-floats = ["lexical-util/floats"]
+integers = ["lexical-util/parse-integers", "lexical-util/write-integers"]
+floats = ["lexical-util/parse-floats", "lexical-util/write-floats"]
 json = []
 
 [[bench]]

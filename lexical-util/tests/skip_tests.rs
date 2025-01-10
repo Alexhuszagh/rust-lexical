@@ -1,4 +1,4 @@
-#![cfg(all(feature = "format", feature = "parse"))]
+#![cfg(all(feature = "format", any(feature = "parse-floats", feature = "parse-integers")))]
 
 use core::num;
 

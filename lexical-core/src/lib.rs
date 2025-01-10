@@ -91,14 +91,14 @@
 //!
 //! <!-- References -->
 #![cfg_attr(
-    feature = "write",
+    any(feature = "write-floats", feature = "write-integers"),
     doc = "
 [`FormattedSize`]: FormattedSize
 [`T::FORMATTED_SIZE_DECIMAL`]: FormattedSize::FORMATTED_SIZE_DECIMAL
 "
 )]
 #![cfg_attr(
-    not(feature = "write"),
+    not(any(feature = "write-floats", feature = "write-integers")),
     doc = "
 [`FormattedSize`]: https://docs.rs/lexical-core/latest/lexical_core/trait.FormattedSize.html
 [`T::FORMATTED_SIZE_DECIMAL`]: https://docs.rs/lexical-core/latest/lexical_core/trait.FormattedSize.html#associatedconstant.FORMATTED_SIZE_DECIMAL
@@ -124,9 +124,12 @@
 //! [`core-write`]: core::fmt::Display::fmt
 //!
 //! <!-- Spacer for rustfmt -->
-#![cfg_attr(feature = "write", doc = "- [`write`]: Write a number to string.")]
 #![cfg_attr(
-    feature = "parse",
+    any(feature = "write-floats", feature = "write-integers"),
+    doc = "- [`write`]: Write a number to string."
+)]
+#![cfg_attr(
+    any(feature = "parse-floats", feature = "parse-integers"),
     doc = "
 - [`parse`]: Parse a number from string validating the complete string is a number.
 - [`parse_partial`]: Parse a number from string returning the number and the number
@@ -167,25 +170,25 @@
 //!
 //! <!-- Spacer for rustfmt -->
 #![cfg_attr(
-    all(feature = "write", feature = "floats"),
+    feature = "write-floats",
     doc = "[`nan_string`]: WriteFloatOptionsBuilder::nan_string"
 )]
 #![cfg_attr(
-    all(not(feature = "write"), feature = "parse", feature = "floats"),
+    all(not(feature = "write-floats"), feature = "parse-floats"),
     doc = "[`nan_string`]: ParseFloatOptionsBuilder::nan_string"
 )]
 #![cfg_attr(
-    any(not(feature = "floats"), all(not(feature = "write"), not(feature = "parse"))),
+    all(not(feature = "write-floats"), not(feature = "parse-floats")),
     doc = "[`nan_string`]: https://docs.rs/lexical-core/latest/lexical_core/struct.WriteFloatOptionsBuilder.html#method.nan_string"
 )]
 //!
 //! <!-- Spacer for rustfmt -->
 #![cfg_attr(
-    feature = "write",
+    any(feature = "write-floats", feature = "write-integers"),
     doc = "- [`write_with_options`]: Write a number to string using custom formatting options."
 )]
 #![cfg_attr(
-    feature = "parse",
+    any(feature = "parse-floats", feature = "parse-integers"),
     doc = "
 - [`parse_with_options`]: Parse a number from string using custom formatting options,
     validating the complete string is a number.
@@ -628,21 +631,21 @@
 //!
 //! <!-- Spacer for Rustfmt -->
 #![cfg_attr(
-    feature = "write",
+    any(feature = "write-floats", feature = "write-integers"),
     doc = "
 [`write`]: crate::write
 [`write_with_options`]: crate::write_with_options
 "
 )]
 #![cfg_attr(
-    not(feature = "write"),
+    not(any(feature = "write-floats", feature = "write-integers")),
     doc = "
 [`write`]: https://docs.rs/lexical-core/latest/lexical_core/fn.write.html
 [`write_with_options`]: https://docs.rs/lexical-core/latest/lexical_core/fn.write_with_options.html
 "
 )]
 #![cfg_attr(
-    feature = "parse",
+    any(feature = "parse-floats", feature = "parse-integers"),
     doc = "
 [`parse`]: crate::parse
 [`parse_partial`]: crate::parse_partial
@@ -651,7 +654,7 @@
 "
 )]
 #![cfg_attr(
-    not(feature = "parse"),
+    not(any(feature = "parse-floats", feature = "parse-integers")),
     doc = "
 [`parse`]: https://docs.rs/lexical-core/latest/lexical_core/fn.parse.html
 [`parse_partial`]: https://docs.rs/lexical-core/latest/lexical_core/fn.parse_partial.html
@@ -704,26 +707,6 @@
 )]
 #![cfg_attr(rustfmt, rustfmt_skip)]  // reason = "this simplifies our imports"
 
-// Ensure our features are properly enabled. This means no parse without
-// parse support, etc.
-#[cfg(all(feature = "parse", not(any(feature = "parse-integers", feature = "parse-floats"))))]
-compile_error!(
-    "Do not use the `parse` feature directly. Use `parse-integers` and/or `parse-floats` instead."
-);
-
-#[cfg(all(feature = "write", not(any(feature = "write-integers", feature = "write-floats"))))]
-compile_error!(
-    "Do not use the `write` feature directly. Use `write-integers` and/or `write-floats` instead."
-);
-
-#[cfg(all(feature = "integers", not(any(feature = "write-integers", feature = "parse-integers"))))]
-compile_error!("Do not use the `integers` feature directly. Use `write-integers` and/or `parse-integers` instead.");
-
-#[cfg(all(feature = "floats", not(any(feature = "write-floats", feature = "parse-floats"))))]
-compile_error!(
-    "Do not use the `floats` feature directly. Use `write-floats` and/or `parse-floats` instead."
-);
-
 // Re-exports
 pub use lexical_util::Error;
 pub use lexical_util::result::Result;
@@ -746,11 +729,10 @@ pub use lexical_util::f16::f16;
 
 // PARSE
 
-#[cfg(feature = "parse")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub use lexical_util::options::ParseOptions;
 
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 use lexical_util::{from_lexical, from_lexical_with_options};
 
 #[cfg(feature = "parse-floats")]
@@ -779,15 +761,13 @@ use lexical_parse_integer::{
 
 // WRITE
 
-#[cfg(feature = "write")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub use lexical_util::options::WriteOptions;
 
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 use lexical_util::{to_lexical, to_lexical_with_options};
 
-#[cfg(feature = "write")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 
 #[cfg(feature = "write-floats")]
@@ -812,7 +792,7 @@ use lexical_write_integer::{ToLexical as ToInteger, ToLexicalWithOptions as ToIn
 // API
 // ---
 
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 from_lexical!(
     "lexical_core",
     1234,
@@ -821,7 +801,7 @@ from_lexical!(
     #[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
 );
 
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 from_lexical_with_options!(
     "lexical_core",
     1234,
@@ -831,7 +811,7 @@ from_lexical_with_options!(
     #[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
 );
 
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 to_lexical!(
     "lexical_core",
     1234,
@@ -839,7 +819,7 @@ to_lexical!(
     #[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
 );
 
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 to_lexical_with_options!(
     "lexical_core",
     1234,
@@ -856,7 +836,7 @@ to_lexical_with_options!(
 /// * `from_lexical_with_options`   - The internal trait that implements
 ///   `from_lexical`.
 /// * `options`                     - The options type to configure settings.
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 macro_rules! from_lexical_impl {
     ($t:ident, $from:ident, $from_options:ident, $options:ident) => {
         impl FromLexical for $t {
@@ -923,7 +903,7 @@ float_from_lexical! { f32 f64 }
 /// * `to_lexical_with_options`     - The internal trait that implements
 ///   `to_lexical`.
 /// * `options`                     - The options type to configure settings.
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 macro_rules! to_lexical_impl {
     ($t:ident, $to:ident, $to_options:ident, $options:ident) => {
         impl ToLexical for $t {
@@ -1014,8 +994,7 @@ float_to_lexical! { f32 f64 }
 /// # }
 /// ```
 #[inline]
-#[cfg(feature = "write")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub fn write<N: ToLexical>(n: N, bytes: &mut [u8]) -> &mut [u8] {
     n.to_lexical(bytes)
 }
@@ -1079,8 +1058,7 @@ pub fn write<N: ToLexical>(n: N, bytes: &mut [u8]) -> &mut [u8] {
 /// # }
 /// ```
 #[inline]
-#[cfg(feature = "write")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub fn write_with_options<'a, N: ToLexicalWithOptions, const FORMAT: u128>(
     n: N,
     bytes: &'a mut [u8],
@@ -1106,8 +1084,7 @@ pub fn write_with_options<'a, N: ToLexicalWithOptions, const FORMAT: u128>(
 /// # }
 /// ```
 #[inline]
-#[cfg(feature = "parse")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub fn parse<N: FromLexical>(bytes: &[u8]) -> Result<N> {
     N::from_lexical(bytes)
 }
@@ -1130,8 +1107,7 @@ pub fn parse<N: FromLexical>(bytes: &[u8]) -> Result<N> {
 /// # }
 /// ```
 #[inline]
-#[cfg(feature = "parse")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub fn parse_partial<N: FromLexical>(bytes: &[u8]) -> Result<(N, usize)> {
     N::from_lexical_partial(bytes)
 }
@@ -1157,8 +1133,7 @@ pub fn parse_partial<N: FromLexical>(bytes: &[u8]) -> Result<(N, usize)> {
 /// # }
 /// ```
 #[inline]
-#[cfg(feature = "parse")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub fn parse_with_options<N: FromLexicalWithOptions, const FORMAT: u128>(
     bytes: &[u8],
     options: &N::Options,
@@ -1188,8 +1163,7 @@ pub fn parse_with_options<N: FromLexicalWithOptions, const FORMAT: u128>(
 /// # }
 /// ```
 #[inline]
-#[cfg(feature = "parse")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 pub fn parse_partial_with_options<N: FromLexicalWithOptions, const FORMAT: u128>(
     bytes: &[u8],
     options: &N::Options,

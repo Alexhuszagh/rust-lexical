@@ -7,8 +7,7 @@
 //! for performance). Since there is no storage for the sign bit,
 //! this only works for positive floats.
 
-#![cfg(feature = "floats")]
-#![cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "write-floats"))))]
+#![cfg(any(feature = "parse-floats", feature = "write-floats"))]
 
 use crate::num::UnsignedInteger;
 

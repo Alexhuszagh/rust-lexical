@@ -1,15 +1,20 @@
-#![cfg(any(feature = "parse", feature = "write"))]
+#![cfg(any(
+    feature = "parse-floats",
+    feature = "parse-integers",
+    feature = "write-floats",
+    feature = "write-integers",
+))]
 
 use lexical_util::digit;
 
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 fn char_to_digit(c: u8, radix: u32, expected: Option<u32>) {
     assert_eq!(digit::char_to_digit_const(c, radix), expected);
     assert_eq!(digit::char_to_digit(c, radix), expected);
 }
 
 #[test]
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 fn char_to_digit_test() {
     char_to_digit(b'0', 2, Some(0));
     char_to_digit(b'1', 2, Some(1));
@@ -67,14 +72,14 @@ fn char_to_digit_test() {
     char_to_digit(0x7A, 16, None);
 }
 
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 fn char_is_digit(c: u8, radix: u32, expected: bool) {
     assert_eq!(digit::char_is_digit_const(c, radix), expected);
     assert_eq!(digit::char_is_digit(c, radix), expected);
 }
 
 #[test]
-#[cfg(feature = "parse")]
+#[cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 fn char_is_digit_const_test() {
     char_is_digit(b'0', 2, true);
     char_is_digit(b'1', 2, true);
@@ -95,14 +100,14 @@ fn char_is_digit_const_test() {
     char_is_digit(b'Z', 16, false);
 }
 
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 fn digit_to_char(digit: u32, radix: u32, expected: u8) {
     assert_eq!(digit::digit_to_char_const(digit, radix), expected);
     assert_eq!(digit::digit_to_char(digit), expected);
 }
 
 #[test]
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 fn digit_to_char_const_test() {
     digit_to_char(9, 10, b'9');
     digit_to_char(10, 36, b'A');

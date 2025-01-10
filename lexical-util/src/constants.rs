@@ -1,8 +1,7 @@
 //! Pre-defined constants for numeric types.
 
 #![doc(hidden)]
-#![cfg(feature = "write")]
-#![cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#![cfg(any(feature = "write-floats", feature = "write-integers"))]
 
 #[cfg(feature = "f16")]
 use crate::bf16::bf16;

@@ -2,7 +2,7 @@
 
 #![doc(hidden)]
 
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 use crate::constants::FormattedSize;
 
 // RADIX
@@ -32,8 +32,8 @@ pub fn debug_assert_radix(radix: u32) {
 
 /// Assertion the buffer has sufficient room for the output.
 #[inline(always)]
-#[cfg(all(feature = "power-of-two", feature = "write"))]
-pub fn assert_buffer<T: FormattedSize>(radix: u32, len: usize) {
+#[cfg(all(feature = "power-of-two", any(feature = "write-floats", feature = "write-integers")))]
+pub const fn assert_buffer<T: FormattedSize>(radix: u32, len: usize) {
     assert!(
         match radix {
             10 => len >= T::FORMATTED_SIZE_DECIMAL,
@@ -45,8 +45,11 @@ pub fn assert_buffer<T: FormattedSize>(radix: u32, len: usize) {
 
 /// Assertion the buffer has sufficient room for the output.
 #[inline(always)]
-#[cfg(all(not(feature = "power-of-two"), feature = "write"))]
-pub fn assert_buffer<T: FormattedSize>(_: u32, len: usize) {
+#[cfg(all(
+    not(feature = "power-of-two"),
+    any(feature = "write-floats", feature = "write-integers")
+))]
+pub const fn assert_buffer<T: FormattedSize>(_: u32, len: usize) {
     assert!(
         len >= T::FORMATTED_SIZE_DECIMAL,
         "Buffer is too small: may overwrite buffer, panicking!"

@@ -172,7 +172,7 @@ fn ceil_divmod_test() {
     assert_eq!(36usize.ceil_divmod(7), (6, -6));
 }
 
-#[cfg(feature = "floats")]
+#[cfg(any(feature = "parse-floats", feature = "write-floats"))]
 fn check_float<T: num::Float>(mut x: T) {
     // Copy, partialeq, partialord
     let _ = x;
@@ -209,7 +209,7 @@ fn check_float<T: num::Float>(mut x: T) {
 }
 
 #[test]
-#[cfg(feature = "floats")]
+#[cfg(any(feature = "parse-floats", feature = "write-floats"))]
 fn float_test() {
     use lexical_util::num::Float;
 

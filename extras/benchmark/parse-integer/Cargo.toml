@@ -29,8 +29,8 @@ radix = ["lexical-util/radix", "lexical-parse-integer/radix"]
 power-of-two = ["lexical-util/power-of-two", "lexical-parse-integer/power-of-two"]
 format = ["lexical-util/format", "lexical-parse-integer/format"]
 compact = ["lexical-util/compact", "lexical-parse-integer/compact"]
-integers = ["lexical-util/integers"]
-floats = ["lexical-util/floats"]
+floats = []  # needed for feature detection
+integers = ["lexical-util/parse-integers"]
 json = []
 
 [[bench]]

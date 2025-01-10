@@ -7,8 +7,7 @@ use crate::num::Integer;
 /// This is only used in our compact and radix integer formatted, so
 /// performance isn't the highest consideration here.
 #[inline(always)]
-#[cfg(feature = "write")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub fn copy_to_dst<T: Copy, Bytes: AsRef<[T]>>(dst: &mut [T], src: Bytes) -> usize {
     let src = src.as_ref();
     dst[..src.len()].copy_from_slice(src);
@@ -18,16 +17,14 @@ pub fn copy_to_dst<T: Copy, Bytes: AsRef<[T]>>(dst: &mut [T], src: Bytes) -> usi
 
 /// Count the number of trailing characters equal to a given value.
 #[inline(always)]
-#[cfg(feature = "write")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub fn rtrim_char_count(slc: &[u8], c: u8) -> usize {
     slc.iter().rev().take_while(|&&si| si == c).count()
 }
 
 /// Count the number of leading characters equal to a given value.
 #[inline(always)]
-#[cfg(feature = "write")]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "write-floats", feature = "write-integers"))))]
+#[cfg(any(feature = "write-floats", feature = "write-integers"))]
 pub fn ltrim_char_count(slc: &[u8], c: u8) -> usize {
     slc.iter().take_while(|&&si| si == c).count()
 }

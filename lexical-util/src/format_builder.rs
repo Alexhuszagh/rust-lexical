@@ -503,14 +503,12 @@ impl NumberFormatBuilder {
 
     /// Create number format for standard, binary number.
     #[cfg(feature = "power-of-two")]
-    #[cfg_attr(docsrs, doc(cfg(any(feature = "power-of-two", feature = "radix"))))]
     pub const fn binary() -> u128 {
         Self::from_radix(2)
     }
 
     /// Create number format for standard, octal number.
     #[cfg(feature = "power-of-two")]
-    #[cfg_attr(docsrs, doc(cfg(any(feature = "power-of-two", feature = "radix"))))]
     pub const fn octal() -> u128 {
         Self::from_radix(8)
     }
@@ -526,7 +524,6 @@ impl NumberFormatBuilder {
 
     /// Create number format for standard, hexadecimal number.
     #[cfg(feature = "power-of-two")]
-    #[cfg_attr(docsrs, doc(cfg(any(feature = "power-of-two", feature = "radix"))))]
     pub const fn hexadecimal() -> u128 {
         Self::from_radix(16)
     }
@@ -546,7 +543,6 @@ impl NumberFormatBuilder {
     // FIXME: Use `build_strict` when we can have a breaking change.
     #[allow(deprecated)]
     #[cfg(feature = "power-of-two")]
-    #[cfg_attr(docsrs, doc(cfg(any(feature = "power-of-two", feature = "radix"))))]
     pub const fn from_radix(radix: u8) -> u128 {
         Self::new()
             .radix(radix)
@@ -1420,7 +1416,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn digit_separator(mut self, character: OptionU8) -> Self {
         self.digit_separator = character;
         self
@@ -1436,7 +1431,6 @@ impl NumberFormatBuilder {
     /// - Write Integer
     #[inline(always)]
     #[cfg(feature = "power-of-two")]
-    #[cfg_attr(docsrs, doc(cfg(any(feature = "power-of-two", feature = "radix"))))]
     pub const fn radix(self, radix: u8) -> Self {
         self.mantissa_radix(radix)
     }
@@ -1463,7 +1457,6 @@ impl NumberFormatBuilder {
     /// - Write Integer
     #[inline(always)]
     #[cfg(feature = "power-of-two")]
-    #[cfg_attr(docsrs, doc(cfg(any(feature = "power-of-two", feature = "radix"))))]
     pub const fn mantissa_radix(mut self, radix: u8) -> Self {
         self.mantissa_radix = radix;
         self
@@ -1482,7 +1475,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(feature = "power-of-two")]
-    #[cfg_attr(docsrs, doc(cfg(any(feature = "power-of-two", feature = "radix"))))]
     pub const fn exponent_base(mut self, base: OptionU8) -> Self {
         self.exponent_base = base;
         self
@@ -1509,7 +1501,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(feature = "power-of-two")]
-    #[cfg_attr(docsrs, doc(cfg(any(feature = "power-of-two", feature = "radix"))))]
     pub const fn exponent_radix(mut self, radix: OptionU8) -> Self {
         self.exponent_radix = radix;
         self
@@ -1540,7 +1531,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(all(feature = "power-of-two", feature = "format"))]
-    #[cfg_attr(docsrs, doc(cfg(all(feature = "power-of-two", feature = "format"))))]
     pub const fn base_prefix(mut self, base_prefix: OptionU8) -> Self {
         self.base_prefix = base_prefix;
         self
@@ -1569,7 +1559,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(all(feature = "power-of-two", feature = "format"))]
-    #[cfg_attr(docsrs, doc(cfg(all(feature = "power-of-two", feature = "format"))))]
     pub const fn base_suffix(mut self, base_suffix: OptionU8) -> Self {
         self.base_suffix = base_suffix;
         self
@@ -1593,7 +1582,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn required_integer_digits(mut self, flag: bool) -> Self {
         self.required_integer_digits = flag;
         self
@@ -1617,7 +1605,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn required_fraction_digits(mut self, flag: bool) -> Self {
         self.required_fraction_digits = flag;
         self
@@ -1642,7 +1629,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn required_exponent_digits(mut self, flag: bool) -> Self {
         self.required_exponent_digits = flag;
         self
@@ -1668,7 +1654,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn required_mantissa_digits(mut self, flag: bool) -> Self {
         self.required_mantissa_digits = flag;
         self
@@ -1697,7 +1682,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn required_digits(mut self, flag: bool) -> Self {
         self = self.required_integer_digits(flag);
         self = self.required_fraction_digits(flag);
@@ -1725,7 +1709,6 @@ impl NumberFormatBuilder {
     /// - Write Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn no_positive_mantissa_sign(mut self, flag: bool) -> Self {
         self.no_positive_mantissa_sign = flag;
         self
@@ -1750,7 +1733,6 @@ impl NumberFormatBuilder {
     /// - Write Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn required_mantissa_sign(mut self, flag: bool) -> Self {
         self.required_mantissa_sign = flag;
         self
@@ -1775,7 +1757,6 @@ impl NumberFormatBuilder {
     /// - Write Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn no_exponent_notation(mut self, flag: bool) -> Self {
         self.no_exponent_notation = flag;
         self
@@ -1799,7 +1780,6 @@ impl NumberFormatBuilder {
     /// - Write Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn no_positive_exponent_sign(mut self, flag: bool) -> Self {
         self.no_positive_exponent_sign = flag;
         self
@@ -1823,7 +1803,6 @@ impl NumberFormatBuilder {
     /// - Write Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn required_exponent_sign(mut self, flag: bool) -> Self {
         self.required_exponent_sign = flag;
         self
@@ -1847,7 +1826,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn no_exponent_without_fraction(mut self, flag: bool) -> Self {
         self.no_exponent_without_fraction = flag;
         self
@@ -1871,7 +1849,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn no_special(mut self, flag: bool) -> Self {
         self.no_special = flag;
         self
@@ -1887,7 +1864,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn case_sensitive_special(mut self, flag: bool) -> Self {
         self.case_sensitive_special = flag;
         self
@@ -1910,7 +1886,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn no_integer_leading_zeros(mut self, flag: bool) -> Self {
         self.no_integer_leading_zeros = flag;
         self
@@ -1937,7 +1912,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn no_float_leading_zeros(mut self, flag: bool) -> Self {
         self.no_float_leading_zeros = flag;
         self
@@ -1962,7 +1936,6 @@ impl NumberFormatBuilder {
     /// - Write Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn required_exponent_notation(mut self, flag: bool) -> Self {
         self.required_exponent_notation = flag;
         self
@@ -1978,7 +1951,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn case_sensitive_exponent(mut self, flag: bool) -> Self {
         self.case_sensitive_exponent = flag;
         self
@@ -1995,7 +1967,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(all(feature = "power-of-two", feature = "format"))]
-    #[cfg_attr(docsrs, doc(cfg(all(feature = "power-of-two", feature = "format"))))]
     pub const fn case_sensitive_base_prefix(mut self, flag: bool) -> Self {
         self.case_sensitive_base_prefix = flag;
         self
@@ -2012,7 +1983,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(all(feature = "power-of-two", feature = "format"))]
-    #[cfg_attr(docsrs, doc(cfg(all(feature = "power-of-two", feature = "format"))))]
     pub const fn case_sensitive_base_suffix(mut self, flag: bool) -> Self {
         self.case_sensitive_base_suffix = flag;
         self
@@ -2042,7 +2012,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn integer_internal_digit_separator(mut self, flag: bool) -> Self {
         self.integer_internal_digit_separator = flag;
         self
@@ -2071,7 +2040,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn fraction_internal_digit_separator(mut self, flag: bool) -> Self {
         self.fraction_internal_digit_separator = flag;
         self
@@ -2100,7 +2068,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn exponent_internal_digit_separator(mut self, flag: bool) -> Self {
         self.exponent_internal_digit_separator = flag;
         self
@@ -2119,7 +2086,6 @@ impl NumberFormatBuilder {
     /// [`exponent_internal_digit_separator`]: Self::exponent_internal_digit_separator
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn internal_digit_separator(mut self, flag: bool) -> Self {
         self = self.integer_internal_digit_separator(flag);
         self = self.fraction_internal_digit_separator(flag);
@@ -2150,7 +2116,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn integer_leading_digit_separator(mut self, flag: bool) -> Self {
         self.integer_leading_digit_separator = flag;
         self
@@ -2178,7 +2143,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn fraction_leading_digit_separator(mut self, flag: bool) -> Self {
         self.fraction_leading_digit_separator = flag;
         self
@@ -2206,7 +2170,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn exponent_leading_digit_separator(mut self, flag: bool) -> Self {
         self.exponent_leading_digit_separator = flag;
         self
@@ -2225,7 +2188,6 @@ impl NumberFormatBuilder {
     /// [`exponent_leading_digit_separator`]: Self::exponent_leading_digit_separator
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn leading_digit_separator(mut self, flag: bool) -> Self {
         self = self.integer_leading_digit_separator(flag);
         self = self.fraction_leading_digit_separator(flag);
@@ -2256,7 +2218,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn integer_trailing_digit_separator(mut self, flag: bool) -> Self {
         self.integer_trailing_digit_separator = flag;
         self
@@ -2283,7 +2244,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn fraction_trailing_digit_separator(mut self, flag: bool) -> Self {
         self.fraction_trailing_digit_separator = flag;
         self
@@ -2311,7 +2271,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn exponent_trailing_digit_separator(mut self, flag: bool) -> Self {
         self.exponent_trailing_digit_separator = flag;
         self
@@ -2330,7 +2289,6 @@ impl NumberFormatBuilder {
     /// [`exponent_trailing_digit_separator`]: Self::exponent_trailing_digit_separator
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn trailing_digit_separator(mut self, flag: bool) -> Self {
         self = self.integer_trailing_digit_separator(flag);
         self = self.fraction_trailing_digit_separator(flag);
@@ -2350,7 +2308,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn integer_consecutive_digit_separator(mut self, flag: bool) -> Self {
         self.integer_consecutive_digit_separator = flag;
         self
@@ -2367,7 +2324,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn fraction_consecutive_digit_separator(mut self, flag: bool) -> Self {
         self.fraction_consecutive_digit_separator = flag;
         self
@@ -2384,7 +2340,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn exponent_consecutive_digit_separator(mut self, flag: bool) -> Self {
         self.exponent_consecutive_digit_separator = flag;
         self
@@ -2401,7 +2356,6 @@ impl NumberFormatBuilder {
     /// [`exponent_consecutive_digit_separator`]: Self::exponent_consecutive_digit_separator
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn consecutive_digit_separator(mut self, flag: bool) -> Self {
         self = self.integer_consecutive_digit_separator(flag);
         self = self.fraction_consecutive_digit_separator(flag);
@@ -2420,7 +2374,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn special_digit_separator(mut self, flag: bool) -> Self {
         self.special_digit_separator = flag;
         self
@@ -2438,7 +2391,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn digit_separator_flags(mut self, flag: bool) -> Self {
         self = self.integer_digit_separator_flags(flag);
         self = self.fraction_digit_separator_flags(flag);
@@ -2458,7 +2410,6 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn integer_digit_separator_flags(mut self, flag: bool) -> Self {
         self = self.integer_internal_digit_separator(flag);
         self = self.integer_leading_digit_separator(flag);
@@ -2477,7 +2428,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn fraction_digit_separator_flags(mut self, flag: bool) -> Self {
         self = self.fraction_internal_digit_separator(flag);
         self = self.fraction_leading_digit_separator(flag);
@@ -2496,7 +2446,6 @@ impl NumberFormatBuilder {
     /// - Parse Float
     #[inline(always)]
     #[cfg(feature = "format")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "format")))]
     pub const fn exponent_digit_separator_flags(mut self, flag: bool) -> Self {
         self = self.exponent_internal_digit_separator(flag);
         self = self.exponent_leading_digit_separator(flag);

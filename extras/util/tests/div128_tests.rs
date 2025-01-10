@@ -1,5 +1,5 @@
 #![cfg(not(feature = "compact"))]
-#![cfg(feature = "write")]
+#![cfg(any(feature = "write-floats", feature = "write-integers"))]
 
 mod util;
 

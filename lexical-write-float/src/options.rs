@@ -1176,7 +1176,6 @@ impl Options {
     /// </div>
     #[inline(always)]
     #[cfg(feature = "power-of-two")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "power-of-two")))]
     // FIXME: When we release a major version, validate the radix.
     pub const fn from_radix(radix: u8) -> Self {
         // Need to determine the correct exponent character ('e' or '^'),
@@ -1458,8 +1457,6 @@ impl Options {
     pub const fn negative_exponent_break(&self) -> OptionI32 {
         self.negative_exponent_break
     }
-
-    // TODO: HERE
 
     /// Get the rounding mode for writing digits with precision control.
     ///

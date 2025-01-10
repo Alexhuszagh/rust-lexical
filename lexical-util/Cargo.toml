@@ -39,13 +39,13 @@ radix = ["power-of-two"]
 # Add support for parsing custom numerical formats.
 format = []
 # Add support for writing integers.
-write-integers = ["write", "integers"]
+write-integers = []
 # Add support for writing floats.
-write-floats = ["write", "floats"]
+write-floats = []
 # Add support for parsing integers.
-parse-integers = ["parse", "integers"]
+parse-integers = []
 # Add support for parsing floats.
-parse-floats = ["parse", "floats"]
+parse-floats = []
 # Reduce code size at the cost of performance.
 compact = []
 # Add support for the `f16` and `b16` half-point floating point numbers.
@@ -54,14 +54,6 @@ f16 = ["parse-floats", "write-floats", "float16"]
 # Internal only features.
 # Enable the lint checks.
 lint = []
-# Add support for writing numbers.
-write = []
-# Add support for parsing numbers.
-parse = []
-# Add support for conversions to or from integers.
-integers = []
-# Add support for conversions to or from floats.
-floats = []
 
 # UNSUPPORTED
 # -----------

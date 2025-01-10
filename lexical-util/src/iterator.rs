@@ -4,8 +4,7 @@
 //! which then can be used for contiguous or non-contiguous iterables,
 //! including containers or iterators of any kind.
 
-#![cfg(feature = "parse")]
-#![cfg_attr(docsrs, doc(cfg(any(feature = "parse-floats", feature = "parse-integers"))))]
+#![cfg(any(feature = "parse-floats", feature = "parse-integers"))]
 
 use core::mem;
 

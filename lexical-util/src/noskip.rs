@@ -3,7 +3,7 @@
 //! This iterator has both the length of the original slice, as
 //! well as the current position of the iterator in the buffer.
 
-#![cfg(all(feature = "parse", not(feature = "format")))]
+#![cfg(all(any(feature = "parse-floats", feature = "parse-integers"), not(feature = "format")))]
 
 use core::{mem, ptr};
 

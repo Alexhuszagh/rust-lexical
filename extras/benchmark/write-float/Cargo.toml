@@ -31,8 +31,8 @@ radix = ["lexical-util/radix", "lexical-write-float/radix"]
 power-of-two = ["lexical-util/power-of-two", "lexical-write-float/power-of-two"]
 format = ["lexical-util/format", "lexical-write-float/format"]
 compact = ["lexical-util/compact", "lexical-write-float/compact"]
-integers = ["lexical-util/integers"]
-floats = ["lexical-util/floats"]
+floats = ["lexical-util/write-floats"]
+integers = []  # needed for feature detection
 json = []
 
 [[bench]]
