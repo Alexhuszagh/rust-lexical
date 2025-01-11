@@ -190,6 +190,13 @@ impl Options {
         Self::builder().build_unchecked()
     }
 
+    /// Create the default options for a given radix.
+    #[inline(always)]
+    #[cfg(feature = "power-of-two")]
+    pub const fn from_radix(_: u8) -> Self {
+        Self::new()
+    }
+
     // GETTERS
 
     /// Check if the builder state is valid (always [`true`]).

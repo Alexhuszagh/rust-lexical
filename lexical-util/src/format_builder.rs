@@ -553,6 +553,11 @@ impl NumberFormatBuilder {
 
     // GETTERS
 
+    // NOTE: This contains a lot of tests for our tables that would spam our
+    // documentation, so we hide them internally. See `scripts/docs.py` for
+    // how the tests are generated and run. This assumes the `format` and
+    // `radix` features are enabled.
+
     /// Get the digit separator for the number format.
     ///
     /// Digit separators are frequently used in number literals to group
@@ -791,7 +796,7 @@ impl NumberFormatBuilder {
     /// | `.` | ✔️ |
     /// | `e10` | ✔️ |
     /// | `.e10` | ✔️ |
-    /// | `` | ❌ |
+    /// |  | ❌ |
     ///
     /// # Used For
     ///
@@ -1414,6 +1419,26 @@ impl NumberFormatBuilder {
     ///
     /// - Parse Float
     /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .leading_digit_separator(true)
+    ///     .internal_digit_separator(true)
+    ///     .trailing_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_4", &PF_OPTS), Ok(14.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+_14", &PF_OPTS), Ok(14.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+14e3_5", &PF_OPTS), Ok(14e35));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_d", &PF_OPTS), Err(Error::InvalidDigit(2)));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_4", &PI_OPTS), Ok(14));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+_14", &PI_OPTS), Ok(14));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_d", &PI_OPTS), Err(Error::InvalidDigit(2)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn digit_separator(mut self, character: OptionU8) -> Self {
@@ -1455,6 +1480,50 @@ impl NumberFormatBuilder {
     /// - Parse Integer
     /// - Write Float
     /// - Write Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const BASE2: u128 = NumberFormatBuilder::from_radix(2);
+    /// const BASE3: u128 = NumberFormatBuilder::from_radix(3);
+    /// const BASE8: u128 = NumberFormatBuilder::from_radix(8);
+    /// const BASE10: u128 = NumberFormatBuilder::from_radix(10);
+    /// const BASE16: u128 = NumberFormatBuilder::from_radix(16);
+    /// const BASE31: u128 = NumberFormatBuilder::from_radix(31);
+    /// const PI_RDX: ParseIntegerOptions = ParseIntegerOptions::from_radix(16);
+    /// const PF_RDX: ParseFloatOptions = ParseFloatOptions::from_radix(16);
+    /// const WI_RDX: WriteIntegerOptions = WriteIntegerOptions::from_radix(16);
+    /// const WF_RDX: WriteFloatOptions = WriteFloatOptions::from_radix(16);
+    ///
+    /// assert_eq!(parse_with_options::<f64, BASE2>(b"10011010010", &PF_RDX), Ok(1234.0));
+    /// assert_eq!(parse_with_options::<f64, BASE3>(b"1200201", &PF_RDX), Ok(1234.0));
+    /// assert_eq!(parse_with_options::<f64, BASE8>(b"2322", &PF_RDX), Ok(1234.0));
+    /// assert_eq!(parse_with_options::<f64, BASE10>(b"1234", &PF_RDX), Ok(1234.0));
+    /// assert_eq!(parse_with_options::<f64, BASE16>(b"4d2", &PF_RDX), Ok(1234.0));
+    /// assert_eq!(parse_with_options::<f64, BASE31>(b"18p", &PF_RDX), Ok(1234.0));
+    ///
+    /// assert_eq!(parse_with_options::<i64, BASE2>(b"10011010010", &PI_RDX), Ok(1234));
+    /// assert_eq!(parse_with_options::<i64, BASE3>(b"1200201", &PI_RDX), Ok(1234));
+    /// assert_eq!(parse_with_options::<i64, BASE8>(b"2322", &PI_RDX), Ok(1234));
+    /// assert_eq!(parse_with_options::<i64, BASE10>(b"1234", &PI_RDX), Ok(1234));
+    /// assert_eq!(parse_with_options::<i64, BASE16>(b"4d2", &PI_RDX), Ok(1234));
+    /// assert_eq!(parse_with_options::<i64, BASE31>(b"18p", &PI_RDX), Ok(1234));
+    ///
+    /// let mut buffer = [0u8; BUFFER_SIZE];
+    /// assert_eq!(write_with_options::<f64, BASE2>(1234.0, &mut buffer, &WF_RDX), b"1.001101001^1010");
+    /// assert_eq!(write_with_options::<f64, BASE3>(1234.0, &mut buffer, &WF_RDX), b"1200201.0");
+    /// assert_eq!(write_with_options::<f64, BASE8>(1234.0, &mut buffer, &WF_RDX), b"2.322^3");
+    /// assert_eq!(write_with_options::<f64, BASE10>(1234.0, &mut buffer, &WF_RDX), b"1234.0");
+    /// assert_eq!(write_with_options::<f64, BASE16>(1234.0, &mut buffer, &WF_RDX), b"4.D2^2");
+    /// assert_eq!(write_with_options::<f64, BASE31>(1234.0, &mut buffer, &WF_RDX), b"18P.0");
+    ///
+    /// assert_eq!(write_with_options::<i64, BASE2>(1234, &mut buffer, &WI_RDX), b"10011010010");
+    /// assert_eq!(write_with_options::<i64, BASE3>(1234, &mut buffer, &WI_RDX), b"1200201");
+    /// assert_eq!(write_with_options::<i64, BASE8>(1234, &mut buffer, &WI_RDX), b"2322");
+    /// assert_eq!(write_with_options::<i64, BASE10>(1234, &mut buffer, &WI_RDX), b"1234");
+    /// assert_eq!(write_with_options::<i64, BASE16>(1234, &mut buffer, &WI_RDX), b"4D2");
+    /// assert_eq!(write_with_options::<i64, BASE31>(1234, &mut buffer, &WI_RDX), b"18P");
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "power-of-two")]
     pub const fn mantissa_radix(mut self, radix: u8) -> Self {
@@ -1499,6 +1568,43 @@ impl NumberFormatBuilder {
     ///
     /// - Parse Float
     /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// macro_rules! exp_radix {
+    ///     ($exp:literal) => {
+    ///         NumberFormatBuilder::new()
+    ///             .mantissa_radix(10)
+    ///             .exponent_base(num::NonZeroU8::new(10))
+    ///             .exponent_radix(num::NonZeroU8::new($exp))
+    ///             .build_strict()
+    ///     };
+    /// }
+    /// const BASE2: u128 = exp_radix!(2);
+    /// const BASE3: u128 = exp_radix!(3);
+    /// const BASE8: u128 = exp_radix!(8);
+    /// const BASE10: u128 = exp_radix!(10);
+    /// const BASE16: u128 = exp_radix!(16);
+    /// const BASE31: u128 = exp_radix!(31);
+    /// const PF_RDX: ParseFloatOptions = ParseFloatOptions::from_radix(16);
+    /// const WF_RDX: WriteFloatOptions = WriteFloatOptions::from_radix(16);
+    ///
+    /// assert_eq!(parse_with_options::<f64, BASE2>(b"1.234^1100", &PF_RDX), Ok(1234e9));
+    /// assert_eq!(parse_with_options::<f64, BASE3>(b"1.234^110", &PF_RDX), Ok(1234e9));
+    /// assert_eq!(parse_with_options::<f64, BASE8>(b"1.234^14", &PF_RDX), Ok(1234e9));
+    /// assert_eq!(parse_with_options::<f64, BASE10>(b"1.234^12", &PF_RDX), Ok(1234e9));
+    /// assert_eq!(parse_with_options::<f64, BASE16>(b"1.234^c", &PF_RDX), Ok(1234e9));
+    /// assert_eq!(parse_with_options::<f64, BASE31>(b"1.234^c", &PF_RDX), Ok(1234e9));
+    ///
+    /// let mut buffer = [0u8; BUFFER_SIZE];
+    /// assert_eq!(write_with_options::<f64, BASE2>(1234e9, &mut buffer, &WF_RDX), b"1.234^1100");
+    /// assert_eq!(write_with_options::<f64, BASE3>(1234e9, &mut buffer, &WF_RDX), b"1.234^110");
+    /// assert_eq!(write_with_options::<f64, BASE8>(1234e9, &mut buffer, &WF_RDX), b"1.234^14");
+    /// assert_eq!(write_with_options::<f64, BASE10>(1234e9, &mut buffer, &WF_RDX), b"1.234^12");
+    /// assert_eq!(write_with_options::<f64, BASE16>(1234e9, &mut buffer, &WF_RDX), b"1.234^C");
+    /// assert_eq!(write_with_options::<f64, BASE31>(1234e9, &mut buffer, &WF_RDX), b"1.234^C");
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "power-of-two")]
     pub const fn exponent_radix(mut self, radix: OptionU8) -> Self {
@@ -1529,6 +1635,25 @@ impl NumberFormatBuilder {
     ///
     /// - Parse Float
     /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_prefix(num::NonZeroU8::new(b'x'))
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"x1", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1x", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1x1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"x1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1x", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1x1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(all(feature = "power-of-two", feature = "format"))]
     pub const fn base_prefix(mut self, base_prefix: OptionU8) -> Self {
@@ -1557,6 +1682,25 @@ impl NumberFormatBuilder {
     ///
     /// - Parse Float
     /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_suffix(num::NonZeroU8::new(b'x'))
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x1", &PF_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"x1", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1x", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1x1", &PF_OPTS), Err(Error::InvalidDigit(2)));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"x1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1x", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1x1", &PI_OPTS), Err(Error::InvalidDigit(2)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(all(feature = "power-of-two", feature = "format"))]
     pub const fn base_suffix(mut self, base_suffix: OptionU8) -> Self {
@@ -1576,10 +1720,25 @@ impl NumberFormatBuilder {
     /// | `0.1` | ✔️ |
     /// | `1` | ✔️ |
     /// | `.1` | ❌ |
+    /// | `1.` | ❌ |
+    /// |  | ❌ |
     ///
-    /// # Used For
+    ///  # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .required_integer_digits(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Ok(1.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0.1", &PF_OPTS), Ok(0.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b".1", &PF_OPTS), Err(Error::EmptyInteger(0)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn required_integer_digits(mut self, flag: bool) -> Self {
@@ -1597,12 +1756,28 @@ impl NumberFormatBuilder {
     /// | Input | Valid? |
     /// |:-:|:-:|
     /// | `1.1` | ✔️ |
+    /// | `0.1` | ✔️ |
     /// | `1` | ✔️ |
+    /// | `.1` | ✔️ |
     /// | `1.` | ❌ |
+    /// | | ❌ |
     ///
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .required_fraction_digits(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Ok(1.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0.1", &PF_OPTS), Ok(0.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.", &PF_OPTS), Err(Error::EmptyFraction(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b".1", &PF_OPTS), Ok(0.1));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn required_fraction_digits(mut self, flag: bool) -> Self {
@@ -1627,6 +1802,18 @@ impl NumberFormatBuilder {
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .required_fraction_digits(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e+3", &PF_OPTS), Ok(1.1e3));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e3", &PF_OPTS), Ok(1.1e3));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e+", &PF_OPTS), Err(Error::EmptyExponent(5)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e", &PF_OPTS), Err(Error::EmptyExponent(4)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn required_exponent_digits(mut self, flag: bool) -> Self {
@@ -1645,13 +1832,26 @@ impl NumberFormatBuilder {
     /// |:-:|:-:|
     /// | `1.1` | ✔️ |
     /// | `.` | ✔️ |
-    /// | `e10` | ✔️ |
-    /// | `.e10` | ✔️ |
-    /// | `` | ❌ |
+    /// | `e10` | ❌ |
+    /// | `.e10` | ❌ |
+    /// | | ❌ |
     ///
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .required_mantissa_digits(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Ok(1.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b".", &PF_OPTS), Err(Error::EmptyMantissa(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"e10", &PF_OPTS), Err(Error::EmptyMantissa(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b".e10", &PF_OPTS), Err(Error::EmptyMantissa(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"", &PF_OPTS), Err(Error::Empty(0)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn required_mantissa_digits(mut self, flag: bool) -> Self {
@@ -1670,16 +1870,33 @@ impl NumberFormatBuilder {
     /// |:-:|:-:|
     /// | `1.1` | ✔️ |
     /// | `1.1e3` | ✔️ |
+    /// | `1.1e` | ✔️ |
     /// | `0.1` | ✔️ |
     /// | `.1` | ❌ |
     /// | `1.` | ❌ |
     /// | `e10` | ❌ |
     /// | `.1e10` | ❌ |
-    /// | `` | ❌ |
+    /// | | ❌ |
     ///
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .required_digits(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Ok(1.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e3", &PF_OPTS), Ok(1.1e3));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e", &PF_OPTS), Err(Error::EmptyExponent(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0.1", &PF_OPTS), Ok(0.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b".", &PF_OPTS), Err(Error::EmptyInteger(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"e10", &PF_OPTS), Err(Error::EmptyInteger(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b".e10", &PF_OPTS), Err(Error::EmptyInteger(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"", &PF_OPTS), Err(Error::Empty(0)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn required_digits(mut self, flag: bool) -> Self {
@@ -1707,6 +1924,21 @@ impl NumberFormatBuilder {
     /// - Parse Float
     /// - Parse Integer
     /// - Write Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .no_positive_mantissa_sign(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Ok(1.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"-1.1", &PF_OPTS), Ok(-1.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+1.1", &PF_OPTS), Err(Error::InvalidPositiveSign(0)));
+    ///
+    /// let mut buffer = [0u8; BUFFER_SIZE];
+    /// assert_eq!(write_with_options::<f64, FORMAT>(1.1, &mut buffer, &WF_OPTS), b"1.1");
+    /// assert_eq!(write_with_options::<f64, FORMAT>(-1.1, &mut buffer, &WF_OPTS), b"-1.1");
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn no_positive_mantissa_sign(mut self, flag: bool) -> Self {
@@ -1731,6 +1963,29 @@ impl NumberFormatBuilder {
     /// - Parse Float
     /// - Parse Integer
     /// - Write Float
+    /// - Write Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .required_mantissa_sign(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Err(Error::MissingSign(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+1.1", &PF_OPTS), Ok(1.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"-1.1", &PF_OPTS), Ok(-1.1));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Err(Error::MissingSign(0)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"-1", &PI_OPTS), Ok(-1));
+    ///
+    /// let mut buffer = [0u8; BUFFER_SIZE];
+    /// assert_eq!(write_with_options::<f64, FORMAT>(-1.0, &mut buffer, &WF_OPTS), b"-1.0");
+    /// assert_eq!(write_with_options::<f64, FORMAT>(1.0, &mut buffer, &WF_OPTS), b"+1.0");
+    ///
+    /// assert_eq!(write_with_options::<i64, FORMAT>(-1, &mut buffer, &WI_OPTS), b"-1");
+    /// assert_eq!(write_with_options::<i64, FORMAT>(1, &mut buffer, &WI_OPTS), b"+1");
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn required_mantissa_sign(mut self, flag: bool) -> Self {
@@ -1755,6 +2010,25 @@ impl NumberFormatBuilder {
     ///
     /// - Parse Float
     /// - Write Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .no_exponent_notation(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Ok(1.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e", &PF_OPTS), Err(Error::InvalidExponent(3)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e5", &PF_OPTS), Err(Error::InvalidExponent(3)));
+    ///
+    /// const SIZE: usize = WF_OPTS.buffer_size_const::<f64, FORMAT>();
+    /// let mut buffer = [0u8; SIZE];
+    /// assert_eq!(write(1.0e10, &mut buffer), b"1.0e10");
+    /// assert_eq!(write_with_options::<f64, FORMAT>(1.0, &mut buffer, &WF_OPTS), b"1.0");
+    /// assert_eq!(write_with_options::<f64, FORMAT>(1.1, &mut buffer, &WF_OPTS), b"1.1");
+    /// assert_eq!(write_with_options::<f64, FORMAT>(1.0e10, &mut buffer, &WF_OPTS), b"10000000000.0");
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn no_exponent_notation(mut self, flag: bool) -> Self {
@@ -1778,6 +2052,21 @@ impl NumberFormatBuilder {
     ///
     /// - Parse Float
     /// - Write Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .no_positive_exponent_sign(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e15", &PF_OPTS), Ok(1.1e15));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e+15", &PF_OPTS), Err(Error::InvalidPositiveExponentSign(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e-15", &PF_OPTS), Ok(1.1e-15));
+    ///
+    /// let mut buffer = [0u8; BUFFER_SIZE];
+    /// assert_eq!(write_with_options::<f64, FORMAT>(1.1e15, &mut buffer, &WF_OPTS), b"1.1e15");
+    /// assert_eq!(write_with_options::<f64, FORMAT>(1.1e-15, &mut buffer, &WF_OPTS), b"1.1e-15");
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn no_positive_exponent_sign(mut self, flag: bool) -> Self {
@@ -1801,6 +2090,21 @@ impl NumberFormatBuilder {
     ///
     /// - Parse Float
     /// - Write Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .required_exponent_sign(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e15", &PF_OPTS), Err(Error::MissingExponentSign(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e+15", &PF_OPTS), Ok(1.1e15));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e-15", &PF_OPTS), Ok(1.1e-15));
+    ///
+    /// let mut buffer = [0u8; BUFFER_SIZE];
+    /// assert_eq!(write_with_options::<f64, FORMAT>(1.1e15, &mut buffer, &WF_OPTS), b"1.1e+15");
+    /// assert_eq!(write_with_options::<f64, FORMAT>(1.1e-15, &mut buffer, &WF_OPTS), b"1.1e-15");
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn required_exponent_sign(mut self, flag: bool) -> Self {
@@ -1824,6 +2128,19 @@ impl NumberFormatBuilder {
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .no_exponent_without_fraction(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1e3", &PF_OPTS), Err(Error::ExponentWithoutFraction(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.e3", &PF_OPTS), Err(Error::ExponentWithoutFraction(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e3", &PF_OPTS), Ok(1.1e3));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b".1e3", &PF_OPTS), Ok(1.0e2));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn no_exponent_without_fraction(mut self, flag: bool) -> Self {
@@ -1842,11 +2159,28 @@ impl NumberFormatBuilder {
     /// | `NaN` | ❌ |
     /// | `inf` | ❌ |
     /// | `-Infinity` | ❌ |
-    /// | `1.1e` | ✔️ |
+    /// | `1.1e3` | ✔️ |
     ///
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .no_special(true)
+    ///     .build_strict();
+    /// assert_eq!(parse::<f64>(b"NaN").map(|x| x.is_nan()), Ok(true));
+    /// assert_eq!(parse::<f64>(b"inf"), Ok(f64::INFINITY));
+    /// assert_eq!(parse::<f64>(b"infinity"), Ok(f64::INFINITY));
+    /// assert_eq!(parse::<f64>(b"1.1e3"), Ok(1.1e3));
+    ///
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"NaN", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"inf", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"infinity", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e3", &PF_OPTS), Ok(1.1e3));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn no_special(mut self, flag: bool) -> Self {
@@ -1859,9 +2193,37 @@ impl NumberFormatBuilder {
     /// If set to [`true`], then `NaN` and `nan` are treated as the same value
     /// ([Not a Number][f64::NAN]). Defaults to [`false`].
     ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `nan` | ❌ |
+    /// | `NaN` | ✔️ |
+    /// | `inf` | ✔️ |
+    /// | `Inf` | ❌ |
+    ///
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .case_sensitive_special(true)
+    ///     .build_strict();
+    /// assert_eq!(parse::<f64>(b"nan").map(|x| x.is_nan()), Ok(true));
+    /// assert_eq!(parse::<f64>(b"NaN").map(|x| x.is_nan()), Ok(true));
+    /// assert_eq!(parse::<f64>(b"inf"), Ok(f64::INFINITY));
+    /// assert_eq!(parse::<f64>(b"Inf"), Ok(f64::INFINITY));
+    /// assert_eq!(parse::<f64>(b"1.1e3"), Ok(1.1e3));
+    ///
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"nan", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"NaN", &PF_OPTS).map(|x| x.is_nan()), Ok(true));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"inf", &PF_OPTS), Ok(f64::INFINITY));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"Inf", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e3", &PF_OPTS), Ok(1.1e3));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn case_sensitive_special(mut self, flag: bool) -> Self {
@@ -1884,6 +2246,23 @@ impl NumberFormatBuilder {
     /// # Used For
     ///
     /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .no_integer_leading_zeros(true)
+    ///     .build_strict();
+    /// assert_eq!(parse::<i64>(b"01"), Ok(1));
+    /// assert_eq!(parse::<i64>(b"+01"), Ok(1));
+    /// assert_eq!(parse::<i64>(b"0"), Ok(0));
+    /// assert_eq!(parse::<i64>(b"10"), Ok(10));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"01", &PI_OPTS), Err(Error::InvalidLeadingZeros(0)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+01", &PI_OPTS), Err(Error::InvalidLeadingZeros(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0", &PI_OPTS), Ok(0));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"10", &PI_OPTS), Ok(10));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn no_integer_leading_zeros(mut self, flag: bool) -> Self {
@@ -1910,6 +2289,25 @@ impl NumberFormatBuilder {
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .no_float_leading_zeros(true)
+    ///     .build_strict();
+    /// assert_eq!(parse::<f64>(b"01"), Ok(1.0));
+    /// assert_eq!(parse::<f64>(b"+01"), Ok(1.0));
+    /// assert_eq!(parse::<f64>(b"0"), Ok(0.0));
+    /// assert_eq!(parse::<f64>(b"10"), Ok(10.0));
+    /// assert_eq!(parse::<f64>(b"0.1"), Ok(0.1));
+    ///
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"01", &PF_OPTS), Err(Error::InvalidLeadingZeros(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+01", &PF_OPTS), Err(Error::InvalidLeadingZeros(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0", &PF_OPTS), Ok(0.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"10", &PF_OPTS), Ok(10.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0.1", &PF_OPTS), Ok(0.1));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn no_float_leading_zeros(mut self, flag: bool) -> Self {
@@ -1934,6 +2332,25 @@ impl NumberFormatBuilder {
     ///
     /// - Parse Float
     /// - Write Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .required_exponent_notation(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Err(Error::MissingExponent(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0", &PF_OPTS), Err(Error::MissingExponent(3)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e3", &PF_OPTS), Ok(1.0e3));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e3", &PF_OPTS), Ok(1.1e3));
+    ///
+    /// const SIZE: usize = WF_OPTS.buffer_size_const::<f64, FORMAT>();
+    /// let mut buffer = [0u8; SIZE];
+    /// assert_eq!(write_with_options::<f64, FORMAT>(1.0, &mut buffer, &WF_OPTS), b"1.0e0");
+    /// assert_eq!(write_with_options::<f64, FORMAT>(1.1, &mut buffer, &WF_OPTS), b"1.1e0");
+    /// assert_eq!(write_with_options::<f64, FORMAT>(1.0e3, &mut buffer, &WF_OPTS), b"1.0e3");
+    /// assert_eq!(write_with_options::<f64, FORMAT>(1.1e3, &mut buffer, &WF_OPTS), b"1.1e3");
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn required_exponent_notation(mut self, flag: bool) -> Self {
@@ -1946,9 +2363,28 @@ impl NumberFormatBuilder {
     /// If set to [`true`], then the exponent character `e` would be considered
     /// the different from `E`. Defaults to [`false`].
     ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1.1` | ✔️ |
+    /// | `1.1e3` | ✔️ |
+    /// | `1.1E3` | ❌ |
+    ///
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .case_sensitive_exponent(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e3", &PF_OPTS), Ok(1.0e3));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0E3", &PF_OPTS), Err(Error::InvalidDigit(3)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn case_sensitive_exponent(mut self, flag: bool) -> Self {
@@ -1961,10 +2397,39 @@ impl NumberFormatBuilder {
     /// If set to [`true`], then the base prefix `x` would be considered the
     /// different from `X`. Defaults to [`false`].
     ///
+    /// # Examples
+    ///
+    /// Using a base prefix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `0x1` | ✔️ |
+    /// | `0X1` | ❌ |
+    /// | `1` | ✔️ |
+    /// | `1x` | ❌ |
+    ///
     /// # Used For
     ///
     /// - Parse Float
     /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_prefix(num::NonZeroU8::new(b'x'))
+    ///     .case_sensitive_base_prefix(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0X1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1x", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0X1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1x", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(all(feature = "power-of-two", feature = "format"))]
     pub const fn case_sensitive_base_prefix(mut self, flag: bool) -> Self {
@@ -1977,10 +2442,39 @@ impl NumberFormatBuilder {
     /// If set to [`true`], then the base suffix `x` would be considered the
     /// different from `X`. Defaults to [`false`].
     ///
+    /// # Examples
+    ///
+    /// Using a base prefix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `1x` | ✔️ |
+    /// | `1X` | ❌ |
+    /// | `1d` | ❌ |
+    ///
     /// # Used For
     ///
     /// - Parse Float
     /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_suffix(num::NonZeroU8::new(b'x'))
+    ///     .case_sensitive_base_suffix(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x1", &PF_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1x", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1X", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1x", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1X", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(all(feature = "power-of-two", feature = "format"))]
     pub const fn case_sensitive_base_suffix(mut self, flag: bool) -> Self {
@@ -2010,6 +2504,26 @@ impl NumberFormatBuilder {
     ///
     /// - Parse Float
     /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .integer_internal_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_1", &PF_OPTS), Ok(11.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_1", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_1", &PI_OPTS), Ok(11));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn integer_internal_digit_separator(mut self, flag: bool) -> Self {
@@ -2038,6 +2552,20 @@ impl NumberFormatBuilder {
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .fraction_internal_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Ok(1.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1._", &PF_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1_1", &PF_OPTS), Ok(1.11));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1_", &PF_OPTS), Err(Error::InvalidDigit(3)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1._1", &PF_OPTS), Err(Error::InvalidDigit(2)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn fraction_internal_digit_separator(mut self, flag: bool) -> Self {
@@ -2066,6 +2594,20 @@ impl NumberFormatBuilder {
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .exponent_internal_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1", &PF_OPTS), Ok(11.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e_", &PF_OPTS), Err(Error::EmptyExponent(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1_1", &PF_OPTS), Ok(1.1e11));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1_", &PF_OPTS), Err(Error::InvalidDigit(5)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e_1", &PF_OPTS), Err(Error::EmptyExponent(4)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn exponent_internal_digit_separator(mut self, flag: bool) -> Self {
@@ -2114,6 +2656,26 @@ impl NumberFormatBuilder {
     ///
     /// - Parse Float
     /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .integer_leading_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_", &PF_OPTS), Err(Error::Empty(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_1", &PF_OPTS), Ok(1.0));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_", &PI_OPTS), Err(Error::Empty(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_1", &PI_OPTS), Ok(1));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn integer_leading_digit_separator(mut self, flag: bool) -> Self {
@@ -2133,7 +2695,7 @@ impl NumberFormatBuilder {
     /// | Input | Valid? |
     /// |:-:|:-:|
     /// | `1.1` | ✔️ |
-    /// | `1._` | ❌ |
+    /// | `1._` | ✔️ |
     /// | `1.1_1` | ❌ |
     /// | `1.1_` | ❌ |
     /// | `1._1` | ✔️ |
@@ -2141,6 +2703,20 @@ impl NumberFormatBuilder {
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .fraction_leading_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Ok(1.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1._", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1_1", &PF_OPTS), Err(Error::InvalidDigit(3)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1_", &PF_OPTS), Err(Error::InvalidDigit(3)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1._1", &PF_OPTS), Ok(1.1));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn fraction_leading_digit_separator(mut self, flag: bool) -> Self {
@@ -2168,6 +2744,20 @@ impl NumberFormatBuilder {
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .exponent_leading_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1", &PF_OPTS), Ok(11.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e_", &PF_OPTS), Err(Error::EmptyExponent(5)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1_1", &PF_OPTS), Err(Error::InvalidDigit(5)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1_", &PF_OPTS), Err(Error::InvalidDigit(5)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e_1", &PF_OPTS), Ok(11.0));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn exponent_leading_digit_separator(mut self, flag: bool) -> Self {
@@ -2216,6 +2806,26 @@ impl NumberFormatBuilder {
     ///
     /// - Parse Float
     /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .integer_trailing_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_", &PF_OPTS), Err(Error::Empty(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_1", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_", &PI_OPTS), Err(Error::Empty(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn integer_trailing_digit_separator(mut self, flag: bool) -> Self {
@@ -2234,7 +2844,7 @@ impl NumberFormatBuilder {
     /// | Input | Valid? |
     /// |:-:|:-:|
     /// | `1.1` | ✔️ |
-    /// | `1._` | ❌ |
+    /// | `1._` | ✔️ |
     /// | `1.1_1` | ❌ |
     /// | `1.1_` | ✔️ |
     /// | `1._1` | ❌ |
@@ -2242,6 +2852,20 @@ impl NumberFormatBuilder {
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .fraction_trailing_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Ok(1.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1._", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1_1", &PF_OPTS), Err(Error::InvalidDigit(3)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1._1", &PF_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1_", &PF_OPTS), Ok(1.1));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn fraction_trailing_digit_separator(mut self, flag: bool) -> Self {
@@ -2269,6 +2893,20 @@ impl NumberFormatBuilder {
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .exponent_trailing_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1", &PF_OPTS), Ok(11.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e_", &PF_OPTS), Err(Error::EmptyExponent(5)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1_1", &PF_OPTS), Err(Error::InvalidDigit(5)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1_", &PF_OPTS), Ok(11.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e_1", &PF_OPTS), Err(Error::EmptyExponent(4)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn exponent_trailing_digit_separator(mut self, flag: bool) -> Self {
@@ -2302,10 +2940,47 @@ impl NumberFormatBuilder {
     /// digit separators (leading, trailing, internal) are allowed in the
     /// integer. Defaults to [`false`].
     ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_` with only internal integer digit
+    /// separators being valid.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `_` | ❌ |
+    /// | `1_1` | ✔️ |
+    /// | `1__1` | ✔️ |
+    /// | `1_` | ❌ |
+    /// | `_1` | ❌ |
+    ///
     /// # Used For
     ///
     /// - Parse Float
     /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .integer_internal_digit_separator(true)
+    ///     .integer_consecutive_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_1", &PF_OPTS), Ok(11.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1__1", &PF_OPTS), Ok(11.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_1", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_1", &PI_OPTS), Ok(11));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1__1", &PI_OPTS), Ok(11));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn integer_consecutive_digit_separator(mut self, flag: bool) -> Self {
@@ -2319,9 +2994,39 @@ impl NumberFormatBuilder {
     /// digit separators (leading, trailing, internal) are allowed in the
     /// fraction. Defaults to [`false`].
     ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_` with only internal fraction digit
+    /// separators being valid.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1.1` | ✔️ |
+    /// | `1._` | ❌ |
+    /// | `1.1_1` | ✔️ |
+    /// | `1.1__1` | ✔️ |
+    /// | `1.1_` | ❌ |
+    /// | `1._1` | ❌ |
+    ///
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .fraction_internal_digit_separator(true)
+    ///     .fraction_consecutive_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Ok(1.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1._", &PF_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1_1", &PF_OPTS), Ok(1.11));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1__1", &PF_OPTS), Ok(1.11));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1_", &PF_OPTS), Err(Error::InvalidDigit(3)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1._1", &PF_OPTS), Err(Error::InvalidDigit(2)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn fraction_consecutive_digit_separator(mut self, flag: bool) -> Self {
@@ -2335,9 +3040,39 @@ impl NumberFormatBuilder {
     /// digit separators (leading, trailing, internal) are allowed in the
     /// exponent. Defaults to [`false`].
     ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_` with only internal exponent digit
+    /// separators being valid.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1.1e1` | ✔️ |
+    /// | `1.1e_` | ❌ |
+    /// | `1.1e1_1` | ✔️ |
+    /// | `1.1e1__1` | ✔️ |
+    /// | `1.1e1_` | ❌ |
+    /// | `1.1e_1` | ❌ |
+    ///
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .exponent_internal_digit_separator(true)
+    ///     .exponent_consecutive_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1", &PF_OPTS), Ok(11.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e_", &PF_OPTS), Err(Error::EmptyExponent(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1_1", &PF_OPTS), Ok(1.1e11));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1__1", &PF_OPTS), Ok(1.1e11));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1_", &PF_OPTS), Err(Error::InvalidDigit(5)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e_1", &PF_OPTS), Err(Error::EmptyExponent(4)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn exponent_consecutive_digit_separator(mut self, flag: bool) -> Self {
@@ -2369,9 +3104,31 @@ impl NumberFormatBuilder {
     /// separators for any special floats: for example, `N__a_N_` is considered
     /// the same as `NaN`. Defaults to [`false`].
     ///
+    /// Using a digit separator of `_`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `nan` | ✔️ |
+    /// | `na_n` | ✔️ |
+    /// | `na_n_` | ✔️ |
+    /// | `na_nx` | ❌ |
+    ///
     /// # Used For
     ///
     /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FMT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .special_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FMT>(b"nan", &PF_OPTS).map(|x| x.is_nan()), Ok(true));
+    /// assert_eq!(parse_with_options::<f64, FMT>(b"na_n", &PF_OPTS).map(|x| x.is_nan()), Ok(true));
+    /// assert_eq!(parse_with_options::<f64, FMT>(b"na_n_", &PF_OPTS).map(|x| x.is_nan()), Ok(true));
+    /// assert_eq!(parse_with_options::<f64, FMT>(b"na_nx", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// ```
+    /// -->
     #[inline(always)]
     #[cfg(feature = "format")]
     pub const fn special_digit_separator(mut self, flag: bool) -> Self {

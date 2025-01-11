@@ -1,7 +1,7 @@
 name: Docs
 
 on:
-  [workflow_dispatch]
+  [workflow_dispatch, pull_request]
 
 jobs:
   docs:
@@ -24,4 +24,6 @@ jobs:
       - run: RUSTDOCFLAGS="-D warnings --cfg docsrs" cargo doc --no-default-features --all-features
       # validate all the generated docs.rs docs
       - run: RUSTDOCFLAGS="-D warnings --cfg docsrs" cargo doc --features=format,radix
-      - run: python scripts/docs.py
+      # NOTE: We currently skip the links since the validation is iffy
+      # and it takes a long time.
+      - run: SKIP_LINKS=1 python scripts/docs.py
