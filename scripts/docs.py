@@ -7,15 +7,17 @@
     This also validates the TOML files and any links inside the docs.
 '''
 
+import typing
+import asyncio
 import html.parser
 import os
 import re
 import sys
 import shutil
-import time
 import urllib.error
 import urllib.request
 import subprocess
+from collections.abc import Generator, Sequence
 from pathlib import Path
 
 # This is a hack for older Python versions
@@ -29,17 +31,50 @@ home_dir = Path(__file__).absolute().parent.parent
 target_dir = home_dir / 'target' / 'doc'
 
 
+def chunks(
+    seq: Sequence[typing.Any],
+    length: int = 5,
+) -> Generator[list[typing.Any], None, None]:
+    '''Break a sequence into chunks of length N.'''
+    if not isinstance(seq, list):
+        seq = list(seq)
+    for i in range(0, len(seq), length):
+        yield seq[i:i + length]
+
+
+async def validate_link(link: str, file: str) -> None:
+    '''Validate a link, asynchronously.'''
+
+    try:
+        request = urllib.request.Request(link)
+        # spoof this to avoid getting blocked
+        request.add_header('User-Agent', 'Mozilla/5.0 (X11; U; Linux i686)')
+        # NOTE: `crates.io` requires an `Accept: text/html`
+        #   https://github.com/rust-lang/crates.io/issues/788
+        if link.startswith(('https://crates.io', 'https://www.crates.io')):
+            request.add_header('Accept', 'text/html')
+        response = urllib.request.urlopen(request)
+    except urllib.error.HTTPError as error:
+        if error.code in (401, 403):
+            return
+        msg = f'Got an invalid href "{link}" with code "{error.code}" for file "{file}".'
+        raise ValueError(msg)
+
+    code = response.code
+    if response.code != 200:
+        raise ValueError(f'Got an invalid href "{link}" with code "{code}" for file "{file}".')
+
+
 class LinkParser(html.parser.HTMLParser):
     '''Custom parser that looks for links within HTML.'''
 
-    links: set[str]
+    links: dict[str, str]
     processed: int
     file: str
 
     def __init__(self) -> None:
         super().__init__()
-        self.links = set()
-        self.processed = 0
+        self.links = {}
         self.file = ''
 
     def feed(self, file: str, data: str) -> None:
@@ -70,30 +105,9 @@ class LinkParser(html.parser.HTMLParser):
             return
 
         # try to avoid getting deny-listed or rate limited
-        self.processed += 1
-        if href not in self.links:
-            try:
-                request = urllib.request.Request(href)
-                # spoof this to avoid getting blocked
-                request.add_header('User-Agent', 'Mozilla/5.0 (X11; U; Linux i686)')
-                # NOTE: `crates.io` requires an `Accept: text/html`
-                #   https://github.com/rust-lang/crates.io/issues/788
-                if href.startswith(('https://crates.io', 'https://www.crates.io')):
-                    request.add_header('Accept', 'text/html')
-                response = urllib.request.urlopen(request)
-            except urllib.error.HTTPError as error:
-                if error.code in (401, 403):
-                    return
-                msg = f'Got an invalid href "{href}" with code "{error.code}" for file "{self.file}".'
-                raise ValueError(msg)
-            time.sleep(0.2)
-            code = response.code
-            if response.code != 200:
-                raise ValueError(f'Got an invalid href "{href}" with code "{code}" for file "{self.file}".')
-            self.links.add(href)
-
-        if self.processed > 1 and self.processed % 200 == 0:
-            print(f'Processing link {self.processed}...')
+        if href not in self.links and len(self.links) % 50 == 0:
+            print(f'Parsing link {len(self.links)}...')
+        self.links.setdefault(href, self.file)
 
     def handle_endtag(self, tag: str) -> None:
         '''Handle the closing of a tag (ignored).'''
@@ -102,6 +116,17 @@ class LinkParser(html.parser.HTMLParser):
     def handle_data(self, data: str):
         '''Handle any raw data (we ignore this).'''
         _ = data
+
+    async def validate(self):
+        '''Validate all links within the document.'''
+
+        # NOTE: This is actually still synchronous, so we just use a
+        # chunk of 0 unless we want to move to an external library.
+        length = 1
+        for index, chunk in enumerate(chunks(self.links, length=length)):
+            await asyncio.gather(*[validate_link(i, self.links[i]) for i in chunk])
+            if index > 1 and (length * index) % 50 == 0:
+                print(f'Processing link {index * length}...')
 
 
 def validate_toml() -> None:
@@ -121,7 +146,7 @@ def validate_toml() -> None:
         _ = tomllib.loads(data)
 
 
-def validate_links() -> None:
+async def validate_links() -> None:
     '''Validate all the links inside our build documentation.'''
 
     parser = LinkParser()
@@ -134,6 +159,7 @@ def validate_links() -> None:
         parser.feed(path.name, data)
 
     # deduplicate and validate all our links
+    await parser.validate()
     print(f'Processed and validated {len(parser.links)} links...')
 
 
@@ -207,16 +233,16 @@ def validate_format() -> int:
     return subprocess.call(f'{cargo} test', cwd=proj_dir, shell=True)
 
 
-def main() -> None:
+async def main() -> None:
     '''Run our validation code.'''
 
     if 'SKIP_TOML' not in os.environ:
         validate_toml()
     if 'SKIP_LINKS' not in os.environ:
-        validate_links()
+        await validate_links()
     if 'SKIP_FORMAT' not in os.environ:
         sys.exit(validate_format())
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
