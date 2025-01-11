@@ -238,6 +238,7 @@ macro_rules! to_native {
 }
 
 /// Parse a float from bytes using a complete parser.
+#[inline(always)]
 #[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
 pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
@@ -280,6 +281,7 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
 }
 
 /// Parse a float using only the fast path as a complete parser.
+#[inline(always)]
 #[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
 pub fn fast_path_complete<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
@@ -304,6 +306,7 @@ pub fn fast_path_complete<F: LemireFloat, const FORMAT: u128>(
 }
 
 /// Parse a float from bytes using a partial parser.
+#[inline(always)]
 #[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
 pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
@@ -352,6 +355,7 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
 }
 
 /// Parse a float using only the fast path as a partial parser.
+#[inline(always)]
 #[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
 pub fn fast_path_partial<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
@@ -825,6 +829,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     ))
 }
 
+#[inline(always)]
 pub fn parse_partial_number<'a, const FORMAT: u128>(
     byte: Bytes<'a, FORMAT>,
     is_negative: bool,

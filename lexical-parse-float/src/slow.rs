@@ -45,7 +45,6 @@ use crate::shared;
 /// to `16777216.0`. These near-halfway conversions therefore may require
 /// a large number of digits to unambiguously determine how to round.
 #[must_use]
-#[inline(always)]
 #[allow(clippy::unwrap_used)] // reason = "none is a developer error"
 pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
     num: Number,
@@ -119,6 +118,7 @@ pub fn digit_comp<F: RawFloat, const FORMAT: u128>(
 /// Generate the significant digits with a positive exponent relative to
 /// mantissa.
 #[must_use]
+#[inline(always)]
 #[allow(clippy::unwrap_used)] // reason = "none is a developer error"
 #[allow(clippy::cast_possible_wrap)] // reason = "can't wrap in practice: max is ~1000 limbs"
 #[allow(clippy::missing_inline_in_public_items)] // reason = "only public for testing"
@@ -174,6 +174,8 @@ pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
 ///
 /// This allows us to compare both floats using integers efficiently
 /// without any loss of precision.
+#[must_use]
+#[inline(always)]
 #[allow(clippy::match_bool)] // reason = "simplifies documentation"
 #[allow(clippy::unwrap_used)] // reason = "unwrap panics if a developer error"
 #[allow(clippy::comparison_chain)] // reason = "logically different conditions for algorithm"
