@@ -44,7 +44,6 @@ use crate::shared;
 /// any value before or equal to `16777217.0` must be rounded down
 /// to `16777216.0`. These near-halfway conversions therefore may require
 /// a large number of digits to unambiguously determine how to round.
-#[cold]
 #[must_use]
 #[allow(clippy::unwrap_used)] // reason = "none is a developer error"
 pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
@@ -98,6 +97,7 @@ pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
 /// digits to the theoretical digits for `b` and determine if we
 /// need to round-up.
 #[must_use]
+#[inline(always)]
 #[allow(clippy::cast_possible_wrap)] // reason = "the value range is [-324, 308]"
 pub fn digit_comp<F: RawFloat, const FORMAT: u128>(
     num: Number,
@@ -174,6 +174,7 @@ pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
 ///
 /// This allows us to compare both floats using integers efficiently
 /// without any loss of precision.
+#[must_use]
 #[inline(always)]
 #[allow(clippy::match_bool)] // reason = "simplifies documentation"
 #[allow(clippy::unwrap_used)] // reason = "unwrap panics if a developer error"

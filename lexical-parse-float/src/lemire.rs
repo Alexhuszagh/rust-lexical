@@ -51,6 +51,7 @@ pub fn lemire<F: LemireFloat>(num: &Number, lossy: bool) -> ExtendedFloat80 {
 /// at a Gigabyte per Second" in section 5, "Fast Algorithm", and
 /// section 6, "Exact Numbers And Ties", available online:
 /// <https://arxiv.org/abs/2101.11408.pdf>.
+#[inline]
 #[must_use]
 #[allow(clippy::missing_inline_in_public_items)] // reason="public for testing only"
 pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> ExtendedFloat80 {
@@ -201,6 +202,7 @@ const fn full_multiplication(a: u64, b: u64) -> (u64, u64) {
 // 64-bit words approximating the result, with the "high" part corresponding to
 // the most significant bits and the low part corresponding to the least
 // significant bits.
+#[inline]
 fn compute_product_approx(q: i64, w: u64, precision: usize) -> (u64, u64) {
     debug_assert!(q >= SMALLEST_POWER_OF_FIVE as i64, "must be within our required pow5 range");
     debug_assert!(q <= LARGEST_POWER_OF_FIVE as i64, "must be within our required pow5 range");

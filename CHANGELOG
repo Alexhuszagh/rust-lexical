@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Bug where the `radix` feature wasn't enabling `power-of-two` in `lexical-core` or `lexical`.
+- Fixed performance issues due to a lack of inlining on the Eisel-Lemire algorithm (#210).
 
 ## [1.0.5] 2024-12-08
 
