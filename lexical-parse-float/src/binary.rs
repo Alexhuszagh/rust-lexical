@@ -149,7 +149,6 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
 ///
 /// This avoids the need for arbitrary-precision arithmetic, since the result
 /// will always be a near-halfway representation where rounded-down it's even.
-#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn slow_binary<F: RawFloat, const FORMAT: u128>(num: Number) -> ExtendedFloat80 {
     let format = NumberFormat::<{ FORMAT }> {};
     let radix = format.radix();
