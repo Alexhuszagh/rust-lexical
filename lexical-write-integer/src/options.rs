@@ -132,6 +132,13 @@ impl Options {
         Self {}
     }
 
+    /// Create the default options for a given radix.
+    #[inline(always)]
+    #[cfg(feature = "power-of-two")]
+    pub const fn from_radix(_: u8) -> Self {
+        Self::new()
+    }
+
     /// Check if the options state is valid.
     #[inline(always)]
     pub const fn is_valid(&self) -> bool {
