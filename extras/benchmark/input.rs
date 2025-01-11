@@ -491,6 +491,18 @@ macro_rules! from_lexical_generator {
     }};
 }
 
+macro_rules! from_fast_float2_generator {
+    ($group:ident, $name:expr, $iter:expr, $t:ty) => {{
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $iter.for_each(|x| {
+                    black_box(fast_float2::parse::<$t, _>(x.as_bytes()).unwrap());
+                })
+            })
+        });
+    }};
+}
+
 macro_rules! str_parse_generator {
     ($group:ident, $name:expr, $iter:expr, $t:ty) => {{
         $group.bench_function($name, |bench| {
@@ -506,6 +518,7 @@ macro_rules! str_parse_generator {
 macro_rules! parse_float_generator {
     ($group:ident, $type:literal, $iter:expr, $t:ty) => {{
         from_lexical_generator!($group, concat!("parse_", $type, "_lexical"), $iter, $t);
+        from_fast_float2_generator!($group, concat!("parse_", $type, "_fast_float2"), $iter, $t);
         str_parse_generator!($group, concat!("parse_", $type, "_core"), $iter, $t);
     }};
 }
