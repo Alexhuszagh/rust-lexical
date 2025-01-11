@@ -8,9 +8,14 @@
 '''
 
 import html.parser
+import os
+import re
+import sys
+import shutil
 import time
 import urllib.error
 import urllib.request
+import subprocess
 from pathlib import Path
 
 # This is a hack for older Python versions
@@ -99,10 +104,9 @@ class LinkParser(html.parser.HTMLParser):
         _ = data
 
 
-def main() -> None:
-    '''Run our validation code.'''
+def validate_toml() -> None:
+    '''Validate our TOML files.'''
 
-    # get all our toml files
     for path in home_dir.rglob('**/*.toml'):
         # Bug fixes for Docker on Windows. We don't want dups anyway.
         if path.is_symlink():
@@ -116,7 +120,10 @@ def main() -> None:
             data = file.read()
         _ = tomllib.loads(data)
 
-    # get all our links
+
+def validate_links() -> None:
+    '''Validate all the links inside our build documentation.'''
+
     parser = LinkParser()
     for path in target_dir.rglob('**/*.html'):
         # Bug fixes for Docker on Windows. We don't want dups anyway.
@@ -128,6 +135,87 @@ def main() -> None:
 
     # deduplicate and validate all our links
     print(f'Processed and validated {len(parser.links)} links...')
+
+
+cargo_toml = '''
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2021"
+name = "lexical-format-doctests"
+publish = false
+
+[workspace]
+members = []
+
+[dependencies.lexical-core]
+path = "../../lexical-core"
+features = ["format", "radix"]
+'''
+
+test_prefix = '''
+#![allow(unused, dead_code)]
+
+use core::num;
+
+use lexical_core::*;
+
+const PF_OPTS: ParseFloatOptions = ParseFloatOptions::new();
+const PI_OPTS: ParseIntegerOptions = ParseIntegerOptions::new();
+const WF_OPTS: WriteFloatOptions = WriteFloatOptions::new();
+const WI_OPTS: WriteIntegerOptions = WriteIntegerOptions::new();
+'''
+
+test_rs = '''
+#[test]
+pub fn test{index}() {{
+    {test}
+}}
+'''
+
+
+def validate_format() -> int:
+    '''Validate all the format features inside our docs.'''
+
+    # read all our tests
+    with (home_dir / 'lexical-util' / 'src' / 'format_builder.rs').open(encoding='utf-8') as file:
+        data = file.read()
+    tests = [i.group(1) for i in re.finditer(r'<!--\s*TEST\s*(.*?)-->', data, re.DOTALL)]
+    tests = [re.sub(r'(?:\A|[\r\n]+)\s*///?', '\n', i) for i in tests]
+    tests = [i.strip().removeprefix('```rust').removesuffix('```') for i in tests]
+
+    # create a fake project inside target
+    proj_dir = home_dir / 'target' / 'format-doctest'
+    src_dir = proj_dir / 'src'
+    tests_dir = proj_dir / 'tests'
+    shutil.rmtree(proj_dir, ignore_errors=True)
+    proj_dir.mkdir(parents=True)
+    src_dir.mkdir()
+    tests_dir.mkdir()
+
+    # create basic project
+    with (proj_dir / 'Cargo.toml').open(encoding='utf-8', mode='w') as file:
+        print(cargo_toml, file=file)
+    with (src_dir / 'lib.rs').open(encoding='utf-8', mode='w'):
+        pass
+    with (tests_dir / 'test.rs').open(encoding='utf-8', mode='w') as file:
+        print(test_prefix, file=file)
+        for index, test in enumerate(tests):
+            print(test_rs.format(index=index, test=test), file=file)
+
+    # build our tests
+    cargo = os.environ.get('CARGO', 'cargo')
+    return subprocess.call(f'{cargo} test', cwd=proj_dir, shell=True)
+
+
+def main() -> None:
+    '''Run our validation code.'''
+
+    if 'SKIP_TOML' not in os.environ:
+        validate_toml()
+    if 'SKIP_LINKS' not in os.environ:
+        validate_links()
+    if 'SKIP_FORMAT' not in os.environ:
+        sys.exit(validate_format())
 
 
 if __name__ == '__main__':
