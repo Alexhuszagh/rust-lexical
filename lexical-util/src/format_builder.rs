@@ -306,6 +306,10 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`required_integer_digits_with_exponent`]: Self::required_integer_digits_with_exponent\n
 [`required_fraction_digits_with_exponent`]: Self::required_fraction_digits_with_exponent\n
 [`case_sensitive_exponent`]: Self::case_sensitive_exponent\n
+[`supports_parsing_integers`]: Self::supports_parsing_integers\n
+[`supports_parsing_floats`]: Self::supports_parsing_floats\n
+[`supports_writing_integers`]: Self::supports_writing_integers\n
+[`supports_writing_floats`]: Self::supports_writing_floats\n
 [`integer_internal_digit_separator`]: Self::integer_internal_digit_separator\n
 [`fraction_internal_digit_separator`]: Self::fraction_internal_digit_separator\n
 [`exponent_internal_digit_separator`]: Self::exponent_internal_digit_separator\n
@@ -339,8 +343,12 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`no_integer_leading_zeros`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L741\n
 [`no_float_leading_zeros`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L749\n
 [`required_exponent_notation`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L757\n
-[`required_integer_digits_with_exponent`]: TODO\n
-[`required_fraction_digits_with_exponent`]: TODO\n
+[`required_integer_digits_with_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/0cad692/lexical-util/src/format_builder.rs#L1129\n
+[`required_fraction_digits_with_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/0cad692/lexical-util/src/format_builder.rs#L1149\n
+[`supports_parsing_integers`]: TODO\n
+[`supports_parsing_floats`]: TODO\n
+[`supports_writing_integers`]: TODO\n
+[`supports_writing_floats`]: TODO\n
 [`case_sensitive_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L765\n
 [`integer_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L793\n
 [`fraction_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L805\n
@@ -396,6 +404,10 @@ pub struct NumberFormatBuilder {
     no_integer_leading_zeros: bool,
     no_float_leading_zeros: bool,
     required_exponent_notation: bool,
+    supports_parsing_integers: bool,
+    supports_parsing_floats: bool,
+    supports_writing_integers: bool,
+    supports_writing_floats: bool,
     case_sensitive_exponent: bool,
     case_sensitive_base_prefix: bool,
     case_sensitive_base_suffix: bool,
@@ -454,6 +466,12 @@ impl NumberFormatBuilder {
     ///   `false`
     /// - [`required_integer_digits_with_exponent`][Self::required_integer_digits_with_exponent] -`false`
     /// - [`required_fraction_digits_with_exponent`][Self::required_fraction_digits_with_exponent] -`false`
+    /// - [`supports_parsing_integers`][Self::supports_parsing_integers] -
+    ///   `true`
+    /// - [`supports_parsing_floats`][Self::supports_parsing_floats] - `true`
+    /// - [`supports_writing_integers`][Self::supports_writing_integers] -
+    ///   `true`
+    /// - [`supports_writing_floats`][Self::supports_writing_floats] - `true`
     /// - [`case_sensitive_exponent`][Self::get_case_sensitive_exponent] -
     ///   `false`
     /// - [`case_sensitive_base_prefix`][Self::get_case_sensitive_base_prefix] -
@@ -503,6 +521,10 @@ impl NumberFormatBuilder {
             case_sensitive_base_suffix: false,
             required_integer_digits_with_exponent: false,
             required_fraction_digits_with_exponent: false,
+            supports_parsing_integers: true,
+            supports_parsing_floats: true,
+            supports_writing_integers: true,
+            supports_writing_floats: true,
             integer_internal_digit_separator: false,
             fraction_internal_digit_separator: false,
             exponent_internal_digit_separator: false,
@@ -1148,6 +1170,46 @@ impl NumberFormatBuilder {
     #[inline(always)]
     pub const fn get_required_fraction_digits_with_exponent(&self) -> bool {
         self.required_fraction_digits_with_exponent
+    }
+
+    /// Get if the format supports parsing integers.
+    ///
+    /// # Used For
+    ///
+    /// - Parse Integer
+    #[inline(always)]
+    pub fn get_supports_parsing_integers(&self) -> bool {
+        self.supports_parsing_integers
+    }
+
+    /// Get if the format supports parsing floats.
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub fn get_supports_parsing_floats(&self) -> bool {
+        self.supports_parsing_floats
+    }
+
+    /// Get if the format supports writing integers.
+    ///
+    /// # Used For
+    ///
+    /// - Write Integer
+    #[inline(always)]
+    pub fn get_supports_writing_integers(&self) -> bool {
+        self.supports_writing_integers
+    }
+
+    /// Get if the format supports writing floats.
+    ///
+    /// # Used For
+    ///
+    /// - Write Float
+    #[inline(always)]
+    pub fn get_supports_writing_floats(&self) -> bool {
+        self.supports_writing_floats
     }
 
     /// Get if digit separators are allowed between integer digits.
@@ -2616,6 +2678,54 @@ impl NumberFormatBuilder {
         self
     }
 
+    /// Set if the format supports parsing integers.
+    ///
+    /// # Used For
+    ///
+    /// - Parse Integer
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn supports_parsing_integers(mut self, flag: bool) -> Self {
+        self.supports_parsing_integers = flag;
+        self
+    }
+
+    /// Set if the format supports parsing floats.
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn supports_parsing_floats(mut self, flag: bool) -> Self {
+        self.supports_parsing_floats = flag;
+        self
+    }
+
+    /// Set if the format supports writing integers.
+    ///
+    /// # Used For
+    ///
+    /// - Write Integer
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn supports_writing_integers(mut self, flag: bool) -> Self {
+        self.supports_writing_integers = flag;
+        self
+    }
+
+    /// Set if the format supports writing floats.
+    ///
+    /// # Used For
+    ///
+    /// - Write Float
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn supports_writing_floats(mut self, flag: bool) -> Self {
+        self.supports_writing_floats = flag;
+        self
+    }
+
     /// Set if digit separators are allowed between integer digits.
     ///
     /// This will not consider an input of only the digit separator
@@ -3382,6 +3492,10 @@ impl NumberFormatBuilder {
             self.case_sensitive_base_suffix, CASE_SENSITIVE_BASE_SUFFIX ;
             self.required_integer_digits_with_exponent, REQUIRED_INTEGER_DIGITS_WITH_EXPONENT ;
             self.required_fraction_digits_with_exponent, REQUIRED_FRACTION_DIGITS_WITH_EXPONENT ;
+            self.supports_parsing_integers, SUPPORTS_PARSING_INTEGERS ;
+            self.supports_parsing_floats, SUPPORTS_PARSING_FLOATS ;
+            self.supports_writing_integers, SUPPORTS_WRITING_INTEGERS ;
+            self.supports_writing_floats, SUPPORTS_WRITING_FLOATS ;
             self.integer_internal_digit_separator, INTEGER_INTERNAL_DIGIT_SEPARATOR ;
             self.fraction_internal_digit_separator, FRACTION_INTERNAL_DIGIT_SEPARATOR ;
             self.exponent_internal_digit_separator, EXPONENT_INTERNAL_DIGIT_SEPARATOR ;
@@ -3483,6 +3597,10 @@ impl NumberFormatBuilder {
                 format,
                 REQUIRED_FRACTION_DIGITS_WITH_EXPONENT
             ),
+            supports_parsing_integers: has_flag!(format, SUPPORTS_PARSING_INTEGERS),
+            supports_parsing_floats: has_flag!(format, SUPPORTS_PARSING_FLOATS),
+            supports_writing_integers: has_flag!(format, SUPPORTS_WRITING_INTEGERS),
+            supports_writing_floats: has_flag!(format, SUPPORTS_WRITING_FLOATS),
             integer_internal_digit_separator: has_flag!(format, INTEGER_INTERNAL_DIGIT_SEPARATOR),
             fraction_internal_digit_separator: has_flag!(format, FRACTION_INTERNAL_DIGIT_SEPARATOR),
             exponent_internal_digit_separator: has_flag!(format, EXPONENT_INTERNAL_DIGIT_SEPARATOR),

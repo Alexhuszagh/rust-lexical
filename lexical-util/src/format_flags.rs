@@ -25,7 +25,7 @@
 //!
 //! 16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-//! |e/P|e/S|I/E|F/E|                                               |
+//! |e/P|e/S|I/E|F/E|p/I|p/F|w/I|w/F|                               |
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 //!
 //! 32  33  34  35  36  37  38  39  40  41 42  43  44  45  46  47   48
@@ -60,6 +60,10 @@
 //!         e/S = Case-sensitive base suffix.
 //!         I/E = Require integer digits with exponent.
 //!         F/E = Require fraction digits with exponent.
+//!         p/I = The format supports parsing integers.
+//!         p/F = The format supports parsing floats.
+//!         w/I = The format supports writing integers.
+//!         w/F = The format supports writing floats.
 //!
 //!     Digit Separator Flags:
 //!         I/I = Integer internal digit separator.
@@ -345,6 +349,18 @@ pub const REQUIRED_INTEGER_DIGITS_WITH_EXPONENT: u128 = 1 << 18;
 /// notation, if the decimal point is present.
 pub const REQUIRED_FRACTION_DIGITS_WITH_EXPONENT: u128 = 1 << 19;
 
+/// If the format supports parsing integers.
+pub const SUPPORTS_PARSING_INTEGERS: u128 = 1 << 20;
+
+/// If the format supports parsing floats.
+pub const SUPPORTS_PARSING_FLOATS: u128 = 1 << 21;
+
+/// If the format supports parsing integers.
+pub const SUPPORTS_WRITING_INTEGERS: u128 = 1 << 22;
+
+/// If the format supports parsing floats.
+pub const SUPPORTS_WRITING_FLOATS: u128 = 1 << 23;
+
 // Non-digit separator flags.
 const _: () = assert!(REQUIRED_INTEGER_DIGITS == 1);
 check_subsequent_flags!(REQUIRED_INTEGER_DIGITS, REQUIRED_FRACTION_DIGITS);
@@ -367,6 +383,10 @@ check_subsequent_flags!(CASE_SENSITIVE_EXPONENT, CASE_SENSITIVE_BASE_PREFIX);
 check_subsequent_flags!(CASE_SENSITIVE_BASE_PREFIX, CASE_SENSITIVE_BASE_SUFFIX);
 check_subsequent_flags!(CASE_SENSITIVE_BASE_SUFFIX, REQUIRED_INTEGER_DIGITS_WITH_EXPONENT);
 check_subsequent_flags!(REQUIRED_INTEGER_DIGITS_WITH_EXPONENT, REQUIRED_FRACTION_DIGITS_WITH_EXPONENT);
+check_subsequent_flags!(REQUIRED_FRACTION_DIGITS_WITH_EXPONENT, SUPPORTS_PARSING_INTEGERS);
+check_subsequent_flags!(SUPPORTS_PARSING_INTEGERS, SUPPORTS_PARSING_FLOATS);
+check_subsequent_flags!(SUPPORTS_PARSING_FLOATS, SUPPORTS_WRITING_INTEGERS);
+check_subsequent_flags!(SUPPORTS_WRITING_INTEGERS, SUPPORTS_WRITING_FLOATS);
 
 // DIGIT SEPARATOR FLAGS & MASKS
 // -----------------------------
@@ -553,6 +573,9 @@ pub const FLAG_MASK: u128 =
 /// omitting those that are handled prior. This limits the
 /// number of match paths required to determine the correct
 /// interface.
+///
+/// Note that this is mostly a legacy constant, since we do
+/// constant evaluation which is always at compile time.
 #[doc(hidden)]
 pub const INTERFACE_FLAG_MASK: u128 =
     REQUIRED_DIGITS |

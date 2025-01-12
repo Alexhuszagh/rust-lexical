@@ -1275,3 +1275,35 @@ fn issue68_test() {
     assert_eq!(f32::INFINITY, f32::from_lexical_with_options::<FORMAT>(hex, &OPTIONS).unwrap());
     assert_eq!(f64::INFINITY, f64::from_lexical_with_options::<FORMAT>(hex, &OPTIONS).unwrap());
 }
+
+#[test]
+#[cfg(feature = "format")]
+fn unsupported_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new().supports_parsing_floats(false).build_strict();
+    const OPTIONS: Options = Options::new();
+
+    let float = "12345.0";
+    let value = f64::from_lexical_with_options::<FORMAT>(float.as_bytes(), &OPTIONS);
+    assert_eq!(value, Err(Error::Unsupported));
+
+    let value = f64::from_lexical_partial_with_options::<FORMAT>(float.as_bytes(), &OPTIONS);
+    assert_eq!(value, Err(Error::Unsupported));
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn supported_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new()
+        .supports_parsing_integers(false)
+        .supports_writing_integers(false)
+        .supports_writing_floats(false)
+        .build_strict();
+    const OPTIONS: Options = Options::new();
+
+    let float = "12345.0";
+    let value = f64::from_lexical_with_options::<FORMAT>(float.as_bytes(), &OPTIONS);
+    assert_eq!(value, Ok(12345.0));
+
+    let value = f64::from_lexical_partial_with_options::<FORMAT>(float.as_bytes(), &OPTIONS);
+    assert_eq!(value, Ok((12345.0, 7)));
+}

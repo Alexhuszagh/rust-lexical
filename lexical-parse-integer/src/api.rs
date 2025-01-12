@@ -2,6 +2,7 @@
 
 #![doc(hidden)]
 
+use lexical_util::error::Error;
 use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::{from_lexical, from_lexical_with_options};
 
@@ -42,7 +43,9 @@ macro_rules! integer_from_lexical {
             ) -> lexical_util::result::Result<Self>
             {
                 let format = NumberFormat::<{ FORMAT }> {};
-                if !format.is_valid() {
+                if !format.supports_parsing_integers() {
+                    return Err(Error::Unsupported);
+                } else if !format.is_valid() {
                     return Err(format.error());
                 }
                 Self::parse_complete::<FORMAT>(bytes, options)
@@ -55,7 +58,9 @@ macro_rules! integer_from_lexical {
             ) -> lexical_util::result::Result<(Self, usize)>
             {
                 let format = NumberFormat::<{ FORMAT }> {};
-                if !format.is_valid() {
+                if !format.supports_parsing_integers() {
+                    return Err(Error::Unsupported);
+                } else if !format.is_valid() {
                     return Err(format.error());
                 }
                 Self::parse_partial::<FORMAT>(bytes, options)
