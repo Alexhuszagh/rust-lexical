@@ -56,6 +56,10 @@ pub enum Error {
     InvalidPositiveSign(usize),
     /// Invalid negative sign for an unsigned type was found.
     InvalidNegativeSign(usize),
+    /// Missing a required base prefix when parsing the number.
+    MissingBasePrefix(usize),
+    /// Missing a required base suffix when parsing the number.
+    MissingBaseSuffix(usize),
 
     // NUMBER FORMAT ERRORS
     /// Invalid radix for the mantissa (significant) digits.
@@ -167,6 +171,8 @@ impl Error {
             Self::MissingSign(_) => "'missing required `+/-` sign for integer'",
             Self::InvalidPositiveSign(_) => "'invalid `+` sign for an integer was found'",
             Self::InvalidNegativeSign(_) => "'invalid `-` sign for an unsigned type was found'",
+            Self::MissingBasePrefix(_) => "'missing a required base prefix when parsing the number'",
+            Self::MissingBaseSuffix(_) => "'missing a required base suffix when parsing the number'",
 
             // NUMBER FORMAT ERRORS
             Self::InvalidMantissaRadix => "'invalid radix for mantissa digits'",
@@ -186,7 +192,7 @@ impl Error {
             Self::InvalidConsecutiveFractionDigitSeparator => "'enabled consecutive digit separators in the fraction without setting a valid location'",
             Self::InvalidConsecutiveExponentDigitSeparator => "'enabled consecutive digit separators in the exponent without setting a valid location'",
             Self::InvalidFlags => "'invalid flags enabled without the format feature'",
-            Self::Unsupported => "the desired operation is unsupported for this format",
+            Self::Unsupported => "'the desired operation is unsupported for this format'",
 
             // OPTION ERRORS
             Self::InvalidNanString => "'NaN string must started with `n`'",
@@ -233,6 +239,8 @@ impl Error {
             Self::MissingSign(index) => Some(index),
             Self::InvalidPositiveSign(index) => Some(index),
             Self::InvalidNegativeSign(index) => Some(index),
+            Self::MissingBasePrefix(index) => Some(index),
+            Self::MissingBaseSuffix(index) => Some(index),
 
             // NUMBER FORMAT ERRORS
             Self::InvalidMantissaRadix => None,
@@ -292,6 +300,8 @@ impl Error {
     is_error_type!(is_missing_sign, MissingSign(_));
     is_error_type!(is_invalid_positive_sign, InvalidPositiveSign(_));
     is_error_type!(is_invalid_negative_sign, InvalidNegativeSign(_));
+    is_error_type!(is_missing_base_prefix, MissingBasePrefix(_));
+    is_error_type!(is_missing_base_suffix, MissingBaseSuffix(_));
     is_error_type!(is_invalid_mantissa_radix, InvalidMantissaRadix);
     is_error_type!(is_invalid_exponent_base, InvalidExponentBase);
     is_error_type!(is_invalid_exponent_radix, InvalidExponentRadix);
@@ -391,6 +401,8 @@ impl fmt::Display for Error {
             Self::MissingSign(index) => write_parse_error!(formatter, description, index),
             Self::InvalidPositiveSign(index) => write_parse_error!(formatter, description, index),
             Self::InvalidNegativeSign(index) => write_parse_error!(formatter, description, index),
+            Self::MissingBasePrefix(index) => write_parse_error!(formatter, description, index),
+            Self::MissingBaseSuffix(index) => write_parse_error!(formatter, description, index),
 
             // NUMBER FORMAT ERRORS
             Self::InvalidMantissaRadix => format_message!(formatter, description),

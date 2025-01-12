@@ -1307,3 +1307,39 @@ fn supported_test() {
     let value = f64::from_lexical_partial_with_options::<FORMAT>(float.as_bytes(), &OPTIONS);
     assert_eq!(value, Ok((12345.0, 7)));
 }
+
+#[test]
+#[cfg(all(feature = "format", feature = "power-of-two"))]
+fn require_base_prefix_test() {
+    use core::num;
+
+    const PREFIX: u128 = NumberFormatBuilder::new()
+        .base_prefix(num::NonZeroU8::new(b'd'))
+        .required_base_prefix(true)
+        .build_strict();
+    const OPTIONS: Options = Options::new();
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"0d12345", &OPTIONS);
+    assert_eq!(value, Ok(12345.0));
+    let value = f64::from_lexical_with_options::<PREFIX>(b"12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(0)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"-0d12345", &OPTIONS);
+    assert_eq!(value, Ok(-12345.0));
+    let value = f64::from_lexical_with_options::<PREFIX>(b"-12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+
+    const SUFFIX: u128 = NumberFormatBuilder::rebuild(PREFIX)
+        .base_suffix(num::NonZeroU8::new(b'z'))
+        .required_base_suffix(true)
+        .build_strict();
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"0d12345z", &OPTIONS);
+    assert_eq!(value, Ok(12345.0));
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"0d12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(7)));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"-0d12345z", &OPTIONS);
+    assert_eq!(value, Ok(-12345.0));
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"-0d12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(8)));
+}

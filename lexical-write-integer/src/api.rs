@@ -12,24 +12,65 @@ use crate::write::WriteInteger;
 
 // UNSIGNED
 
+// write the base prefix, if present.
+macro_rules! write_base_prefix {
+    ($format:ident, $buffer:ident) => {
+        if cfg!(all(feature = "format", feature = "power-of-two")) && $format.required_base_prefix()
+        {
+            $buffer[0] = b'0';
+            $buffer[1] = $format.base_prefix();
+            (&mut $buffer[2..], 2)
+        } else {
+            ($buffer, 0)
+        }
+    };
+}
+
+// write the base prefix, if present.
+macro_rules! write_base_suffix {
+    ($format:ident, $buffer:ident, $index:ident) => {
+        if cfg!(all(feature = "format", feature = "power-of-two")) && $format.required_base_suffix()
+        {
+            $buffer[$index] = $format.base_suffix();
+            1
+        } else {
+            0
+        }
+    };
+}
+
 /// Callback for unsigned integer formatter.
 ///
 /// # Safety
 ///
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
+///
+/// # Preconditions
+///
+/// This assumes it is writing the full integer: that is, it is not
+/// writing it from within a float writer or similar.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-fn unsigned<T, const FORMAT: u128>(value: T, buffer: &mut [u8]) -> usize
+fn unsigned<T, const FORMAT: u128>(value: T, mut buffer: &mut [u8]) -> usize
 where
     T: WriteInteger,
 {
-    let format = NumberFormat::<FORMAT> {};
+    let format: NumberFormat<FORMAT> = NumberFormat::<FORMAT> {};
+    let prefix: usize;
+    let written: usize;
+    let suffix: usize;
     if cfg!(feature = "format") && format.required_mantissa_sign() {
         buffer[0] = b'+';
-        let buffer = &mut buffer[1..];
-        value.write_mantissa::<FORMAT>(buffer) + 1
+        buffer = &mut buffer[1..];
+        (buffer, prefix) = write_base_prefix!(format, buffer);
+        written = value.write_mantissa::<FORMAT>(buffer);
+        suffix = write_base_suffix!(format, buffer, written);
+        written + prefix + suffix + 1
     } else {
-        value.write_mantissa::<FORMAT>(buffer)
+        (buffer, prefix) = write_base_prefix!(format, buffer);
+        written = value.write_mantissa::<FORMAT>(buffer);
+        suffix = write_base_suffix!(format, buffer, written);
+        written + prefix + suffix
     }
 }
 
@@ -41,13 +82,21 @@ where
 ///
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
+///
+/// # Preconditions
+///
+/// This assumes it is writing the full integer: that is, it is not
+/// writing it from within a float writer or similar.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-fn signed<Signed, Unsigned, const FORMAT: u128>(value: Signed, buffer: &mut [u8]) -> usize
+fn signed<Signed, Unsigned, const FORMAT: u128>(value: Signed, mut buffer: &mut [u8]) -> usize
 where
     Signed: SignedInteger,
     Unsigned: WriteInteger,
 {
     let format = NumberFormat::<FORMAT> {};
+    let prefix: usize;
+    let written: usize;
+    let suffix: usize;
     if value < Signed::ZERO {
         // Need to cast the value to the same size as unsigned type, since if
         // the value is **exactly** `Narrow::MIN`, and it it is then cast
@@ -55,16 +104,25 @@ where
         // will have a very different value.
         let unsigned = Unsigned::as_cast(value.wrapping_neg());
         buffer[0] = b'-';
-        let buffer = &mut buffer[1..];
-        unsigned.write_mantissa_signed::<FORMAT>(buffer) + 1
+        buffer = &mut buffer[1..];
+        (buffer, prefix) = write_base_prefix!(format, buffer);
+        let written = unsigned.write_mantissa_signed::<FORMAT>(buffer);
+        suffix = write_base_suffix!(format, buffer, written);
+        written + prefix + suffix + 1
     } else if cfg!(feature = "format") && format.required_mantissa_sign() {
         let unsigned = Unsigned::as_cast(value);
         buffer[0] = b'+';
-        let buffer = &mut buffer[1..];
-        unsigned.write_mantissa_signed::<FORMAT>(buffer) + 1
+        buffer = &mut buffer[1..];
+        (buffer, prefix) = write_base_prefix!(format, buffer);
+        written = unsigned.write_mantissa_signed::<FORMAT>(buffer);
+        suffix = write_base_suffix!(format, buffer, written);
+        written + prefix + suffix + 1
     } else {
+        (buffer, prefix) = write_base_prefix!(format, buffer);
         let unsigned = Unsigned::as_cast(value);
-        unsigned.write_mantissa_signed::<FORMAT>(buffer)
+        written = unsigned.write_mantissa_signed::<FORMAT>(buffer);
+        suffix = write_base_suffix!(format, buffer, written);
+        written + prefix + suffix
     }
 }
 

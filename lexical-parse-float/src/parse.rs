@@ -536,24 +536,30 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     // INTEGER
 
     // Check to see if we have a valid base prefix.
+    // NOTE: `lz_prefix` is if we had a leading zero when
+    // checking for a base prefix: it is not if the prefix
+    // exists or not.
     #[allow(unused_variables)]
-    let mut is_prefix = false;
-    #[cfg(feature = "format")]
+    let mut lz_prefix = false;
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
     {
         let base_prefix = format.base_prefix();
+        let mut has_prefix = false;
         let mut iter = byte.integer_iter();
         if base_prefix != 0 && iter.read_if_value_cased(b'0').is_some() {
             // Check to see if the next character is the base prefix.
             // We must have a format like `0x`, `0d`, `0o`.
             // NOTE: The check for empty integer digits happens below so
             // we don't need a redundant check here.
-            is_prefix = true;
-            if iter.read_if_value(base_prefix, format.case_sensitive_base_prefix()).is_some()
-                && iter.is_buffer_empty()
-                && format.required_integer_digits()
-            {
+            lz_prefix = true;
+            let prefix = iter.read_if_value(base_prefix, format.case_sensitive_base_prefix());
+            has_prefix = prefix.is_some();
+            if has_prefix && iter.is_buffer_empty() && format.required_integer_digits() {
                 return Err(Error::EmptyInteger(iter.cursor()));
             }
+        }
+        if format.required_base_prefix() && !has_prefix {
+            return Err(Error::MissingBasePrefix(iter.cursor()));
         }
     }
 
@@ -600,7 +606,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
 
     // Check if integer leading zeros are disabled.
     #[cfg(feature = "format")]
-    if !is_prefix && format.no_float_leading_zeros() {
+    if !lz_prefix && format.no_float_leading_zeros() {
         if integer_digits.len() > 1 && integer_digits.first() == Some(&b'0') {
             return Err(Error::InvalidLeadingZeros(start.cursor()));
         }
@@ -741,11 +747,14 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     // that the first character **is not** a digit separator.
     #[allow(unused_variables)]
     let base_suffix = format.base_suffix();
-    #[cfg(feature = "format")]
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
     if base_suffix != 0 {
-        if byte.first_is(base_suffix, format.case_sensitive_base_suffix()) {
+        let is_suffix = byte.first_is(base_suffix, format.case_sensitive_base_suffix());
+        if is_suffix {
             // SAFETY: safe since `byte.len() >= 1`.
             unsafe { byte.step_unchecked() };
+        } else if format.required_base_suffix() {
+            return Err(Error::MissingBaseSuffix(byte.cursor()));
         }
     }
 

@@ -25,7 +25,7 @@
 //!
 //! 16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-//! |e/P|e/S|I/E|F/E|p/I|p/F|w/I|w/F|                               |
+//! |e/P|e/S|I/E|F/E|p/I|p/F|w/I|w/F|R/P|r/S|                       |
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 //!
 //! 32  33  34  35  36  37  38  39  40  41 42  43  44  45  46  47   48
@@ -64,6 +64,8 @@
 //!         p/F = The format supports parsing floats.
 //!         w/I = The format supports writing integers.
 //!         w/F = The format supports writing floats.
+//!         r/P = Require base prefixes.
+//!         r/S = Require base suffixes.
 //!
 //!     Digit Separator Flags:
 //!         I/I = Integer internal digit separator.
@@ -361,6 +363,12 @@ pub const SUPPORTS_WRITING_INTEGERS: u128 = 1 << 22;
 /// If the format supports parsing floats.
 pub const SUPPORTS_WRITING_FLOATS: u128 = 1 << 23;
 
+/// If the format requires base prefixes.
+pub const REQUIRED_BASE_PREFIX: u128 = 1 << 24;
+
+/// If the format requires base suffixes.
+pub const REQUIRED_BASE_SUFFIX: u128 = 1 << 25;
+
 // Non-digit separator flags.
 const _: () = assert!(REQUIRED_INTEGER_DIGITS == 1);
 check_subsequent_flags!(REQUIRED_INTEGER_DIGITS, REQUIRED_FRACTION_DIGITS);
@@ -387,6 +395,8 @@ check_subsequent_flags!(REQUIRED_FRACTION_DIGITS_WITH_EXPONENT, SUPPORTS_PARSING
 check_subsequent_flags!(SUPPORTS_PARSING_INTEGERS, SUPPORTS_PARSING_FLOATS);
 check_subsequent_flags!(SUPPORTS_PARSING_FLOATS, SUPPORTS_WRITING_INTEGERS);
 check_subsequent_flags!(SUPPORTS_WRITING_INTEGERS, SUPPORTS_WRITING_FLOATS);
+check_subsequent_flags!(SUPPORTS_WRITING_FLOATS, REQUIRED_BASE_PREFIX);
+check_subsequent_flags!(REQUIRED_BASE_PREFIX, REQUIRED_BASE_SUFFIX);
 
 // DIGIT SEPARATOR FLAGS & MASKS
 // -----------------------------
@@ -561,6 +571,12 @@ pub const FLAG_MASK: u128 =
     CASE_SENSITIVE_BASE_SUFFIX |
     REQUIRED_INTEGER_DIGITS_WITH_EXPONENT |
     REQUIRED_FRACTION_DIGITS_WITH_EXPONENT |
+    SUPPORTS_PARSING_FLOATS |
+    SUPPORTS_PARSING_INTEGERS |
+    SUPPORTS_WRITING_FLOATS |
+    SUPPORTS_WRITING_INTEGERS |
+    REQUIRED_BASE_PREFIX |
+    REQUIRED_BASE_SUFFIX |
     INTERNAL_DIGIT_SEPARATOR |
     LEADING_DIGIT_SEPARATOR |
     TRAILING_DIGIT_SEPARATOR |
@@ -810,14 +826,20 @@ pub const fn is_valid_punctuation(format: u128) -> bool {
         let separator = digit_separator(format);
         let prefix = base_prefix(format);
         let suffix = base_suffix(format);
-        // Check all are optional, or enough are not present.
-        match (separator, prefix, suffix) {
-            (0, 0, 0) => true,
-            (_, 0, 0) => true,
-            (0, _, 0) => true,
-            (0, 0, _) => true,
-            // Can't have more than 1 0, check they're all different.
-            (x, y, z) => x != y && x != z && y != z,
+        let required_prefix = (format & REQUIRED_BASE_PREFIX) != 0;
+        let required_suffix = (format & REQUIRED_BASE_SUFFIX) != 0;
+        if (prefix == 0 && required_prefix) || (suffix == 0 && required_suffix) {
+            false
+        } else {
+            // Check all are optional, or enough are not present.
+            match (separator, prefix, suffix) {
+                (0, 0, 0) => true,
+                (_, 0, 0) => true,
+                (0, _, 0) => true,
+                (0, 0, _) => true,
+                // Can't have more than 1 0, check they're all different.
+                (x, y, z) => x != y && x != z && y != z,
+            }
         }
     }
 }
