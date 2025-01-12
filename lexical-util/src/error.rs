@@ -92,6 +92,8 @@ pub enum Error {
     InvalidConsecutiveExponentDigitSeparator,
     /// Invalid flags were set without the format feature.
     InvalidFlags,
+    /// If the operation is unsupported.
+    Unsupported,
 
     // OPTION ERRORS
     /// Invalid NaN string: must start with an `n` character.
@@ -184,6 +186,7 @@ impl Error {
             Self::InvalidConsecutiveFractionDigitSeparator => "'enabled consecutive digit separators in the fraction without setting a valid location'",
             Self::InvalidConsecutiveExponentDigitSeparator => "'enabled consecutive digit separators in the exponent without setting a valid location'",
             Self::InvalidFlags => "'invalid flags enabled without the format feature'",
+            Self::Unsupported => "the desired operation is unsupported for this format",
 
             // OPTION ERRORS
             Self::InvalidNanString => "'NaN string must started with `n`'",
@@ -249,6 +252,7 @@ impl Error {
             Self::InvalidConsecutiveFractionDigitSeparator => None,
             Self::InvalidConsecutiveExponentDigitSeparator => None,
             Self::InvalidFlags => None,
+            Self::Unsupported => None,
 
             // OPTION ERRORS
             Self::InvalidNanString => None,
@@ -314,6 +318,7 @@ impl Error {
         InvalidConsecutiveExponentDigitSeparator
     );
     is_error_type!(is_invalid_flags, InvalidFlags);
+    is_error_type!(is_unsupported, Unsupported);
     is_error_type!(is_invalid_nan_string, InvalidNanString);
     is_error_type!(is_nan_string_too_long, NanStringTooLong);
     is_error_type!(is_invalid_inf_string, InvalidInfString);
@@ -411,6 +416,7 @@ impl fmt::Display for Error {
                 format_message!(formatter, description)
             },
             Self::InvalidFlags => format_message!(formatter, description),
+            Self::Unsupported => format_message!(formatter, description),
 
             // OPTION ERRORS
             Self::InvalidNanString => options_message!(formatter, description),

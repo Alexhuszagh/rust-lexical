@@ -215,6 +215,36 @@ fn options_radix_test() {
     assert_eq!(b"A8", 128u8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &OPTIONS));
 }
 
+#[test]
+#[should_panic]
+#[cfg(feature = "format")]
+fn unsupported_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new().supports_writing_integers(false).build_strict();
+    const OPTIONS: Options = Options::new();
+
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let integer = 12345i64;
+    _ = integer.to_lexical_with_options::<FORMAT>(&mut buffer, &OPTIONS);
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn supported_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new()
+        .supports_parsing_integers(false)
+        .supports_parsing_floats(false)
+        .supports_writing_floats(false)
+        .build_strict();
+    const OPTIONS: Options = Options::new();
+
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let integer = 12345i64;
+    assert_eq!(b"12345", integer.to_lexical_with_options::<FORMAT>(&mut buffer, &OPTIONS));
+
+    let integer = 12345u64;
+    assert_eq!(b"12345", integer.to_lexical_with_options::<FORMAT>(&mut buffer, &OPTIONS));
+}
+
 fn roundtrip<T>(x: T) -> T
 where
     T: Roundtrip,
