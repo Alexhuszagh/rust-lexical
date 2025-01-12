@@ -25,7 +25,7 @@
 //!
 //! 16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-//! |e/P|e/S|                                                       |
+//! |e/P|e/S|I/E|F/E|                                               |
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 //!
 //! 32  33  34  35  36  37  38  39  40  41 42  43  44  45  46  47   48
@@ -58,6 +58,8 @@
 //!         e/C = Case-sensitive exponent character.
 //!         e/P = Case-sensitive base prefix.
 //!         e/S = Case-sensitive base suffix.
+//!         I/E = Require integer digits with exponent.
+//!         F/E = Require fraction digits with exponent.
 //!
 //!     Digit Separator Flags:
 //!         I/I = Integer internal digit separator.
@@ -336,6 +338,13 @@ pub const CASE_SENSITIVE_BASE_PREFIX: u128 = 1 << 16;
 /// Base suffixes are case-sensitive.
 pub const CASE_SENSITIVE_BASE_SUFFIX: u128 = 1 << 17;
 
+/// Digits are required before the decimal point with exponent notation.
+pub const REQUIRED_INTEGER_DIGITS_WITH_EXPONENT: u128 = 1 << 18;
+
+/// Digits are required after the decimal point with exponent
+/// notation, if the decimal point is present.
+pub const REQUIRED_FRACTION_DIGITS_WITH_EXPONENT: u128 = 1 << 19;
+
 // Non-digit separator flags.
 const _: () = assert!(REQUIRED_INTEGER_DIGITS == 1);
 check_subsequent_flags!(REQUIRED_INTEGER_DIGITS, REQUIRED_FRACTION_DIGITS);
@@ -356,6 +365,8 @@ check_subsequent_flags!(NO_FLOAT_LEADING_ZEROS, REQUIRED_EXPONENT_NOTATION);
 check_subsequent_flags!(REQUIRED_EXPONENT_NOTATION, CASE_SENSITIVE_EXPONENT);
 check_subsequent_flags!(CASE_SENSITIVE_EXPONENT, CASE_SENSITIVE_BASE_PREFIX);
 check_subsequent_flags!(CASE_SENSITIVE_BASE_PREFIX, CASE_SENSITIVE_BASE_SUFFIX);
+check_subsequent_flags!(CASE_SENSITIVE_BASE_SUFFIX, REQUIRED_INTEGER_DIGITS_WITH_EXPONENT);
+check_subsequent_flags!(REQUIRED_INTEGER_DIGITS_WITH_EXPONENT, REQUIRED_FRACTION_DIGITS_WITH_EXPONENT);
 
 // DIGIT SEPARATOR FLAGS & MASKS
 // -----------------------------
@@ -528,6 +539,8 @@ pub const FLAG_MASK: u128 =
     CASE_SENSITIVE_EXPONENT |
     CASE_SENSITIVE_BASE_PREFIX |
     CASE_SENSITIVE_BASE_SUFFIX |
+    REQUIRED_INTEGER_DIGITS_WITH_EXPONENT |
+    REQUIRED_FRACTION_DIGITS_WITH_EXPONENT |
     INTERNAL_DIGIT_SEPARATOR |
     LEADING_DIGIT_SEPARATOR |
     TRAILING_DIGIT_SEPARATOR |
@@ -549,6 +562,8 @@ pub const INTERFACE_FLAG_MASK: u128 =
     NO_EXPONENT_WITHOUT_FRACTION |
     NO_FLOAT_LEADING_ZEROS |
     REQUIRED_EXPONENT_NOTATION |
+    REQUIRED_INTEGER_DIGITS_WITH_EXPONENT |
+    REQUIRED_FRACTION_DIGITS_WITH_EXPONENT |
     INTERNAL_DIGIT_SEPARATOR |
     LEADING_DIGIT_SEPARATOR |
     TRAILING_DIGIT_SEPARATOR |
@@ -572,6 +587,8 @@ pub const EXPONENT_FLAG_MASK: u128 =
     REQUIRED_EXPONENT_SIGN |
     NO_EXPONENT_WITHOUT_FRACTION |
     REQUIRED_EXPONENT_NOTATION |
+    REQUIRED_INTEGER_DIGITS_WITH_EXPONENT |
+    REQUIRED_FRACTION_DIGITS_WITH_EXPONENT |
     EXPONENT_INTERNAL_DIGIT_SEPARATOR |
     EXPONENT_LEADING_DIGIT_SEPARATOR |
     EXPONENT_TRAILING_DIGIT_SEPARATOR |

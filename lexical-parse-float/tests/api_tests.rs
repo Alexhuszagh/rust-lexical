@@ -914,6 +914,46 @@ fn f64_no_exponent_without_fraction_test() {
 
 #[test]
 #[cfg(feature = "format")]
+fn f64_required_integer_digits_with_exponent() {
+    const F1: u128 = rebuild(format::STANDARD)
+        .required_mantissa_digits(false)
+        .required_integer_digits_with_exponent(true)
+        .build_strict();
+    const OPTIONS: Options = Options::new();
+    assert!(f64::from_lexical_with_options::<F1>(b"1e5", &OPTIONS).is_ok());
+    assert!(f64::from_lexical_with_options::<F1>(b".1e5", &OPTIONS).is_err());
+    assert!(f64::from_lexical_with_options::<F1>(b".e5", &OPTIONS).is_err());
+    assert!(f64::from_lexical_with_options::<F1>(b"1.e5", &OPTIONS).is_ok());
+    assert!(f64::from_lexical_with_options::<F1>(b"1.0e5", &OPTIONS).is_ok());
+
+    const F2: u128 = rebuild(F1).required_fraction_digits(true).build_strict();
+    assert!(f64::from_lexical_with_options::<F2>(b"1e5", &OPTIONS).is_ok());
+    assert!(f64::from_lexical_with_options::<F2>(b"1.e5", &OPTIONS).is_err());
+    assert!(f64::from_lexical_with_options::<F2>(b"1.0e5", &OPTIONS).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_required_fraction_digits_with_exponent() {
+    const F1: u128 = rebuild(format::STANDARD)
+        .required_mantissa_digits(false)
+        .required_fraction_digits_with_exponent(true)
+        .build_strict();
+    const OPTIONS: Options = Options::new();
+    assert!(f64::from_lexical_with_options::<F1>(b"1e5", &OPTIONS).is_ok());
+    assert!(f64::from_lexical_with_options::<F1>(b".1e5", &OPTIONS).is_ok());
+    assert!(f64::from_lexical_with_options::<F1>(b".e5", &OPTIONS).is_err());
+    assert!(f64::from_lexical_with_options::<F1>(b"1.e5", &OPTIONS).is_err());
+    assert!(f64::from_lexical_with_options::<F1>(b"1.0e5", &OPTIONS).is_ok());
+
+    const F2: u128 = rebuild(F1).required_fraction_digits(true).build_strict();
+    assert!(f64::from_lexical_with_options::<F2>(b"1e5", &OPTIONS).is_ok());
+    assert!(f64::from_lexical_with_options::<F2>(b"1.e5", &OPTIONS).is_err());
+    assert!(f64::from_lexical_with_options::<F2>(b"1.0e5", &OPTIONS).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
 fn f64_no_leading_zeros_test() {
     const FORMAT: u128 = rebuild(format::PERMISSIVE).no_float_leading_zeros(true).build_strict();
     const OPTIONS: Options = Options::new();

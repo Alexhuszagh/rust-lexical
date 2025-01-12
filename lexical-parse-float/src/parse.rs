@@ -567,6 +567,8 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     });
     let mut n_digits = byte.current_count() - start.current_count();
     #[cfg(feature = "format")]
+    let n_before_dot = n_digits;
+    #[cfg(feature = "format")]
     if format.required_integer_digits() && n_digits == 0 {
         return Err(Error::EmptyInteger(byte.cursor()));
     }
@@ -696,6 +698,19 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
             // Check if we have no fraction but we required exponent notation.
             if format.no_exponent_without_fraction() && fraction_digits.is_none() {
                 return Err(Error::ExponentWithoutFraction(byte.cursor() - 1));
+            }
+
+            // We require digits before the dot, but we have none.
+            if format.required_integer_digits_with_exponent() && n_before_dot == 0 {
+                return Err(Error::ExponentWithoutIntegerDigits(byte.cursor() - 1));
+            }
+
+            // We require digits after the dot, but we have none.
+            if format.required_fraction_digits_with_exponent()
+                && fraction_digits.is_some()
+                && n_after_dot == 0
+            {
+                return Err(Error::ExponentWithoutFractionDigits(byte.cursor() - 1));
             }
         }
 
