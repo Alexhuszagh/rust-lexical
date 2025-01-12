@@ -126,6 +126,10 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 /// - [`no_float_leading_zeros`]: If leading zeros before a float are not
 ///   allowed.
 /// - [`required_exponent_notation`]: If exponent notation is required.
+/// - [`required_integer_digits_with_exponent`]: If digits are required before
+///   the decimal point with exponent notation.
+/// - [`required_fraction_digits_with_exponent`]: If digits are required after
+///   the decimal point with exponent notation, if the decimal point is present.
 /// - [`case_sensitive_exponent`]: If exponent characters are case-sensitive.
 /// - [`case_sensitive_base_prefix`]: If base prefixes are case-sensitive.
 /// - [`case_sensitive_base_suffix`]: If base suffixes are case-sensitive.
@@ -233,6 +237,10 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 /// - [`no_float_leading_zeros`]: If leading zeros before a float are not
 ///   allowed.
 /// - [`required_exponent_notation`]: If exponent notation is required.
+/// - [`required_integer_digits_with_exponent`]: If digits are required before
+///   the decimal point with exponent notation.
+/// - [`required_fraction_digits_with_exponent`]:  If digits are required after
+///   the decimal point with exponent notation, if the decimal point is present.
 /// - [`case_sensitive_exponent`]: If exponent characters are case-sensitive.
 /// - [`case_sensitive_base_prefix`]: If base prefixes are case-sensitive.
 /// - [`case_sensitive_base_suffix`]: If base suffixes are case-sensitive.
@@ -295,6 +303,8 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`no_integer_leading_zeros`]: Self::no_integer_leading_zeros\n
 [`no_float_leading_zeros`]: Self::no_float_leading_zeros\n
 [`required_exponent_notation`]: Self::required_exponent_notation\n
+[`required_integer_digits_with_exponent`]: Self::required_integer_digits_with_exponent\n
+[`required_fraction_digits_with_exponent`]: Self::required_fraction_digits_with_exponent\n
 [`case_sensitive_exponent`]: Self::case_sensitive_exponent\n
 [`integer_internal_digit_separator`]: Self::integer_internal_digit_separator\n
 [`fraction_internal_digit_separator`]: Self::fraction_internal_digit_separator\n
@@ -329,6 +339,8 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`no_integer_leading_zeros`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L741\n
 [`no_float_leading_zeros`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L749\n
 [`required_exponent_notation`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L757\n
+[`required_integer_digits_with_exponent`]: TODO\n
+[`required_fraction_digits_with_exponent`]: TODO\n
 [`case_sensitive_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L765\n
 [`integer_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L793\n
 [`fraction_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L805\n
@@ -387,6 +399,8 @@ pub struct NumberFormatBuilder {
     case_sensitive_exponent: bool,
     case_sensitive_base_prefix: bool,
     case_sensitive_base_suffix: bool,
+    required_integer_digits_with_exponent: bool,
+    required_fraction_digits_with_exponent: bool,
     integer_internal_digit_separator: bool,
     fraction_internal_digit_separator: bool,
     exponent_internal_digit_separator: bool,
@@ -438,6 +452,8 @@ impl NumberFormatBuilder {
     /// - [`no_float_leading_zeros`][Self::get_no_float_leading_zeros] - `false`
     /// - [`required_exponent_notation`][Self::get_required_exponent_notation] -
     ///   `false`
+    /// - [`required_integer_digits_with_exponent`][Self::required_integer_digits_with_exponent] -`false`
+    /// - [`required_fraction_digits_with_exponent`][Self::required_fraction_digits_with_exponent] -`false`
     /// - [`case_sensitive_exponent`][Self::get_case_sensitive_exponent] -
     ///   `false`
     /// - [`case_sensitive_base_prefix`][Self::get_case_sensitive_base_prefix] -
@@ -485,6 +501,8 @@ impl NumberFormatBuilder {
             case_sensitive_exponent: false,
             case_sensitive_base_prefix: false,
             case_sensitive_base_suffix: false,
+            required_integer_digits_with_exponent: false,
+            required_fraction_digits_with_exponent: false,
             integer_internal_digit_separator: false,
             fraction_internal_digit_separator: false,
             exponent_internal_digit_separator: false,
@@ -1090,6 +1108,46 @@ impl NumberFormatBuilder {
     #[inline(always)]
     pub const fn get_case_sensitive_base_suffix(&self) -> bool {
         self.case_sensitive_base_suffix
+    }
+
+    /// Get if digits are required before the decimal point with exponent
+    /// notation.
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `.1e5` | ❌ |
+    /// | `.e5` | ❌ |
+    /// | `1.e5` | ✔️ |
+    /// | `1.0e5` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn get_required_integer_digits_with_exponent(&self) -> bool {
+        self.required_integer_digits_with_exponent
+    }
+
+    /// Get if digits are required after the decimal point with exponent
+    /// notation, if the decimal point is present.
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `.1e5` | ✔️ |
+    /// | `.e5` | ❌ |
+    /// | `1.e5` | ❌ |
+    /// | `1.0e5` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn get_required_fraction_digits_with_exponent(&self) -> bool {
+        self.required_fraction_digits_with_exponent
     }
 
     /// Get if digit separators are allowed between integer digits.
@@ -2482,6 +2540,82 @@ impl NumberFormatBuilder {
         self
     }
 
+    /// Set if digits are required before the decimal point with exponent
+    /// notation.
+    ///
+    /// Defaults to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `.1e5` | ❌ |
+    /// | `.e5` | ❌ |
+    /// | `1.e5` | ✔️ |
+    /// | `1.0e5` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .required_mantissa_digits(false)
+    ///     .required_integer_digits_with_exponent(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1e5", &PF_OPTS), Ok(1e5));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b".1e5", &PF_OPTS), Err(Error::ExponentWithoutIntegerDigits(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b".e5", &PF_OPTS), Err(Error::ExponentWithoutIntegerDigits(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.e5", &PF_OPTS), Ok(1e5));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e5", &PF_OPTS), Ok(1e5));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn required_integer_digits_with_exponent(mut self, flag: bool) -> Self {
+        self.required_integer_digits_with_exponent = flag;
+        self
+    }
+
+    /// Set if digits are required after the decimal point with exponent
+    /// notation, if the decimal point is present.
+    ///
+    /// Defaults to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `.1e5` | ✔️ |
+    /// | `.e5` | ❌ |
+    /// | `1.e5` | ❌ |
+    /// | `1.0e5` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .required_mantissa_digits(false)
+    ///     .required_fraction_digits_with_exponent(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1e5", &PF_OPTS), Ok(1e5));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b".1e5", &PF_OPTS), Ok(1e4));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b".e5", &PF_OPTS), Err(Error::ExponentWithoutFractionDigits(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.e5", &PF_OPTS), Err(Error::ExponentWithoutFractionDigits(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e5", &PF_OPTS), Ok(1e5));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn required_fraction_digits_with_exponent(mut self, flag: bool) -> Self {
+        self.required_fraction_digits_with_exponent = flag;
+        self
+    }
+
     /// Set if digit separators are allowed between integer digits.
     ///
     /// This will not consider an input of only the digit separator
@@ -3246,6 +3380,8 @@ impl NumberFormatBuilder {
             self.case_sensitive_exponent, CASE_SENSITIVE_EXPONENT ;
             self.case_sensitive_base_prefix, CASE_SENSITIVE_BASE_PREFIX ;
             self.case_sensitive_base_suffix, CASE_SENSITIVE_BASE_SUFFIX ;
+            self.required_integer_digits_with_exponent, REQUIRED_INTEGER_DIGITS_WITH_EXPONENT ;
+            self.required_fraction_digits_with_exponent, REQUIRED_FRACTION_DIGITS_WITH_EXPONENT ;
             self.integer_internal_digit_separator, INTEGER_INTERNAL_DIGIT_SEPARATOR ;
             self.fraction_internal_digit_separator, FRACTION_INTERNAL_DIGIT_SEPARATOR ;
             self.exponent_internal_digit_separator, EXPONENT_INTERNAL_DIGIT_SEPARATOR ;
@@ -3339,6 +3475,14 @@ impl NumberFormatBuilder {
             case_sensitive_exponent: has_flag!(format, CASE_SENSITIVE_EXPONENT),
             case_sensitive_base_prefix: has_flag!(format, CASE_SENSITIVE_BASE_PREFIX),
             case_sensitive_base_suffix: has_flag!(format, CASE_SENSITIVE_BASE_SUFFIX),
+            required_integer_digits_with_exponent: has_flag!(
+                format,
+                REQUIRED_INTEGER_DIGITS_WITH_EXPONENT
+            ),
+            required_fraction_digits_with_exponent: has_flag!(
+                format,
+                REQUIRED_FRACTION_DIGITS_WITH_EXPONENT
+            ),
             integer_internal_digit_separator: has_flag!(format, INTEGER_INTERNAL_DIGIT_SEPARATOR),
             fraction_internal_digit_separator: has_flag!(format, FRACTION_INTERNAL_DIGIT_SEPARATOR),
             exponent_internal_digit_separator: has_flag!(format, EXPONENT_INTERNAL_DIGIT_SEPARATOR),
