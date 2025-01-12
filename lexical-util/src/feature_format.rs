@@ -554,12 +554,17 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// If set to [`true`], then the base prefix `x` would be considered the
     /// different from `X`. Can only be modified with
     /// [`feature`][crate#features] `power-of-two` or `radix` along with
-    /// `format`. Defaults to [`false`].
+    /// `format`. Defaults to [`false`]. This is only used for writing numbers
+    /// if [`required_base_prefix`] is [`true`].
     ///
     /// # Used For
     ///
     /// - Parse Float
     /// - Parse Integer
+    /// - Write Float
+    /// - Write Integer
+    ///
+    /// [`required_base_prefix`]: Self::required_base_prefix
     #[inline(always)]
     pub const fn case_sensitive_base_prefix(&self) -> bool {
         Self::CASE_SENSITIVE_BASE_PREFIX
@@ -575,12 +580,17 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// If set to [`true`], then the base suffix `x` would be considered the
     /// different from `X`. Can only be modified with
     /// [`feature`][crate#features] `power-of-two` or `radix` along with
-    /// `format`. Defaults to [`false`].
+    /// `format`. Defaults to [`false`]. This is only used for writing numbers
+    /// if [`required_base_suffix`] is [`true`].
     ///
     /// # Used For
     ///
     /// - Parse Float
     /// - Parse Integer
+    /// - Write Float
+    /// - Write Integer
+    ///
+    /// [`required_base_suffix`]: Self::required_base_suffix
     #[inline(always)]
     pub const fn case_sensitive_base_suffix(&self) -> bool {
         Self::CASE_SENSITIVE_BASE_SUFFIX
@@ -712,6 +722,70 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     #[inline(always)]
     pub const fn supports_writing_floats(&self) -> bool {
         Self::SUPPORTS_WRITING_FLOATS
+    }
+
+    /// If the format requires base prefixes.
+    ///
+    /// See [`required_base_prefix`][Self::required_base_prefix].
+    pub const REQUIRED_BASE_PREFIX: bool = from_flag!(FORMAT, REQUIRED_BASE_PREFIX);
+
+    /// Get if the format requires base prefixes.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
+    /// to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a base prefix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `4d2` | ❌ |
+    /// | `x4d2` | ❌ |
+    /// | `4d2x` | ❌ |
+    /// | `0x4d2` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Write Float
+    /// - Write Integer
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn required_base_prefix(&self) -> bool {
+        Self::REQUIRED_BASE_PREFIX
+    }
+
+    /// If the format requires base suffixes.
+    ///
+    /// See [`required_base_suffix`][Self::required_base_suffix].
+    pub const REQUIRED_BASE_SUFFIX: bool = from_flag!(FORMAT, REQUIRED_BASE_SUFFIX);
+
+    /// Get if the format requires base suffixes.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
+    /// to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a base suffix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `4d2` | ❌ |
+    /// | `x4d2` | ❌ |
+    /// | `4d2x` | ✔️ |
+    /// | `0x4d2` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Write Float
+    /// - Write Integer
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn required_base_suffix(&self) -> bool {
+        Self::REQUIRED_BASE_SUFFIX
     }
 
     // DIGIT SEPARATOR FLAGS & MASKS
@@ -1258,7 +1332,9 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// setting the base prefix to `x` means that a leading `0x` will
     /// be ignore, if present. Can only be modified with
     /// [`feature`][crate#features] `power-of-two` or `radix` along with
-    /// `format`. Defaults to `0`, or no base prefix allowed.
+    /// `format`. Defaults to `0`, or no base prefix allowed. This is
+    /// only used for writing numbers if [`required_base_prefix`]
+    /// is [`true`]. This is ignored for special floating-point numbers.
     ///
     /// # Examples
     ///
@@ -1276,6 +1352,10 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     ///
     /// - Parse Float
     /// - Parse Integer
+    /// - Write Float
+    /// - Write Integer
+    ///
+    /// [`required_base_prefix`]: Self::required_base_prefix
     #[inline(always)]
     pub const fn base_prefix(&self) -> u8 {
         Self::BASE_PREFIX
@@ -1298,7 +1378,9 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// setting the base prefix to `x` means that a trailing `x` will
     /// be ignored, if present.  Can only be modified with
     /// [`feature`][crate#features] `power-of-two` or `radix` along with
-    /// `format`. Defaults to `0`, or no base suffix allowed.
+    /// `format`. Defaults to `0`, or no base suffix allowed. This is
+    /// only used for writing numbers if [`required_base_suffix`]
+    /// is [`true`]. This is ignored for special floating-point numbers.
     ///
     /// # Examples
     ///
@@ -1314,6 +1396,10 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     ///
     /// - Parse Float
     /// - Parse Integer
+    /// - Write Float
+    /// - Write Integer
+    ///
+    /// [`required_base_suffix`]: Self::required_base_suffix
     #[inline(always)]
     pub const fn base_suffix(&self) -> u8 {
         Self::BASE_SUFFIX

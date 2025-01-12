@@ -120,19 +120,26 @@ macro_rules! into_error {
 #[cfg(feature = "format")]
 macro_rules! fmt_invalid_digit {
     (
-        $value:ident, $iter:ident, $c:expr, $start_index:ident, $invalid_digit:ident, $is_end:expr
+        $value:ident,
+        $iter:ident,
+        $c:expr,
+        $start_index:ident,
+        $invalid_digit:ident,
+        $has_suffix:ident,
+        $is_end:expr $(,)?
     ) => {{
         // NOTE: If we have non-contiguous iterators, we could have a skip character
         // here at the boundary. This does not affect safety but it does affect
         // correctness.
         debug_assert!($iter.is_contiguous() || $is_end);
 
-        let base_suffix = NumberFormat::<FORMAT>::BASE_SUFFIX;
-        let uncased_base_suffix = NumberFormat::<FORMAT>::CASE_SENSITIVE_BASE_SUFFIX;
+        let format = NumberFormat::<FORMAT> {};
+        let base_suffix = format.base_suffix();
+        let uncased_base_suffix = format.case_sensitive_base_suffix();
         // Need to check for a base suffix, if so, return a valid value.
         // We can't have a base suffix at the first value (need at least
         // 1 digit).
-        if base_suffix != 0 && $iter.cursor() - $start_index > 1 {
+        if cfg!(feature = "power-of-two") && base_suffix != 0 && $iter.cursor() - $start_index > 1 {
             let is_suffix = if uncased_base_suffix {
                 $c == base_suffix
             } else {
@@ -144,6 +151,7 @@ macro_rules! fmt_invalid_digit {
             // contiguous iterators.
             if is_suffix && $is_end && $iter.is_buffer_empty() {
                 // Break out of the loop, we've finished parsing.
+                $has_suffix = true;
                 break;
             } else if !$iter.is_buffer_empty() {
                 // Haven't finished parsing, so we're going to call
@@ -165,7 +173,13 @@ macro_rules! fmt_invalid_digit {
 #[cfg(not(feature = "format"))]
 macro_rules! fmt_invalid_digit {
     (
-        $value:ident, $iter:ident, $c:expr, $start_index:ident, $invalid_digit:ident, $is_end:expr
+        $value:ident,
+        $iter:ident,
+        $c:expr,
+        $start_index:ident,
+        $invalid_digit:ident,
+        $has_suffix:ident,
+        $is_end:expr $(,)?
     ) => {{
         $invalid_digit!($value, $iter.cursor(), $iter.current_count());
     }};
@@ -393,6 +407,7 @@ where
 /// * `add_op` - The unchecked add/sub op.
 /// * `start_index` - The offset where parsing started.
 /// * `invalid_digit` - Behavior when an invalid digit is found.
+/// * `has_suffix` - If a base suffix was found at the end of the buffer.
 /// * `is_end` - If iter corresponds to the full input.
 ///
 /// core: <https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1480>
@@ -403,7 +418,8 @@ macro_rules! parse_1digit_unchecked {
         $add_op:ident,
         $start_index:ident,
         $invalid_digit:ident,
-        $is_end:expr
+        $has_suffix:ident,
+        $is_end:expr $(,)?
     ) => {{
         // This is a slower parsing algorithm, going 1 digit at a time, but doing it in
         // an unchecked loop.
@@ -411,7 +427,15 @@ macro_rules! parse_1digit_unchecked {
         while let Some(&c) = $iter.next() {
             let digit = match char_to_digit_const(c, radix) {
                 Some(v) => v,
-                None => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, $is_end),
+                None => fmt_invalid_digit!(
+                    $value,
+                    $iter,
+                    c,
+                    $start_index,
+                    $invalid_digit,
+                    $has_suffix,
+                    $is_end,
+                ),
             };
             // multiply first since compilers are good at optimizing things out and will do
             // a fused mul/add We must do this after getting the digit for
@@ -431,6 +455,7 @@ macro_rules! parse_1digit_unchecked {
 /// * `add_op` - The checked add/sub op.
 /// * `start_index` - The offset where parsing started.
 /// * `invalid_digit` - Behavior when an invalid digit is found.
+/// * `has_suffix` - If a base suffix was found at the end of the buffer.
 /// * `overflow` - If the error is overflow or underflow.
 ///
 /// core: <https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1505>
@@ -441,7 +466,8 @@ macro_rules! parse_1digit_checked {
         $add_op:ident,
         $start_index:ident,
         $invalid_digit:ident,
-        $overflow:ident
+        $has_suffix:ident,
+        $overflow:ident $(,)?
     ) => {{
         // This is a slower parsing algorithm, going 1 digit at a time, but doing it in
         // an unchecked loop.
@@ -449,7 +475,15 @@ macro_rules! parse_1digit_checked {
         while let Some(&c) = $iter.next() {
             let digit = match char_to_digit_const(c, radix) {
                 Some(v) => v,
-                None => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, true),
+                None => fmt_invalid_digit!(
+                    $value,
+                    $iter,
+                    c,
+                    $start_index,
+                    $invalid_digit,
+                    $has_suffix,
+                    true,
+                ),
             };
             // multiply first since compilers are good at optimizing things out and will do
             // a fused mul/add
@@ -477,6 +511,7 @@ macro_rules! parse_1digit_checked {
 /// * `start_index` - The offset where parsing started.
 /// * `invalid_digit` - Behavior when an invalid digit is found.
 /// * `no_multi_digit` - If to disable multi-digit optimizations.
+/// * `has_suffix` - If a base suffix was found at the end of the buffer.
 /// * `is_end` - If iter corresponds to the full input.
 macro_rules! parse_digits_unchecked {
     (
@@ -486,7 +521,8 @@ macro_rules! parse_digits_unchecked {
         $start_index:ident,
         $invalid_digit:ident,
         $no_multi_digit:expr,
-        $is_end:expr
+        $has_suffix:ident,
+        $is_end:expr $(,)?
     ) => {{
         let can_multi = can_try_parse_multidigits::<_, FORMAT>(&$iter);
         let use_multi = can_multi && !$no_multi_digit;
@@ -510,7 +546,15 @@ macro_rules! parse_digits_unchecked {
                 $value = $value.wrapping_mul(radix4).$add_op(value);
             }
         }
-        parse_1digit_unchecked!($value, $iter, $add_op, $start_index, $invalid_digit, $is_end)
+        parse_1digit_unchecked!(
+            $value,
+            $iter,
+            $add_op,
+            $start_index,
+            $invalid_digit,
+            $has_suffix,
+            $is_end
+        )
     }};
 }
 
@@ -528,6 +572,7 @@ macro_rules! parse_digits_unchecked {
 /// * `invalid_digit` - Behavior when an invalid digit is found.
 /// * `overflow` - If the error is overflow or underflow.
 /// * `no_multi_digit` - If to disable multi-digit optimizations.
+/// * `has_suffix` - If a base suffix was found at the end of the buffer.
 /// * `overflow_digits` - The number of digits before we need to consider
 ///   checked ops.
 macro_rules! parse_digits_checked {
@@ -540,7 +585,8 @@ macro_rules! parse_digits_checked {
         $invalid_digit:ident,
         $overflow:ident,
         $no_multi_digit:expr,
-        $overflow_digits:expr
+        $has_suffix:ident,
+        $overflow_digits:expr $(,)?
     ) => {{
         // Can use the unchecked for the `max_digits` here. If we
         // have a non-contiguous iterator, we could have a case like
@@ -557,13 +603,22 @@ macro_rules! parse_digits_checked {
                     $start_index,
                     $invalid_digit,
                     $no_multi_digit,
+                    $has_suffix,
                     false
                 );
             }
         }
 
         // NOTE: all our multi-digit optimizations have been done here: skip this
-        parse_1digit_checked!($value, $iter, $add_op, $start_index, $invalid_digit, $overflow)
+        parse_1digit_checked!(
+            $value,
+            $iter,
+            $add_op,
+            $start_index,
+            $invalid_digit,
+            $has_suffix,
+            $overflow
+        )
     }};
 }
 
@@ -650,6 +705,9 @@ macro_rules! algorithm {
                 }
             }
         }
+        if cfg!(all(feature = "format", feature = "power-of-two")) && format.required_base_prefix() && !is_prefix {
+            return Err(Error::MissingBasePrefix(iter.cursor()));
+        }
 
         // If we have a format that doesn't accept leading zeros,
         // check if the next value is invalid. It's invalid if the
@@ -684,14 +742,60 @@ macro_rules! algorithm {
     //      culminates in **way** slower performance overall for simple
     //      integers, and no improvement for large integers.
     let mut value = T::ZERO;
+    #[allow(unused_mut)]
+    let mut has_suffix = false;
     if cannot_overflow && is_negative {
-        parse_digits_unchecked!(value, iter, wrapping_sub, start_index, $invalid_digit, $no_multi_digit, true);
+        parse_digits_unchecked!(
+            value,
+            iter,
+            wrapping_sub,
+            start_index,
+            $invalid_digit,
+            $no_multi_digit,
+            has_suffix,
+            true,
+        );
     } if cannot_overflow {
-        parse_digits_unchecked!(value, iter, wrapping_add, start_index, $invalid_digit, $no_multi_digit, true);
+        parse_digits_unchecked!(
+            value,
+            iter,
+            wrapping_add,
+            start_index,
+            $invalid_digit,
+            $no_multi_digit,
+            has_suffix,
+            true,
+        );
     } else if is_negative {
-        parse_digits_checked!(value, iter, checked_sub, wrapping_sub, start_index, $invalid_digit, Underflow, $no_multi_digit, overflow_digits);
+        parse_digits_checked!(
+            value,
+            iter,
+            checked_sub,
+            wrapping_sub,
+            start_index,
+            $invalid_digit,
+            Underflow,
+            $no_multi_digit,
+            has_suffix,
+            overflow_digits,
+        );
     } else {
-        parse_digits_checked!(value, iter, checked_add, wrapping_add, start_index, $invalid_digit, Overflow, $no_multi_digit, overflow_digits);
+        parse_digits_checked!(
+            value,
+            iter,
+            checked_add,
+            wrapping_add,
+            start_index,
+            $invalid_digit,
+            Overflow,
+            $no_multi_digit,
+            has_suffix,
+            overflow_digits,
+        );
+    }
+
+    if cfg!(all(feature = "format", feature = "power-of-two")) && format.required_base_suffix() && !has_suffix {
+        return Err(Error::MissingBaseSuffix(iter.cursor()));
     }
 
     $into_ok!(value, iter.buffer_length(), iter.current_count())

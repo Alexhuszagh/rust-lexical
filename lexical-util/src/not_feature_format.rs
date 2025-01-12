@@ -45,30 +45,32 @@ use crate::format_flags as flags;
 /// 21. [`required_fraction_digits_with_exponent`][NumberFormat::required_fraction_digits_with_exponent]
 /// 22. [`supports_parsing_integers`][NumberFormat::supports_parsing_integers]
 /// 23. [`supports_parsing_floats`][NumberFormat::supports_parsing_floats]
-/// @4. [`supports_writing_integers`][NumberFormat::supports_writing_integers]
+/// 24. [`supports_writing_integers`][NumberFormat::supports_writing_integers]
 /// 25. [`supports_writing_floats`][NumberFormat::supports_writing_floats]
-/// 26. [`integer_internal_digit_separator`][NumberFormat::integer_internal_digit_separator]
-/// 27. [`fraction_internal_digit_separator`][NumberFormat::fraction_internal_digit_separator]
-/// 28. [`exponent_internal_digit_separator`][NumberFormat::exponent_internal_digit_separator]
-/// 29. [`internal_digit_separator`][NumberFormat::internal_digit_separator]
-/// 30. [`integer_leading_digit_separator`][NumberFormat::integer_leading_digit_separator]
-/// 31. [`fraction_leading_digit_separator`][NumberFormat::fraction_leading_digit_separator]
-/// 32. [`exponent_leading_digit_separator`][NumberFormat::exponent_leading_digit_separator]
-/// 33. [`leading_digit_separator`][NumberFormat::leading_digit_separator]
-/// 34. [`integer_trailing_digit_separator`][NumberFormat::integer_trailing_digit_separator]
-/// 35. [`fraction_trailing_digit_separator`][NumberFormat::fraction_trailing_digit_separator]
-/// 36. [`exponent_trailing_digit_separator`][NumberFormat::exponent_trailing_digit_separator]
-/// 37. [`trailing_digit_separator`][NumberFormat::trailing_digit_separator]
-/// 38. [`integer_consecutive_digit_separator`][NumberFormat::integer_consecutive_digit_separator]
-/// 39. [`fraction_consecutive_digit_separator`][NumberFormat::fraction_consecutive_digit_separator]
-/// 40. [`exponent_consecutive_digit_separator`][NumberFormat::exponent_consecutive_digit_separator]
-/// 41. [`consecutive_digit_separator`][NumberFormat::consecutive_digit_separator]
-/// 42. [`special_digit_separator`][NumberFormat::special_digit_separator]
-/// 43. [`digit_separator`][NumberFormat::digit_separator]
-/// 44. [`base_prefix`][NumberFormat::base_prefix]
-/// 45. [`base_suffix`][NumberFormat::base_suffix]
-/// 46. [`exponent_base`][NumberFormat::exponent_base]
-/// 47. [`exponent_radix`][NumberFormat::exponent_radix]
+/// 26. [`required_base_prefix`][NumberFormat::required_base_prefix]
+/// 27. [`required_base_suffix`][NumberFormat::required_base_suffix]
+/// 28. [`integer_internal_digit_separator`][NumberFormat::integer_internal_digit_separator]
+/// 29. [`fraction_internal_digit_separator`][NumberFormat::fraction_internal_digit_separator]
+/// 30. [`exponent_internal_digit_separator`][NumberFormat::exponent_internal_digit_separator]
+/// 31. [`internal_digit_separator`][NumberFormat::internal_digit_separator]
+/// 32. [`integer_leading_digit_separator`][NumberFormat::integer_leading_digit_separator]
+/// 33. [`fraction_leading_digit_separator`][NumberFormat::fraction_leading_digit_separator]
+/// 34. [`exponent_leading_digit_separator`][NumberFormat::exponent_leading_digit_separator]
+/// 35. [`leading_digit_separator`][NumberFormat::leading_digit_separator]
+/// 36. [`integer_trailing_digit_separator`][NumberFormat::integer_trailing_digit_separator]
+/// 37. [`fraction_trailing_digit_separator`][NumberFormat::fraction_trailing_digit_separator]
+/// 38. [`exponent_trailing_digit_separator`][NumberFormat::exponent_trailing_digit_separator]
+/// 39. [`trailing_digit_separator`][NumberFormat::trailing_digit_separator]
+/// 40. [`integer_consecutive_digit_separator`][NumberFormat::integer_consecutive_digit_separator]
+/// 41. [`fraction_consecutive_digit_separator`][NumberFormat::fraction_consecutive_digit_separator]
+/// 42. [`exponent_consecutive_digit_separator`][NumberFormat::exponent_consecutive_digit_separator]
+/// 43. [`consecutive_digit_separator`][NumberFormat::consecutive_digit_separator]
+/// 44. [`special_digit_separator`][NumberFormat::special_digit_separator]
+/// 45. [`digit_separator`][NumberFormat::digit_separator]
+/// 46. [`base_prefix`][NumberFormat::base_prefix]
+/// 47. [`base_suffix`][NumberFormat::base_suffix]
+/// 48. [`exponent_base`][NumberFormat::exponent_base]
+/// 49. [`exponent_radix`][NumberFormat::exponent_radix]
 ///
 /// This should always be constructed via [`NumberFormatBuilder`].
 /// See [`NumberFormatBuilder`] for the fields for the packed struct.
@@ -564,12 +566,17 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// If set to [`true`], then the base prefix `x` would be considered the
     /// different from `X`. Can only be modified with
     /// [`feature`][crate#features] `power-of-two` or `radix` along with
-    /// `format`. Defaults to [`false`].
+    /// `format`. Defaults to [`false`]. This is only used for writing numbers
+    /// if [`required_base_prefix`] is [`true`].
     ///
     /// # Used For
     ///
     /// - Parse Float
     /// - Parse Integer
+    /// - Write Float
+    /// - Write Integer
+    ///
+    /// [`required_base_prefix`]: Self::required_base_prefix
     #[inline(always)]
     pub const fn case_sensitive_base_prefix(&self) -> bool {
         Self::CASE_SENSITIVE_BASE_PREFIX
@@ -585,12 +592,17 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// If set to [`true`], then the base suffix `x` would be considered the
     /// different from `X`. Can only be modified with
     /// [`feature`][crate#features] `power-of-two` or `radix` along with
-    /// `format`. Defaults to [`false`].
+    /// `format`. Defaults to [`false`]. This is only used for writing numbers
+    /// if [`required_base_suffix`] is [`true`].
     ///
     /// # Used For
     ///
     /// - Parse Float
     /// - Parse Integer
+    /// - Write Float
+    /// - Write Integer
+    ///
+    /// [`required_base_suffix`]: Self::required_base_suffix
     #[inline(always)]
     pub const fn case_sensitive_base_suffix(&self) -> bool {
         Self::CASE_SENSITIVE_BASE_SUFFIX
@@ -723,6 +735,70 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     #[inline(always)]
     pub const fn supports_writing_floats(&self) -> bool {
         Self::SUPPORTS_WRITING_FLOATS
+    }
+
+    /// If the format requires base prefixes.
+    ///
+    /// See [`required_base_prefix`][Self::required_base_prefix].
+    pub const REQUIRED_BASE_PREFIX: bool = false;
+
+    /// Get if the format requires base prefixes.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
+    /// to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a base prefix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `4d2` | ❌ |
+    /// | `x4d2` | ❌ |
+    /// | `4d2x` | ❌ |
+    /// | `0x4d2` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Write Float
+    /// - Write Integer
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn required_base_prefix(&self) -> bool {
+        Self::REQUIRED_BASE_PREFIX
+    }
+
+    /// If the format requires base suffixes.
+    ///
+    /// See [`required_base_suffix`][Self::required_base_suffix].
+    pub const REQUIRED_BASE_SUFFIX: bool = false;
+
+    /// Get if the format requires base suffixes.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
+    /// to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a base suffix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `4d2` | ❌ |
+    /// | `x4d2` | ❌ |
+    /// | `4d2x` | ✔️ |
+    /// | `0x4d2` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Write Float
+    /// - Write Integer
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn required_base_suffix(&self) -> bool {
+        Self::REQUIRED_BASE_SUFFIX
     }
 
     // DIGIT SEPARATOR FLAGS & MASKS
@@ -1270,7 +1346,9 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// setting the base prefix to `x` means that a leading `0x` will
     /// be ignore, if present. Can only be modified with
     /// [`feature`][crate#features] `power-of-two` or `radix` along with
-    /// `format`. Defaults to `0`, or no base prefix allowed.
+    /// `format`. Defaults to `0`, or no base prefix allowed. This is only
+    /// used for writing numbers if [`required_base_prefix`] is [`true`].
+    /// This is ignored for special floating-point numbers.
     ///
     /// # Examples
     ///
@@ -1288,6 +1366,10 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     ///
     /// - Parse Float
     /// - Parse Integer
+    /// - Write Float
+    /// - Write Integer
+    ///
+    /// [`required_base_prefix`]: Self::required_base_prefix
     #[inline(always)]
     pub const fn base_prefix(&self) -> u8 {
         Self::BASE_PREFIX
@@ -1310,7 +1392,9 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// setting the base prefix to `x` means that a trailing `x` will
     /// be ignored, if present.  Can only be modified with
     /// [`feature`][crate#features] `power-of-two` or `radix` along with
-    /// `format`. Defaults to `0`, or no base suffix allowed.
+    /// `format`. Defaults to `0`, or no base suffix allowed. This is only
+    /// used for writing numbers if [`required_base_suffix`] is [`true`].
+    /// This is ignored for special floating-point numbers.
     ///
     /// # Examples
     ///
@@ -1326,6 +1410,10 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     ///
     /// - Parse Float
     /// - Parse Integer
+    /// - Write Float
+    /// - Write Integer
+    ///
+    /// [`required_base_suffix`]: Self::required_base_suffix
     #[inline(always)]
     pub const fn base_suffix(&self) -> u8 {
         Self::BASE_SUFFIX
@@ -1545,7 +1633,12 @@ pub(crate) const fn radix_error_impl(format: u128) -> Error {
 /// Get the error type from the format.
 #[inline(always)]
 pub(crate) const fn format_error_impl(format: u128) -> Error {
-    let valid_flags = flags::REQUIRED_EXPONENT_DIGITS | flags::REQUIRED_MANTISSA_DIGITS;
+    let valid_flags = flags::REQUIRED_EXPONENT_DIGITS
+        | flags::REQUIRED_MANTISSA_DIGITS
+        | flags::SUPPORTS_PARSING_FLOATS
+        | flags::SUPPORTS_PARSING_INTEGERS
+        | flags::SUPPORTS_WRITING_FLOATS
+        | flags::SUPPORTS_WRITING_INTEGERS;
     if !flags::is_valid_radix(flags::mantissa_radix(format)) {
         Error::InvalidMantissaRadix
     } else if !flags::is_valid_radix(flags::exponent_base(format)) {
