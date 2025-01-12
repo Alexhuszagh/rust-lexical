@@ -37,7 +37,7 @@ use crate::slow::slow_radix;
 // API
 // ---
 
-/// Check f radix is a power-of-2.
+/// Check if the radix is a power-of-2.
 #[cfg(feature = "power-of-two")]
 macro_rules! is_power_two {
     ($radix:expr) => {
@@ -46,27 +46,31 @@ macro_rules! is_power_two {
 }
 
 /// Check if the radix is valid and error otherwise
+#[cfg(feature = "power-of-two")]
 macro_rules! check_radix {
     ($format:ident) => {{
         let format = NumberFormat::<{ $format }> {};
-        #[cfg(feature = "power-of-two")]
-        {
-            if format.radix() != format.exponent_base() {
-                let valid_radix = matches!(
-                    (format.radix(), format.exponent_base()),
-                    (4, 2) | (8, 2) | (16, 2) | (32, 2) | (16, 4)
-                );
-                if !valid_radix {
-                    return Err(Error::InvalidRadix);
-                }
-            }
-        }
-
-        #[cfg(not(feature = "power-of-two"))]
-        {
-            if format.radix() != format.exponent_base() {
+        if format.error() != Error::Success {
+            return Err(Error::InvalidRadix);
+        } else if format.radix() != format.exponent_base() {
+            let valid_radix = matches!(
+                (format.radix(), format.exponent_base()),
+                (4, 2) | (8, 2) | (16, 2) | (32, 2) | (16, 4)
+            );
+            if !valid_radix {
                 return Err(Error::InvalidRadix);
             }
+        }
+    }};
+}
+
+/// Check if the decimal radix is valid and error otherwise.
+#[cfg(not(feature = "power-of-two"))]
+macro_rules! check_radix {
+    ($format:ident) => {{
+        let format = NumberFormat::<{ $format }> {};
+        if format.error() != Error::Success {
+            return Err(Error::InvalidRadix);
         }
     }};
 }
@@ -558,7 +562,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     let start = byte.clone();
     #[cfg(not(feature = "compact"))]
     parse_8digits::<_, FORMAT>(byte.integer_iter(), &mut mantissa);
-    parse_digits::<_, _, FORMAT>(byte.integer_iter(), |digit| {
+    parse_digits(byte.integer_iter(), format.mantissa_radix(), |digit| {
         mantissa = mantissa.wrapping_mul(format.radix() as u64).wrapping_add(digit as u64);
     });
     let mut n_digits = byte.current_count() - start.current_count();
@@ -615,7 +619,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
         let before = byte.clone();
         #[cfg(not(feature = "compact"))]
         parse_8digits::<_, FORMAT>(byte.fraction_iter(), &mut mantissa);
-        parse_digits::<_, _, FORMAT>(byte.fraction_iter(), |digit| {
+        parse_digits(byte.fraction_iter(), format.mantissa_radix(), |digit| {
             mantissa = mantissa.wrapping_mul(format.radix() as u64).wrapping_add(digit as u64);
         });
         n_after_dot = byte.current_count() - before.current_count();
@@ -697,9 +701,9 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
 
         let is_negative_exponent = parse_exponent_sign(&mut byte)?;
         let before = byte.current_count();
-        parse_digits::<_, _, FORMAT>(byte.exponent_iter(), |digit| {
+        parse_digits(byte.exponent_iter(), format.exponent_radix(), |digit| {
             if explicit_exponent < 0x10000000 {
-                explicit_exponent *= format.radix() as i64;
+                explicit_exponent *= format.exponent_radix() as i64;
                 explicit_exponent += digit as i64;
             }
         });
@@ -734,7 +738,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
 
     // Get the number of parsed digits (total), and redo if we had overflow.
     let end = byte.cursor();
-    let mut step = u64_step(format.radix());
+    let mut step = u64_step(format.mantissa_radix());
     let mut many_digits = false;
     #[cfg(feature = "format")]
     if !format.required_mantissa_digits() && n_digits == 0 {
@@ -860,13 +864,11 @@ pub fn parse_complete_number<'a, const FORMAT: u128>(
 
 /// Iteratively parse and consume digits from bytes.
 #[inline(always)]
-pub fn parse_digits<'a, Iter, Cb, const FORMAT: u128>(mut iter: Iter, mut cb: Cb)
+pub fn parse_digits<'a, Iter, Cb>(mut iter: Iter, radix: u32, mut cb: Cb)
 where
     Iter: DigitsIter<'a>,
     Cb: FnMut(u32),
 {
-    let format = NumberFormat::<{ FORMAT }> {};
-    let radix = format.radix();
     while let Some(&c) = iter.peek() {
         match char_to_digit_const(c, radix) {
             Some(v) => cb(v),
@@ -881,6 +883,10 @@ where
 }
 
 /// Iteratively parse and consume digits in intervals of 8.
+///
+/// # Preconditions
+///
+/// The iterator must be of the significant digits, not the exponent.
 #[inline(always)]
 #[cfg(not(feature = "compact"))]
 pub fn parse_8digits<'a, Iter, const FORMAT: u128>(mut iter: Iter, mantissa: &mut u64)
@@ -904,7 +910,8 @@ where
 ///
 /// # Preconditions
 ///
-/// There must be at least `step` digits left in iterator.
+/// There must be at least `step` digits left in iterator. The iterator almost
+/// must be of the significant digits, not the exponent.
 #[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     mut iter: Iter,

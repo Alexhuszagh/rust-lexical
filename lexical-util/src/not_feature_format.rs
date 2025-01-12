@@ -74,6 +74,7 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// Create new instance (for methods and validation).
     ///
     /// This uses the same settings as in the `FORMAT` packed struct.
+    #[inline(always)]
     pub const fn new() -> Self {
         Self {}
     }
@@ -81,13 +82,29 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     // VALIDATION
 
     /// Determine if the number format is valid.
+    #[inline(always)]
     pub const fn is_valid(&self) -> bool {
         self.error().is_success()
     }
 
     /// Get the error type from the format.
+    #[inline(always)]
     pub const fn error(&self) -> Error {
         format_error_impl(FORMAT)
+    }
+
+    /// Determine if the radixes in the number format are valid.
+    #[inline(always)]
+    pub const fn is_valid_radix(&self) -> bool {
+        self.error_radix().is_success()
+    }
+
+    /// Get the error type from the radix-only for the format.
+    ///
+    /// If [`Error::Success`] is returned, then no error occurred.
+    #[inline(always)]
+    pub const fn error_radix(&self) -> Error {
+        radix_error_impl(FORMAT)
     }
 
     // NON-DIGIT SEPARATOR FLAGS & MASKS
@@ -1373,6 +1390,20 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
 impl<const FORMAT: u128> Default for NumberFormat<FORMAT> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Get if the radix is valid.
+#[inline(always)]
+pub(crate) const fn radix_error_impl(format: u128) -> Error {
+    if !flags::is_valid_radix(flags::mantissa_radix(format)) {
+        Error::InvalidMantissaRadix
+    } else if !flags::is_valid_radix(flags::exponent_base(format)) {
+        Error::InvalidExponentBase
+    } else if !flags::is_valid_radix(flags::exponent_radix(format)) {
+        Error::InvalidExponentRadix
+    } else {
+        Error::Success
     }
 }
 

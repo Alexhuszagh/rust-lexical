@@ -9,27 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Additional trait impls for `f16` and `bf16` to better match Rust's interface.
-- Added `Options::buffer_size_const` for integer and float writers.
-- Added `build_checked` and `build_unchecked` to our `NumberFormatBuilder` API.
-- Added `build_checked` to our `Options` API.
-- Added `has_digit_separator` to `NumberFormat`.
-- Re-export `NumberFormat` to our other crates.
+- Additional trait impls for `f16` and `bf16` to better match Rust's interface (#192).
+- Added `Options::buffer_size_const` for integer and float writers (#204).
+- Added `build_checked` and `build_unchecked` to our `NumberFormatBuilder` API (#204).
+- Added `build_checked` to our `Options` API (#204).
+- Added `has_digit_separator` to `NumberFormat` (#204).
+- Re-export `NumberFormat` to our other crates (#204).
+- Add `Options::from_radix` for all options for similar APIs for each (#208).
 
 ### Changed
 
-- Lowered the MSRV from 1.63.0 to 1.61.0 and adds support for most testing on 1.60.0.
-- Reduced the required buffer size for integer and float writers when using `buffer_size` and `buffer_size_const` for decimal numbers.
-- Deprecated `NumberFormatBuilder::build` due to a lack of validation.
-- Deprecated `Options::set_*` in our write float API since options should be considered immutable.
-- Removed `static_assertions` dependency.
-- Migrate to using an external crate for our half-precision floats.
-- Simplify feature detection internally to make auto-doc more reliable.
+- Lowered the MSRV from 1.63.0 to 1.61.0 and adds support for most testing on 1.60.0 (#204).
+- Reduced the required buffer size for integer and float writers when using `buffer_size` and `buffer_size_const` for decimal numbers (#204).
+- Deprecated `NumberFormatBuilder::build` due to a lack of validation (#204).
+- Deprecated `Options::set_*` in our write float API since options should be considered immutable (#204).
+- Removed `static_assertions` dependency (#204).
+- Migrate to using an external crate for our half-precision floats (#198).
+- Simplify feature detection internally to make auto-doc more reliable (#207).
 
 ### Fixed
 
-- Bug where the `radix` feature wasn't enabling `power-of-two` in `lexical-core` or `lexical`.
+- Bug where the `radix` feature wasn't enabling `power-of-two` in `lexical-core` or `lexical` (#204).
 - Fixed performance issues due to a lack of inlining on the Eisel-Lemire algorithm (#210).
+- Issue with parsing non-decimal exponent radixes when using a decimal mantissa radix for floating-point numbers (#212).
 
 ## [1.0.5] 2024-12-08
 

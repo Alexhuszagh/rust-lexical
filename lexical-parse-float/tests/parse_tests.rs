@@ -154,7 +154,7 @@ fn parse_digits_test() {
     let mut mantissa: u64 = 0;
     let digits = b"1234567890123456789012345";
     let mut byte = digits.bytes::<{ FORMAT }>();
-    parse::parse_digits::<_, _, FORMAT>(byte.integer_iter(), |digit| {
+    parse::parse_digits(byte.integer_iter(), 10, |digit| {
         mantissa = mantissa.wrapping_mul(10).wrapping_add(digit as _);
     });
     assert_eq!(mantissa, 1096246371337559929);
