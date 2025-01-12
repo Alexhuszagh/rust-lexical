@@ -2121,7 +2121,7 @@ impl NumberFormatBuilder {
     /// | Input | Valid? |
     /// |:-:|:-:|
     /// | `1e3` | ❌ |
-    /// | `1.e3` | ❌ |
+    /// | `1.e3` | ✔️ |
     /// | `1.1e` | ✔️ |
     /// | `.1e3` | ✔️ |
     ///
@@ -2135,7 +2135,7 @@ impl NumberFormatBuilder {
     ///     .no_exponent_without_fraction(true)
     ///     .build_strict();
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1e3", &PF_OPTS), Err(Error::ExponentWithoutFraction(1)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.e3", &PF_OPTS), Err(Error::ExponentWithoutFraction(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.e3", &PF_OPTS), Ok(1000.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e3", &PF_OPTS), Ok(1.1e3));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b".1e3", &PF_OPTS), Ok(1.0e2));
