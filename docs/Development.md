@@ -124,6 +124,10 @@ Each workspace has a "docs" directory containing detailed descriptions of algori
 
 **ALWAYS** benchmark, even for trivial changes. I've been burned many times by `#[cfg(...)]` being way faster than `if cfg!()`, which youl would think both would be eliminated during optimization, just one during the first stage of compilation. It's better to confirm than assume. This is a nightmare development-wise because of how many features we support but there's not many alternatives: it seems it doesn't entirely remove code as if by tree-shaking which can majorly impact performance.
 
+## Inlining Hints
+
+There have been major performance regressions and improvements between Rust versions due to changes in inlining. We also, with the formatting API, have many layers of code that are all removed at compile-time, but only sometimes if function inlining occurs. Due to the extra complexity from this configurability, the functions seem more complex than they actually are and forcing inlining can have dramatic performance benefits. For example, in [parse](/lexical-parse-float/src/parse.rs) and `parse_number`, ~350 lines of code reduces to less than 150 when most of the formatting options are removed, and can be reduced even shorter yet. This complexity affects inlining elsewhere and the many layers of abstractions to make our formatting API as performant as possible and changes to how aggressively Rust inlines version to version make manually providing hints required for consistent version-to-version performance.
+
 ## Documentation
 
 If making significant changes to the documentation, running the spellchecker can be useful. Remember these are **guidelines** and anything inside `libm.rs` should be ignored. To check the spelling, run `cargo spellcheck check`.
