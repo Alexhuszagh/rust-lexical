@@ -156,10 +156,15 @@ async def validate_links() -> None:
             continue
         with path.open(encoding='utf-8') as file:
             data = file.read()
-        parser.feed(path.name, data)
+        if 'SKIP_LINKS' not in os.environ:
+            parser.feed(path.name, data)
+        if 'SKIP_TODO' not in os.environ:
+            if 'TODO' in data:
+                raise ValueError(f'Found TODO in documentation for file "{path.name}".')
 
     # deduplicate and validate all our links
-    await parser.validate()
+    if 'SKIP_LINKS' not in os.environ:
+        await parser.validate()
     print(f'Processed and validated {len(parser.links)} links...')
 
 
@@ -238,7 +243,7 @@ async def main() -> None:
 
     if 'SKIP_TOML' not in os.environ:
         validate_toml()
-    if 'SKIP_LINKS' not in os.environ:
+    if 'SKIP_LINKS' not in os.environ or 'SKIP_TODO' not in os.environ:
         await validate_links()
     if 'SKIP_FORMAT' not in os.environ:
         sys.exit(validate_format())
