@@ -350,7 +350,7 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`required_exponent_notation`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L757\n
 [`required_integer_digits_with_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/0cad692/lexical-util/src/format_builder.rs#L1129\n
 [`required_fraction_digits_with_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/0cad692/lexical-util/src/format_builder.rs#L1149\n
-[`required_mantissa_digits_with_exponent`]: TODO\n
+[`required_mantissa_digits_with_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/47a090d/lexical-util/src/format_builder.rs#L1233\n
 [`supports_parsing_integers`]: https://github.com/Alexhuszagh/rust-lexical/blob/f53fae0/lexical-util/src/format_builder.rs#L1181\n
 [`supports_parsing_floats`]: https://github.com/Alexhuszagh/rust-lexical/blob/f53fae0/lexical-util/src/format_builder.rs#L1191\n
 [`supports_writing_integers`]: https://github.com/Alexhuszagh/rust-lexical/blob/f53fae0/lexical-util/src/format_builder.rs#L1201\n
@@ -544,6 +544,61 @@ impl NumberFormatBuilder {
             supports_parsing_floats: true,
             supports_writing_integers: true,
             supports_writing_floats: true,
+            required_base_prefix: false,
+            required_base_suffix: false,
+            integer_internal_digit_separator: false,
+            fraction_internal_digit_separator: false,
+            exponent_internal_digit_separator: false,
+            integer_leading_digit_separator: false,
+            fraction_leading_digit_separator: false,
+            exponent_leading_digit_separator: false,
+            integer_trailing_digit_separator: false,
+            fraction_trailing_digit_separator: false,
+            exponent_trailing_digit_separator: false,
+            integer_consecutive_digit_separator: false,
+            fraction_consecutive_digit_separator: false,
+            exponent_consecutive_digit_separator: false,
+            special_digit_separator: false,
+        }
+    }
+
+    /// Create new [`NumberFormatBuilder`] without any flags set.
+    ///
+    /// This only sets the default radix to 10.
+    #[inline(always)]
+    pub const fn none() -> Self {
+        Self {
+            digit_separator: None,
+            base_prefix: None,
+            base_suffix: None,
+            mantissa_radix: 10,
+            exponent_base: None,
+            exponent_radix: None,
+            required_integer_digits: false,
+            required_fraction_digits: false,
+            required_exponent_digits: false,
+            required_mantissa_digits: false,
+            no_positive_mantissa_sign: false,
+            required_mantissa_sign: false,
+            no_exponent_notation: false,
+            no_positive_exponent_sign: false,
+            required_exponent_sign: false,
+            no_exponent_without_fraction: false,
+            no_special: false,
+            case_sensitive_special: false,
+            no_integer_leading_zeros: false,
+            no_float_leading_zeros: false,
+            required_exponent_notation: false,
+            case_sensitive_exponent: false,
+            case_sensitive_base_prefix: false,
+            case_sensitive_base_suffix: false,
+            required_integer_digits_with_exponent: false,
+            required_fraction_digits_with_exponent: false,
+            required_mantissa_digits_with_exponent: false,
+            supports_parsing_integers: false,
+            supports_parsing_floats: false,
+            supports_writing_integers: false,
+            supports_writing_floats: false,
             required_base_prefix: false,
             required_base_suffix: false,
             integer_internal_digit_separator: false,
