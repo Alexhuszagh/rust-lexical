@@ -209,20 +209,18 @@ macro_rules! parse_sign {
         $invalid_positive:ident,
         $missing:ident
     ) => {
-        // NOTE: `read_if` optimizes poorly since we then match after
-        match $byte.integer_iter().first() {
-            Some(&b'+') if !$no_positive => {
+        match $byte.integer_iter().parse_sign() {
+            (false, true) if !$no_positive => {
                 // SAFETY: We have at least 1 item left since we peaked a value
                 unsafe { $byte.step_unchecked() };
                 Ok(false)
             },
-            Some(&b'+') if $no_positive => Err(Error::$invalid_positive($byte.cursor())),
-            Some(&b'-') if $is_signed => {
+            (false, true) if $no_positive => Err(Error::$invalid_positive($byte.cursor())),
+            (true, true) if $is_signed => {
                 // SAFETY: We have at least 1 item left since we peaked a value
                 unsafe { $byte.step_unchecked() };
                 Ok(true)
             },
-            Some(_) if $required => Err(Error::$missing($byte.cursor())),
             _ if $required => Err(Error::$missing($byte.cursor())),
             _ => Ok(false),
         }
@@ -742,7 +740,7 @@ macro_rules! algorithm {
     //      culminates in **way** slower performance overall for simple
     //      integers, and no improvement for large integers.
     let mut value = T::ZERO;
-    #[allow(unused_mut)]
+    #[allow(unused_variables, unused_mut)]
     let mut has_suffix = false;
     if cannot_overflow && is_negative {
         parse_digits_unchecked!(
@@ -794,7 +792,8 @@ macro_rules! algorithm {
         );
     }
 
-    if cfg!(all(feature = "format", feature = "power-of-two")) && format.required_base_suffix() && !has_suffix {
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    if format.required_base_suffix() && !has_suffix {
         return Err(Error::MissingBaseSuffix(iter.cursor()));
     }
 

@@ -124,7 +124,8 @@ pub unsafe trait Iter<'a> {
         self.get_buffer().get(self.cursor())
     }
 
-    /// Check if the next element is a given value.
+    /// Check if the next element is a given value, in a case-
+    /// sensitive manner.
     #[inline(always)]
     fn first_is_cased(&self, value: u8) -> bool {
         Some(&value) == self.first()
@@ -167,6 +168,10 @@ pub unsafe trait Iter<'a> {
     /// [`increment_count`] afterwards or else the internal count will
     /// be incorrect.
     ///
+    /// This does not skip digit separators and so if used incorrectly,
+    /// the buffer may be in an invalid state, such as setting the next
+    /// return value to a digit separator it should have skipped.
+    ///
     /// [`increment_count`]: DigitsIter::increment_count
     ///
     /// # Panics
@@ -183,12 +188,15 @@ pub unsafe trait Iter<'a> {
 
     /// Advance the internal slice by 1 element.
     ///
-    ///
     /// This does not increment the count of items: returns: this only
     /// increments the index, not the total digits returned. You must
     /// use this carefully: if stepping over a digit, you must then call
     /// [`increment_count`] afterwards or else the internal count will
     /// be incorrect.
+    ///
+    /// This does not skip digit separators and so if used incorrectly,
+    /// the buffer may be in an invalid state, such as setting the next
+    /// return value to a digit separator it should have skipped.
     ///
     /// [`increment_count`]: DigitsIter::increment_count
     ///
@@ -233,6 +241,7 @@ pub unsafe trait Iter<'a> {
     /// Try to read a the next four bytes as a u32.
     ///
     /// This does not advance the internal state of the iterator.
+    /// This will only return a value for contiguous iterators.
     #[inline(always)]
     fn peek_u32(&self) -> Option<u32> {
         if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u32>() {
@@ -309,9 +318,32 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     /// for iterators that find the first non-zero value, etc. We optimize
     /// this for the case where we have contiguous iterators, since
     /// non-contiguous iterators already have a major performance penalty.
+    ///
+    /// That is, say we have the following buffer and are skipping `_`
+    /// characters, peek will advance the internal index to `2` if it
+    /// can skip characters there.
+    ///
+    /// +---+---+---+---+---+        +---+---+---+---+
+    /// | _ | 2 | _ | _ | 3 |   ->   | 2 | _ | _ | 3 |
+    /// +---+---+---+---+---+        +---+---+---+---+
+    ///
+    /// For implementation reasons, where digit separators may not be
+    /// allowed afterwards that character, it must stop right there.
     fn peek(&mut self) -> Option<Self::Item>;
 
     /// Peek the next value of the iterator, and step only if it exists.
+    ///
+    /// This will always advance to one byte past the peek value, since
+    /// we may need to know internally if the next character is a digit
+    /// separator.
+    ///
+    /// That is, say we have the following buffer and are skipping `_`
+    /// characters, peek will advance the internal index to `_` if it
+    /// can skip characters there.
+    ///
+    /// +---+---+---+---+---+        +---+---+---+
+    /// | _ | 2 | _ | _ | 3 |   ->   | _ | _ | 3 |
+    /// +---+---+---+---+---+        +---+---+---+
     #[inline(always)]
     fn try_read(&mut self) -> Option<Self::Item> {
         if let Some(value) = self.peek() {
@@ -323,13 +355,15 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         }
     }
 
-    /// Check if the next element is a given value.
+    /// Check if the next element is a given value, in a case-
+    /// sensitive manner.
     #[inline(always)]
     fn peek_is_cased(&mut self, value: u8) -> bool {
         Some(&value) == self.peek()
     }
 
-    /// Check if the next element is a given value without case sensitivity.
+    /// Check if the next element is a given value without case
+    /// sensitivity.
     #[inline(always)]
     fn peek_is_uncased(&mut self, value: u8) -> bool {
         if let Some(&c) = self.peek() {
@@ -351,7 +385,7 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     }
 
     /// Peek the next value and consume it if the read value matches the
-    /// expected one.
+    /// expected one using a custom predicate.
     #[inline(always)]
     fn read_if<Pred: FnOnce(u8) -> bool>(&mut self, pred: Pred) -> Option<u8> {
         // NOTE: This was implemented to remove usage of unsafe throughout to code
@@ -370,7 +404,8 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         }
     }
 
-    /// Read a value if the value matches the provided one.
+    /// Read a value if the value matches the provided one, in a case-
+    /// sensitive manner.
     #[inline(always)]
     fn read_if_value_cased(&mut self, value: u8) -> Option<u8> {
         if self.peek() == Some(&value) {
@@ -389,7 +424,8 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         self.read_if(|x| x.eq_ignore_ascii_case(&value))
     }
 
-    /// Read a value if the value matches the provided one.
+    /// Read a value if the value matches the provided one, with optional
+    /// case sensitivity.
     #[inline(always)]
     fn read_if_value(&mut self, value: u8, is_cased: bool) -> Option<u8> {
         if is_cased {
@@ -399,7 +435,7 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         }
     }
 
-    /// Skip zeros from the start of the iterator
+    /// Skip zeros from the start of the iterator.
     #[inline(always)]
     fn skip_zeros(&mut self) -> usize {
         let start = self.current_count();
@@ -411,4 +447,23 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
 
     /// Determine if the character is a digit.
     fn is_digit(&self, value: u8) -> bool;
+
+    // -------
+
+    /// Parse the sign from the iterator.
+    ///
+    /// If this allows leading digit separators, it will handle
+    /// those internally and advance the state as needed. This
+    /// returned if the value is negative and if a sign was found.
+    ///
+    /// The default implementation does not support digit separators.
+    #[inline(always)]
+    fn parse_sign(&mut self) -> (bool, bool) {
+        // NOTE: `read_if` optimizes poorly since we then match after
+        match self.first() {
+            Some(&b'+') => (false, true),
+            Some(&b'-') => (true, true),
+            _ => (false, false)
+        }
+    }
 }
