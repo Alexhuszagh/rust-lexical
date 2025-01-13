@@ -742,7 +742,7 @@ macro_rules! algorithm {
     let mut value = T::ZERO;
     #[allow(unused_variables, unused_mut)]
     let mut has_suffix = false;
-    if cannot_overflow && is_negative {
+    if T::IS_SIGNED && cannot_overflow && is_negative {
         parse_digits_unchecked!(
             value,
             iter,
@@ -753,7 +753,7 @@ macro_rules! algorithm {
             has_suffix,
             true,
         );
-    } if cannot_overflow {
+    } else if cannot_overflow {
         parse_digits_unchecked!(
             value,
             iter,
@@ -764,7 +764,7 @@ macro_rules! algorithm {
             has_suffix,
             true,
         );
-    } else if is_negative {
+    } else if T::IS_SIGNED && is_negative {
         parse_digits_checked!(
             value,
             iter,
