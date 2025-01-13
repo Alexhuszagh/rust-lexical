@@ -686,15 +686,21 @@ pub trait Integer:
         !self.is_odd()
     }
 
-    /// Get the maximum number of digits before the slice will overflow.
+    /// Get the maximum number of digits before the slice could overflow.
     ///
     /// This is effectively the `floor(log(2^BITS-1, radix))`, but we can
     /// try to go a bit lower without worrying too much.
     #[inline(always)]
     fn overflow_digits(radix: u32) -> usize {
         // this is heavily optimized for base10 and it's a way under estimate
-        // that said, it's fast and works.
-        if radix <= 16 {
+        // that said, it's fast and works. the radix is **known** at compile
+        // time so we can optimize this further.
+        if cfg!(not(feature = "power-of-two")) || radix == 10 {
+            // NOTE: We generally want powers-of-two since it makes the comparison
+            // faster (it can just look for the upper bits being set), and luckily
+            // for radices of 10 we can always use `2 * bytes`.
+            mem::size_of::<Self>() * 2
+        } else if radix <= 16 {
             mem::size_of::<Self>() * 2 - Self::IS_SIGNED as usize
         } else {
             // way under approximation but always works and is fast
