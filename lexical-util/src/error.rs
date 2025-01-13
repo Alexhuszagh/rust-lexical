@@ -46,6 +46,8 @@ pub enum Error {
     ExponentWithoutIntegerDigits(usize),
     /// Exponent was present without any digits in the fraction component.
     ExponentWithoutFractionDigits(usize),
+    /// Exponent was present without any significants digits.
+    ExponentWithoutMantissaDigits(usize),
     /// Integer or integer component of float had invalid leading zeros.
     InvalidLeadingZeros(usize),
     /// No exponent with required exponent notation.
@@ -166,6 +168,7 @@ impl Error {
             Self::ExponentWithoutFraction(_) =>  "'invalid float containing exponent without fraction'",
             Self::ExponentWithoutIntegerDigits(_) =>  "'invalid float containing exponent without integer digits'",
             Self::ExponentWithoutFractionDigits(_) =>  "'invalid float containing exponent without fraction digits'",
+            Self::ExponentWithoutMantissaDigits(_) =>  "'invalid float containing exponent without any significant digits'",
             Self::InvalidLeadingZeros(_) => "'invalid number with leading zeros before digits'",
             Self::MissingExponent(_) => "'missing required exponent'",
             Self::MissingSign(_) => "'missing required `+/-` sign for integer'",
@@ -234,6 +237,7 @@ impl Error {
             Self::ExponentWithoutFraction(index) => Some(index),
             Self::ExponentWithoutIntegerDigits(index) => Some(index),
             Self::ExponentWithoutFractionDigits(index) => Some(index),
+            Self::ExponentWithoutMantissaDigits(index) => Some(index),
             Self::InvalidLeadingZeros(index) => Some(index),
             Self::MissingExponent(index) => Some(index),
             Self::MissingSign(index) => Some(index),
@@ -394,6 +398,9 @@ impl fmt::Display for Error {
                 write_parse_error!(formatter, description, index)
             },
             Self::ExponentWithoutFractionDigits(index) => {
+                write_parse_error!(formatter, description, index)
+            },
+            Self::ExponentWithoutMantissaDigits(index) => {
                 write_parse_error!(formatter, description, index)
             },
             Self::InvalidLeadingZeros(index) => write_parse_error!(formatter, description, index),

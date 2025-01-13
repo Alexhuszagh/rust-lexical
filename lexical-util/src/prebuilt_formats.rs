@@ -1,4 +1,10 @@
 //! Pre-built formats for each programming language,
+//!
+//! The specifications for all of this code can be found
+//! in [`lexical-float-format`], with sample code and
+//! the logic to parse and validate the numbers.
+//!
+//! [`lexical-float-format`]: https://github.com/Alexhuszagh/lexical-float-format
 
 #![cfg(feature = "format")]
 
@@ -688,46 +694,6 @@ use crate::format::NumberFormatBuilder;
 //      db.movie.find()
 //      ```
 
-// TEST CASES
-// ----------
-
-// NOTE: The exact value of some of these, like specials,
-// will differ based on the programming languages used.
-
-// `N/A` - case_sensitive_base_prefix
-// `N/A` - case_sensitive_base_suffix
-// `.1` - required_integer_digits
-// `1.` - required_fraction_digits
-// `1.0e` - required_exponent_digits
-// `.` - required_mantissa_digits
-// `+1` - no_positive_mantissa_sign
-// `1` - required_mantissa_sign
-// `1.0e3` - no_exponent_notation
-// `1.0e+3` - no_positive_exponent_sign
-// `1.0e3` - required_exponent_sign
-// `1e3` - no_exponent_without_fraction
-// `NaN` - no_special
-// `nan` - case_sensitive_special
-// `01` - no_integer_leading_zeros
-// `01.0` - no_float_leading_zeros
-// `1.0` - required_exponent_notation
-// `1.0E3` - case_sensitive_exponent
-// `N/A` - case_sensitive_base_prefix
-// `N/A` - case_sensitive_base_suffix
-// `1_1.11e11` - integer_internal_digit_separator
-// `11.1_1e11` - fraction_internal_digit_separator
-// `11.11e1_1` - exponent_internal_digit_separator
-// `_11.11e11` - integer_leading_digit_separator
-// `11._11e11` - fraction_leading_digit_separator
-// `11.11e_11` - exponent_leading_digit_separator
-// `11_.11e11` - integer_trailing_digit_separator
-// `11.11_e11` - fraction_trailing_digit_separator
-// `11.11e11_` - exponent_trailing_digit_separator
-// `1__1.11e11` - integer_consecutive_digit_separator
-// `11.1__1e11` - fraction_consecutive_digit_separator
-// `11.11e1__1` - exponent_consecutive_digit_separator
-// `na_n` - special_digit_separator
-
 // PRE-DEFINED CONSTANTS
 // ---------------------
 //
@@ -747,9 +713,17 @@ use crate::format::NumberFormatBuilder;
 #[rustfmt::skip]
 pub const RUST_LITERAL: u128 = NumberFormatBuilder::new()
     .digit_separator(num::NonZeroU8::new(b'_'))
-    .required_digits(true)
+    .required_integer_digits(true)
+    .required_mantissa_digits(true)
     .no_positive_mantissa_sign(true)
     .no_special(true)
+    .required_exponent_digits(true)
+    .required_integer_digits_with_exponent(true)
+    .required_fraction_digits_with_exponent(true)
+    .supports_parsing_floats(true)
+    .supports_parsing_integers(true)
+    .supports_writing_floats(true)
+    .supports_writing_integers(true)
     .internal_digit_separator(true)
     .trailing_digit_separator(true)
     .consecutive_digit_separator(true)
