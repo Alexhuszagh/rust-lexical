@@ -43,34 +43,35 @@ use crate::format_flags as flags;
 /// 19. [`case_sensitive_base_suffix`][NumberFormat::case_sensitive_base_suffix]
 /// 20. [`required_integer_digits_with_exponent`][NumberFormat::required_integer_digits_with_exponent]
 /// 21. [`required_fraction_digits_with_exponent`][NumberFormat::required_fraction_digits_with_exponent]
-/// 22. [`supports_parsing_integers`][NumberFormat::supports_parsing_integers]
-/// 23. [`supports_parsing_floats`][NumberFormat::supports_parsing_floats]
-/// 24. [`supports_writing_integers`][NumberFormat::supports_writing_integers]
-/// 25. [`supports_writing_floats`][NumberFormat::supports_writing_floats]
-/// 26. [`required_base_prefix`][NumberFormat::required_base_prefix]
-/// 27. [`required_base_suffix`][NumberFormat::required_base_suffix]
-/// 28. [`integer_internal_digit_separator`][NumberFormat::integer_internal_digit_separator]
-/// 29. [`fraction_internal_digit_separator`][NumberFormat::fraction_internal_digit_separator]
-/// 30. [`exponent_internal_digit_separator`][NumberFormat::exponent_internal_digit_separator]
-/// 31. [`internal_digit_separator`][NumberFormat::internal_digit_separator]
-/// 32. [`integer_leading_digit_separator`][NumberFormat::integer_leading_digit_separator]
-/// 33. [`fraction_leading_digit_separator`][NumberFormat::fraction_leading_digit_separator]
-/// 34. [`exponent_leading_digit_separator`][NumberFormat::exponent_leading_digit_separator]
-/// 35. [`leading_digit_separator`][NumberFormat::leading_digit_separator]
-/// 36. [`integer_trailing_digit_separator`][NumberFormat::integer_trailing_digit_separator]
-/// 37. [`fraction_trailing_digit_separator`][NumberFormat::fraction_trailing_digit_separator]
-/// 38. [`exponent_trailing_digit_separator`][NumberFormat::exponent_trailing_digit_separator]
-/// 39. [`trailing_digit_separator`][NumberFormat::trailing_digit_separator]
-/// 40. [`integer_consecutive_digit_separator`][NumberFormat::integer_consecutive_digit_separator]
-/// 41. [`fraction_consecutive_digit_separator`][NumberFormat::fraction_consecutive_digit_separator]
-/// 42. [`exponent_consecutive_digit_separator`][NumberFormat::exponent_consecutive_digit_separator]
-/// 43. [`consecutive_digit_separator`][NumberFormat::consecutive_digit_separator]
-/// 44. [`special_digit_separator`][NumberFormat::special_digit_separator]
-/// 45. [`digit_separator`][NumberFormat::digit_separator]
-/// 46. [`base_prefix`][NumberFormat::base_prefix]
-/// 47. [`base_suffix`][NumberFormat::base_suffix]
-/// 48. [`exponent_base`][NumberFormat::exponent_base]
-/// 49. [`exponent_radix`][NumberFormat::exponent_radix]
+/// 22. [`required_mantissa_digits_with_exponent`][NumberFormat::required_mantissa_digits_with_exponent]
+/// 23. [`supports_parsing_integers`][NumberFormat::supports_parsing_integers]
+/// 24. [`supports_parsing_floats`][NumberFormat::supports_parsing_floats]
+/// 25. [`supports_writing_integers`][NumberFormat::supports_writing_integers]
+/// 26. [`supports_writing_floats`][NumberFormat::supports_writing_floats]
+/// 27. [`required_base_prefix`][NumberFormat::required_base_prefix]
+/// 28. [`required_base_suffix`][NumberFormat::required_base_suffix]
+/// 29. [`integer_internal_digit_separator`][NumberFormat::integer_internal_digit_separator]
+/// 30. [`fraction_internal_digit_separator`][NumberFormat::fraction_internal_digit_separator]
+/// 31. [`exponent_internal_digit_separator`][NumberFormat::exponent_internal_digit_separator]
+/// 32. [`internal_digit_separator`][NumberFormat::internal_digit_separator]
+/// 33. [`integer_leading_digit_separator`][NumberFormat::integer_leading_digit_separator]
+/// 34. [`fraction_leading_digit_separator`][NumberFormat::fraction_leading_digit_separator]
+/// 35. [`exponent_leading_digit_separator`][NumberFormat::exponent_leading_digit_separator]
+/// 36. [`leading_digit_separator`][NumberFormat::leading_digit_separator]
+/// 37. [`integer_trailing_digit_separator`][NumberFormat::integer_trailing_digit_separator]
+/// 38. [`fraction_trailing_digit_separator`][NumberFormat::fraction_trailing_digit_separator]
+/// 39. [`exponent_trailing_digit_separator`][NumberFormat::exponent_trailing_digit_separator]
+/// 40. [`trailing_digit_separator`][NumberFormat::trailing_digit_separator]
+/// 41. [`integer_consecutive_digit_separator`][NumberFormat::integer_consecutive_digit_separator]
+/// 42. [`fraction_consecutive_digit_separator`][NumberFormat::fraction_consecutive_digit_separator]
+/// 43. [`exponent_consecutive_digit_separator`][NumberFormat::exponent_consecutive_digit_separator]
+/// 44. [`consecutive_digit_separator`][NumberFormat::consecutive_digit_separator]
+/// 45. [`special_digit_separator`][NumberFormat::special_digit_separator]
+/// 46. [`digit_separator`][NumberFormat::digit_separator]
+/// 47. [`base_prefix`][NumberFormat::base_prefix]
+/// 48. [`base_suffix`][NumberFormat::base_suffix]
+/// 49. [`exponent_base`][NumberFormat::exponent_base]
+/// 50. [`exponent_radix`][NumberFormat::exponent_radix]
 ///
 /// This should always be constructed via [`NumberFormatBuilder`].
 /// See [`NumberFormatBuilder`] for the fields for the packed struct.
@@ -663,6 +664,33 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     #[inline(always)]
     pub const fn required_fraction_digits_with_exponent(&self) -> bool {
         Self::REQUIRED_FRACTION_DIGITS_WITH_EXPONENT
+    }
+
+    /// If any significant digits are required with exponent notation.
+    ///
+    /// See [`required_mantissa_digits_with_exponent`][Self::required_mantissa_digits_with_exponent].
+    pub const REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT: bool = true;
+
+    /// Get if any significant digits are required with exponent notation.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
+    /// to [`true`].
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `.1e5` | ✔️ |
+    /// | `.e5` | ❌ |
+    /// | `1.e5` | ✔️ |
+    /// | `1.0e5` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn required_mantissa_digits_with_exponent(&self) -> bool {
+        Self::REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT
     }
 
     /// If the format supports parsing integers.

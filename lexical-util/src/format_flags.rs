@@ -25,7 +25,7 @@
 //!
 //! 16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-//! |e/P|e/S|I/E|F/E|p/I|p/F|w/I|w/F|R/P|r/S|                       |
+//! |e/P|e/S|I/E|F/E|p/I|p/F|w/I|w/F|R/P|r/S|M/E|                   |
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 //!
 //! 32  33  34  35  36  37  38  39  40  41 42  43  44  45  46  47   48
@@ -66,6 +66,7 @@
 //!         w/F = The format supports writing floats.
 //!         r/P = Require base prefixes.
 //!         r/S = Require base suffixes.
+//!         M/E = Require mantissa digits with exponent.
 //!
 //!     Digit Separator Flags:
 //!         I/I = Integer internal digit separator.
@@ -369,6 +370,9 @@ pub const REQUIRED_BASE_PREFIX: u128 = 1 << 24;
 /// If the format requires base suffixes.
 pub const REQUIRED_BASE_SUFFIX: u128 = 1 << 25;
 
+/// If any significant digits are required with exponent notation.
+pub const REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT: u128 = 1 << 26;
+
 // Non-digit separator flags.
 const _: () = assert!(REQUIRED_INTEGER_DIGITS == 1);
 check_subsequent_flags!(REQUIRED_INTEGER_DIGITS, REQUIRED_FRACTION_DIGITS);
@@ -397,6 +401,7 @@ check_subsequent_flags!(SUPPORTS_PARSING_FLOATS, SUPPORTS_WRITING_INTEGERS);
 check_subsequent_flags!(SUPPORTS_WRITING_INTEGERS, SUPPORTS_WRITING_FLOATS);
 check_subsequent_flags!(SUPPORTS_WRITING_FLOATS, REQUIRED_BASE_PREFIX);
 check_subsequent_flags!(REQUIRED_BASE_PREFIX, REQUIRED_BASE_SUFFIX);
+check_subsequent_flags!(REQUIRED_BASE_SUFFIX, REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT);
 
 // DIGIT SEPARATOR FLAGS & MASKS
 // -----------------------------
@@ -571,6 +576,7 @@ pub const FLAG_MASK: u128 =
     CASE_SENSITIVE_BASE_SUFFIX |
     REQUIRED_INTEGER_DIGITS_WITH_EXPONENT |
     REQUIRED_FRACTION_DIGITS_WITH_EXPONENT |
+    REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT |
     SUPPORTS_PARSING_FLOATS |
     SUPPORTS_PARSING_INTEGERS |
     SUPPORTS_WRITING_FLOATS |
@@ -603,6 +609,7 @@ pub const INTERFACE_FLAG_MASK: u128 =
     REQUIRED_EXPONENT_NOTATION |
     REQUIRED_INTEGER_DIGITS_WITH_EXPONENT |
     REQUIRED_FRACTION_DIGITS_WITH_EXPONENT |
+    REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT |
     INTERNAL_DIGIT_SEPARATOR |
     LEADING_DIGIT_SEPARATOR |
     TRAILING_DIGIT_SEPARATOR |
@@ -628,6 +635,7 @@ pub const EXPONENT_FLAG_MASK: u128 =
     REQUIRED_EXPONENT_NOTATION |
     REQUIRED_INTEGER_DIGITS_WITH_EXPONENT |
     REQUIRED_FRACTION_DIGITS_WITH_EXPONENT |
+    REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT |
     EXPONENT_INTERNAL_DIGIT_SEPARATOR |
     EXPONENT_LEADING_DIGIT_SEPARATOR |
     EXPONENT_TRAILING_DIGIT_SEPARATOR |

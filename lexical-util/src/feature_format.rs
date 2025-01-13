@@ -633,7 +633,7 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// notation, if the decimal point is present.
     ///
     /// Can only be modified with [`feature`][crate#features] `format`. Defaults
-    /// to [`false`]
+    /// to [`false`].
     ///
     /// # Examples
     ///
@@ -650,6 +650,33 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     #[inline(always)]
     pub const fn required_fraction_digits_with_exponent(&self) -> bool {
         Self::REQUIRED_FRACTION_DIGITS_WITH_EXPONENT
+    }
+
+    /// If any significant digits are required with exponent notation.
+    ///
+    /// See [`required_mantissa_digits_with_exponent`][Self::required_mantissa_digits_with_exponent].
+    pub const REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT: bool = from_flag!(FORMAT, REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT);
+
+    /// Get if any significant digits are required with exponent notation.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
+    /// to [`true`].
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `.1e5` | ✔️ |
+    /// | `.e5` | ❌ |
+    /// | `1.e5` | ✔️ |
+    /// | `1.0e5` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn required_mantissa_digits_with_exponent(&self) -> bool {
+        Self::REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT
     }
 
     /// If the format supports parsing integers.

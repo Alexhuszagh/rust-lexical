@@ -718,6 +718,14 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
             {
                 return Err(Error::ExponentWithoutFractionDigits(byte.cursor() - 1));
             }
+
+            // We require any significant digits, before or after the dot, but we have none.
+            if format.required_mantissa_digits_with_exponent()
+                && n_before_dot == 0
+                && n_after_dot == 0
+            {
+                return Err(Error::ExponentWithoutMantissaDigits(byte.cursor() - 1));
+            }
         }
 
         let is_negative_exponent = parse_exponent_sign(&mut byte)?;
