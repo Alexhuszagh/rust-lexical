@@ -792,8 +792,7 @@ macro_rules! algorithm {
         );
     }
 
-    #[cfg(all(feature = "format", feature = "power-of-two"))]
-    if format.required_base_suffix() && !has_suffix {
+    if cfg!(all(feature = "format", feature = "power-of-two")) && format.required_base_suffix() && !has_suffix {
         return Err(Error::MissingBaseSuffix(iter.cursor()));
     }
 

@@ -135,6 +135,32 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 /// - [`case_sensitive_exponent`]: If exponent characters are case-sensitive.
 /// - [`case_sensitive_base_prefix`]: If base prefixes are case-sensitive.
 /// - [`case_sensitive_base_suffix`]: If base suffixes are case-sensitive.
+/// - [`start_digit_separator`]: If digit separators are allowed at the absolute
+///   start of the number.
+/// - [`integer_sign_digit_separator`]: If digit separators are allowed before
+///   the sign of the integer.
+/// - [`integer_consecutive_sign_digit_separator`]: If consecutive digit
+///   separators are allowed before the sign of the integer.
+/// - [`exponent_sign_digit_separator`]: If digit separators are allowed before
+///   the sign of the exponent.
+/// - [`exponent_consecutive_sign_digit_separator`]: If consecutive digit
+///   separators are allowed before the sign of the exponent.
+/// - [`base_prefix_internal_digit_separator`]: If a digit separator is allowed
+///   between the base prefix.
+/// - [`base_prefix_leading_digit_separator`]: If a digit separator is allowed
+///   before the base prefix.
+/// - [`base_prefix_trailing_digit_separator`]: If a digit separator is allowed
+///   after the base prefix.
+/// - [`base_prefix_consecutive_digit_separator`]: If multiple consecutive base
+///   prefix digit separators are allowed.
+/// - [`base_suffix_internal_digit_separator`]: If a digit separator is allowed
+///   between the base suffix.
+/// - [`base_suffix_leading_digit_separator`]: If a digit separator is allowed
+///   before the base suffix.
+/// - [`base_suffix_trailing_digit_separator`]: If a digit separator is allowed
+///   after the base suffix.
+/// - [`base_suffix_consecutive_digit_separator`]: If multiple consecutive base
+///   suffix digit separators are allowed.
 /// - [`integer_internal_digit_separator`]: If digit separators are allowed
 ///   between integer digits.
 /// - [`fraction_internal_digit_separator`]: If digit separators are allowed
@@ -178,6 +204,28 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 ///   required.
 /// - [`no_integer_leading_zeros`]: If leading zeros before an integer are not
 ///   allowed.
+/// - [`start_digit_separator`]: If digit separators are allowed at the absolute
+///   start of the number.
+/// - [`integer_sign_digit_separator`]: If digit separators are allowed before
+///   the sign of the integer.
+/// - [`integer_consecutive_sign_digit_separator`]: If consecutive digit
+///   separators are allowed before the sign of the integer.
+/// - [`base_prefix_internal_digit_separator`]: If a digit separator is allowed
+///   between the base prefix.
+/// - [`base_prefix_leading_digit_separator`]: If a digit separator is allowed
+///   before the base prefix.
+/// - [`base_prefix_trailing_digit_separator`]: If a digit separator is allowed
+///   after the base prefix.
+/// - [`base_prefix_consecutive_digit_separator`]: If multiple consecutive base
+///   prefix digit separators are allowed.
+/// - [`base_suffix_internal_digit_separator`]: If a digit separator is allowed
+///   between the base suffix.
+/// - [`base_suffix_leading_digit_separator`]: If a digit separator is allowed
+///   before the base suffix.
+/// - [`base_suffix_trailing_digit_separator`]: If a digit separator is allowed
+///   after the base suffix.
+/// - [`base_suffix_consecutive_digit_separator`]: If multiple consecutive base
+///   suffix digit separators are allowed.
 /// - [`integer_internal_digit_separator`]: If digit separators are allowed
 ///   between integer digits.
 /// - [`integer_leading_digit_separator`]:  If a digit separator is allowed
@@ -248,6 +296,32 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 /// - [`case_sensitive_exponent`]: If exponent characters are case-sensitive.
 /// - [`case_sensitive_base_prefix`]: If base prefixes are case-sensitive.
 /// - [`case_sensitive_base_suffix`]: If base suffixes are case-sensitive.
+/// - [`start_digit_separator`]: If digit separators are allowed at the absolute
+///   start of the number.
+/// - [`integer_sign_digit_separator`]: If digit separators are allowed before
+///   the sign of the integer.
+/// - [`integer_consecutive_sign_digit_separator`]: If consecutive digit
+///   separators are allowed before the sign of the integer.
+/// - [`exponent_sign_digit_separator`]: If digit separators are allowed before
+///   the sign of the exponent.
+/// - [`exponent_consecutive_sign_digit_separator`]: If consecutive digit
+///   separators are allowed before the sign of the exponent.
+/// - [`base_prefix_internal_digit_separator`]: If a digit separator is allowed
+///   between the base prefix.
+/// - [`base_prefix_leading_digit_separator`]: If a digit separator is allowed
+///   before the base prefix.
+/// - [`base_prefix_trailing_digit_separator`]: If a digit separator is allowed
+///   after the base prefix.
+/// - [`base_prefix_consecutive_digit_separator`]: If multiple consecutive base
+///   prefix digit separators are allowed.
+/// - [`base_suffix_internal_digit_separator`]: If a digit separator is allowed
+///   between the base suffix.
+/// - [`base_suffix_leading_digit_separator`]: If a digit separator is allowed
+///   before the base suffix.
+/// - [`base_suffix_trailing_digit_separator`]: If a digit separator is allowed
+///   after the base suffix.
+/// - [`base_suffix_consecutive_digit_separator`]: If multiple consecutive base
+///   suffix digit separators are allowed.
 /// - [`integer_internal_digit_separator`]: If digit separators are allowed
 ///   between integer digits.
 /// - [`fraction_internal_digit_separator`]: If digit separators are allowed
@@ -315,6 +389,19 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`supports_parsing_floats`]: Self::supports_parsing_floats\n
 [`supports_writing_integers`]: Self::supports_writing_integers\n
 [`supports_writing_floats`]: Self::supports_writing_floats\n
+[`start_digit_separator`]: Self::start_digit_separator\n
+[`integer_sign_digit_separator`]: Self::integer_sign_digit_separator\n
+[`integer_consecutive_sign_digit_separator`]: Self::integer_consecutive_sign_digit_separator\n
+[`exponent_sign_digit_separator`]: Self::exponent_sign_digit_separator\n
+[`exponent_consecutive_sign_digit_separator`]: Self::exponent_consecutive_sign_digit_separator\n
+[`base_prefix_internal_digit_separator`]: Self::base_prefix_internal_digit_separator\n
+[`base_prefix_leading_digit_separator`]: Self::base_prefix_leading_digit_separator\n
+[`base_prefix_trailing_digit_separator`]: Self::base_prefix_trailing_digit_separator\n
+[`base_prefix_consecutive_digit_separator`]: Self::base_prefix_consecutive_digit_separator\n
+[`base_suffix_internal_digit_separator`]: Self::base_suffix_internal_digit_separator\n
+[`base_suffix_leading_digit_separator`]: Self::base_suffix_leading_digit_separator\n
+[`base_suffix_trailing_digit_separator`]: Self::base_suffix_trailing_digit_separator\n
+[`base_suffix_consecutive_digit_separator`]: Self::base_suffix_consecutive_digit_separator\n
 [`integer_internal_digit_separator`]: Self::integer_internal_digit_separator\n
 [`fraction_internal_digit_separator`]: Self::fraction_internal_digit_separator\n
 [`exponent_internal_digit_separator`]: Self::exponent_internal_digit_separator\n
@@ -356,6 +443,19 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`supports_writing_integers`]: https://github.com/Alexhuszagh/rust-lexical/blob/f53fae0/lexical-util/src/format_builder.rs#L1201\n
 [`supports_writing_floats`]: https://github.com/Alexhuszagh/rust-lexical/blob/f53fae0/lexical-util/src/format_builder.rs#L1211\n
 [`case_sensitive_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L765\n
+[`start_digit_separator`]: https://TODO.com\n
+[`integer_sign_digit_separator`]: https://TODO.com\n
+[`integer_consecutive_sign_digit_separator`]: https://TODO.com\n
+[`exponent_sign_digit_separator`]: https://TODO.com\n
+[`exponent_consecutive_sign_digit_separator`]: https://TODO.com\n
+[`base_prefix_internal_digit_separator`]: https://TODO.com\n
+[`base_prefix_leading_digit_separator`]: https://TODO.com\n
+[`base_prefix_trailing_digit_separator`]: https://TODO.com\n
+[`base_prefix_consecutive_digit_separator`]: https://TODO.com\n
+[`base_suffix_internal_digit_separator`]: https://TODO.com\n
+[`base_suffix_leading_digit_separator`]: https://TODO.com\n
+[`base_suffix_trailing_digit_separator`]: https://TODO.com\n
+[`base_suffix_consecutive_digit_separator`]: https://TODO.com\n
 [`integer_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L793\n
 [`fraction_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L805\n
 [`exponent_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L817\n
@@ -392,6 +492,74 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`required_base_suffix`]: https://github.com/Alexhuszagh/rust-lexical/blob/63f9adf/lexical-util/src/format_builder.rs#L1291\n
 "
 )]
+///
+/// # Number Details
+///
+/// This assumes a number that follows the following conventions. You should
+/// design custom number formats using these assumptions.
+///
+/// #### Integers
+///
+/// ```text
+/// +--1--+--2--+--3--+--4--+--5--+--6--+--7--+--8--+--9--+--10-+--11-+
+/// | __  | +/- | __  | 0x  | __  | 12  | __  | 34  | __  |  h  | __  |
+/// +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
+/// ```
+///
+/// Where the components are:
+/// 1. Sign digit separators (rarely, if ever, used)
+/// 2. Sign
+/// 3. Leading base prefix digit separators
+/// 4. Base prefix (always `0` + a character)
+/// 5. Leading integer digit separators
+/// 6. Integer digits
+/// 7. Internal integer digit separators
+/// 8. Integer digits
+/// 9. Trailing integer digit separators
+/// 10. Base suffix (such as `h` for X86 assembly)
+/// 11. Trailing base suffix digit separators
+///
+/// #### Floats
+///
+/// This has all the same components as integers, with many additional
+/// ones.
+///
+/// ```text
+/// +--1--+--2--+--3--+--4--+--5--+--6--+--7--+--8--+--9--+-10--+-11--+-12--+-13--+-14--+-15--+
+/// | __  | +/- | __  | 0x  | __  | 12  | __  | 34  | __  |  .  | __  | 56  | __  | 78  | __  |
+/// +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
+///
+/// +-16--+-17--+-18--+-19--+-20--+-21--+-22--+-23--+-24--+-25--+-----+-----+-----+-----+-----+
+/// |  e  | __  | +/- |  __ | 90  | __  | 12  | __  |  h  | __  |     |     |     |     |     |
+/// +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
+/// ```
+///
+/// Where the components are:
+/// 1. Mantissa sign digit separators (rarely, if ever, used)
+/// 2. Mantissa sign
+/// 3. Leading base prefix digit separators
+/// 4. Base prefix (always `0` + a character)
+/// 5. Leading integer digit separators
+/// 6. Integer digits
+/// 7. Internal integer digit separators
+/// 8. Integer digits
+/// 9. Trailing integer digit separators
+/// 10. Decimal point
+/// 11. Leading fraction digit separators
+/// 12. Fraction digits
+/// 13. Internal fraction digit separators
+/// 14. Fraction digits
+/// 15. Trailing fraction digit separators
+/// 16. Exponent symbol
+/// 17. Exponent sign digit separators (rarely, if ever, used)
+/// 18. Exponent sign
+/// 19. Leading exponent digit separators
+/// 20. Exponent digits
+/// 21. Internal exponent digit separators
+/// 22. Exponent digits
+/// 23. Trailing exponent digit separators
+/// 24. Base suffix (such as `h` for X86 assembly)
+/// 25. Trailing base suffix digit separators
 pub struct NumberFormatBuilder {
     digit_separator: OptionU8,
     base_prefix: OptionU8,
@@ -426,6 +594,19 @@ pub struct NumberFormatBuilder {
     required_mantissa_digits_with_exponent: bool,
     required_base_prefix: bool,
     required_base_suffix: bool,
+    start_digit_separator: bool,
+    integer_sign_digit_separator: bool,
+    integer_consecutive_sign_digit_separator: bool,
+    exponent_sign_digit_separator: bool,
+    exponent_consecutive_sign_digit_separator: bool,
+    base_prefix_internal_digit_separator: bool,
+    base_prefix_leading_digit_separator: bool,
+    base_prefix_trailing_digit_separator: bool,
+    base_prefix_consecutive_digit_separator: bool,
+    base_suffix_internal_digit_separator: bool,
+    base_suffix_leading_digit_separator: bool,
+    base_suffix_trailing_digit_separator: bool,
+    base_suffix_consecutive_digit_separator: bool,
     integer_internal_digit_separator: bool,
     fraction_internal_digit_separator: bool,
     exponent_internal_digit_separator: bool,
@@ -496,6 +677,21 @@ impl NumberFormatBuilder {
     ///   `false`
     /// - [`required_base_prefix`][Self::get_required_base_prefix] - `false`
     /// - [`required_base_suffix`][Self::get_required_base_suffix] - `false`
+    /// - [`start_digit_separator`][Self::start_digit_separator] - `true`
+    /// - [`integer_sign_digit_separator`][Self::integer_sign_digit_separator] -
+    ///   `false`
+    /// - [`integer_consecutive_sign_digit_separator`][Self::integer_consecutive_sign_digit_separator] - `false`
+    /// - [`exponent_sign_digit_separator`][Self::exponent_sign_digit_separator]
+    ///   - `false`
+    /// - [`exponent_consecutive_sign_digit_separator`][Self::exponent_consecutive_sign_digit_separator] - `false`
+    /// - [`base_prefix_internal_digit_separator`][Self::base_prefix_internal_digit_separator] - `false`
+    /// - [`base_prefix_leading_digit_separator`][Self::base_prefix_leading_digit_separator] - `false`
+    /// - [`base_prefix_trailing_digit_separator`][Self::base_prefix_trailing_digit_separator] - `false`
+    /// - [`base_prefix_consecutive_digit_separator`][Self::base_prefix_consecutive_digit_separator] - `false`
+    /// - [`base_suffix_internal_digit_separator`][Self::base_suffix_internal_digit_separator] - `false`
+    /// - [`base_suffix_leading_digit_separator`][Self::base_suffix_leading_digit_separator] - `false`
+    /// - [`base_suffix_trailing_digit_separator`][Self::base_suffix_trailing_digit_separator] - `false`
+    /// - [`base_suffix_consecutive_digit_separator`][Self::base_suffix_consecutive_digit_separator] - `false`
     /// - [`integer_internal_digit_separator`][Self::get_integer_internal_digit_separator] - `false`
     /// - [`fraction_internal_digit_separator`][Self::get_fraction_internal_digit_separator] - `false`
     /// - [`exponent_internal_digit_separator`][Self::get_exponent_internal_digit_separator] - `false`
@@ -546,6 +742,19 @@ impl NumberFormatBuilder {
             supports_writing_floats: true,
             required_base_prefix: false,
             required_base_suffix: false,
+            start_digit_separator: true,
+            integer_sign_digit_separator: false,
+            integer_consecutive_sign_digit_separator: false,
+            exponent_sign_digit_separator: false,
+            exponent_consecutive_sign_digit_separator: false,
+            base_prefix_internal_digit_separator: false,
+            base_prefix_leading_digit_separator: false,
+            base_prefix_trailing_digit_separator: false,
+            base_prefix_consecutive_digit_separator: false,
+            base_suffix_internal_digit_separator: false,
+            base_suffix_leading_digit_separator: false,
+            base_suffix_trailing_digit_separator: false,
+            base_suffix_consecutive_digit_separator: false,
             integer_internal_digit_separator: false,
             fraction_internal_digit_separator: false,
             exponent_internal_digit_separator: false,
@@ -601,6 +810,19 @@ impl NumberFormatBuilder {
             supports_writing_floats: false,
             required_base_prefix: false,
             required_base_suffix: false,
+            start_digit_separator: true,
+            integer_sign_digit_separator: false,
+            integer_consecutive_sign_digit_separator: false,
+            exponent_sign_digit_separator: false,
+            exponent_consecutive_sign_digit_separator: false,
+            base_prefix_internal_digit_separator: false,
+            base_prefix_leading_digit_separator: false,
+            base_prefix_trailing_digit_separator: false,
+            base_prefix_consecutive_digit_separator: false,
+            base_suffix_internal_digit_separator: false,
+            base_suffix_leading_digit_separator: false,
+            base_suffix_trailing_digit_separator: false,
+            base_suffix_consecutive_digit_separator: false,
             integer_internal_digit_separator: false,
             fraction_internal_digit_separator: false,
             exponent_internal_digit_separator: false,
@@ -785,6 +1007,10 @@ impl NumberFormatBuilder {
     /// used for writing numbers if [`required_base_prefix`] is [`true`].
     /// This is ignored for special floating-point numbers.
     ///
+    /// Note that base prefixes are not allowed for the exponent digits
+    /// of a float: the prefix (such as `0x`) must come before any other
+    /// significant digits, optionally with digit separators present.
+    ///
     /// # Examples
     ///
     /// Using a base prefix of `x`.
@@ -819,6 +1045,12 @@ impl NumberFormatBuilder {
     /// `format`. Defaults to [`None`], or no base suffix allowed. This is only
     /// used for writing numbers if [`required_base_suffix`] is [`true`].
     /// This is ignored for special floating-point numbers.
+    ///
+    /// Note that base suffixes are not allowed for the exponent digits
+    /// of a float: the suffix, if it's present, will always refer to the
+    /// float as a whole, optionally with digit separators present. For
+    /// example, `4d2p0101x` would have the `x` refer to the full float,
+    /// not the exponent of `0101`.
     ///
     /// # Examples
     ///
@@ -1377,6 +1609,365 @@ impl NumberFormatBuilder {
         self.required_base_suffix
     }
 
+    /// Get if digit separators are allowed at the absolute start of the number.
+    ///
+    /// This modifies the behavior of [`integer_sign_digit_separator`] and
+    /// [`integer_leading_digit_separator`] so that the digit separators can
+    /// occur at the absolute start and not just internal to the number.
+    ///
+    /// [`integer_sign_digit_separator`]: Self::get_integer_sign_digit_separator
+    /// [`integer_leading_digit_separator`]: Self::get_integer_leading_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, integer leading digit separators
+    /// enabled, and starting digit separators enabled.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `_1` | ✔️ |
+    /// | `_+1` | ❌ |
+    /// | `+_1` | ✔️ |
+    /// | `+0x_1` | ✔️ |
+    /// | `+_0x1` | ❌ |
+    ///
+    /// Using a digit separator of `_`, integer leading digit separators
+    /// enabled, and starting digit separators disabled.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `_1` | ❌ |
+    /// | `_+1` | ❌ |
+    /// | `+_1` | ✔️ |
+    /// | `+0x_1` | ✔️ |
+    /// | `+_0x1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn get_start_digit_separator(&self) -> bool {
+        self.start_digit_separator
+    }
+
+    /// Get if digit separators are allowed before the sign of the integer.
+    ///
+    /// You can disable support for digit separators at the absolute start
+    /// using the [`start_digit_separator`] flag.
+    ///
+    /// [`start_digit_separator`]: Self::get_start_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `_` | ❌ |
+    /// | `_1` | ❌ |
+    /// | `_+1` | ✔️ |
+    /// | `+_1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn get_integer_sign_digit_separator(&self) -> bool {
+        self.integer_sign_digit_separator
+    }
+
+    /// Get if consecutive digit separators are allowed before the sign of the
+    /// integer.
+    ///
+    /// That is, using `_` as a digit separator `__` would be allowed. Defaults
+    /// to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `_` | ❌ |
+    /// | `_1` | ❌ |
+    /// | `_+1` | ✔️ |
+    /// | `__+1` | ✔️ |
+    /// | `+_1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn get_integer_consecutive_sign_digit_separator(&self) -> bool {
+        self.integer_consecutive_sign_digit_separator
+    }
+
+    /// Get if digit separators are allowed before the sign of the exponent.
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1.0e1` | ✔️ |
+    /// | `1.0e_` | ❌ |
+    /// | `1.0e_1` | ❌ |
+    /// | `1.0e_+1` | ✔️ |
+    /// | `1.0e+_1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn get_exponent_sign_digit_separator(&self) -> bool {
+        self.exponent_sign_digit_separator
+    }
+
+    /// Get if consecutive digit separators are allowed before the sign of the
+    /// exponent.
+    ///
+    /// That is, using `_` as a digit separator `__` would be allowed.
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1.0e1` | ✔️ |
+    /// | `1.0e_` | ❌ |
+    /// | `1.0e_1` | ❌ |
+    /// | `1.0e_+1` | ✔️ |
+    /// | `1.0e__+1` | ✔️ |
+    /// | `1.0e+_1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn get_exponent_consecutive_sign_digit_separator(&self) -> bool {
+        self.exponent_consecutive_sign_digit_separator
+    }
+
+    /// Get if a digit separator is allowed between the `0` and the base prefix.
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, and a base prefix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `0x1` | ✔️ |
+    /// | `_0x1` | ❌ |
+    /// | `0x_1` | ❌ |
+    /// | `0_x1` | ✔️ |
+    /// | `+0_x1` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn get_base_prefix_internal_digit_separator(&self) -> bool {
+        self.base_prefix_internal_digit_separator
+    }
+
+    /// Get if a digit separator is allowed before the base prefix.
+    ///
+    /// This is taken **after** the sign and therefore  may be at the absolute
+    /// start of the number or internal to it. You can disable support for
+    /// digit separators at the absolute start using the
+    /// [`start_digit_separator`] flag.
+    ///
+    /// [`start_digit_separator`]: Self::get_start_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, a base prefix of `x`, and starting digit
+    /// separators enabled.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `0x1` | ✔️ |
+    /// | `_0x1` | ✔️ |
+    /// | `0x_1` | ❌ |
+    /// | `0_x1` | ❌ |
+    /// | `+_0x1` | ✔️ |
+    /// | `_+0x1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn get_base_prefix_leading_digit_separator(&self) -> bool {
+        self.base_prefix_leading_digit_separator
+    }
+
+    /// Get if a digit separator is allowed after the base prefix.
+    ///
+    /// If a base prefix is present, then [`integer_leading_digit_separator`]
+    /// overlaps with this functionality, and either being enabled, as well
+    /// as consecutive digit separators, will consider it to be valid. If
+    /// both are set and neither enables consecutive digit separators, then
+    /// `0x__1` is not valid.
+    ///
+    /// [`integer_leading_digit_separator`]: Self::get_integer_leading_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_` and a base prefix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `0x1` | ✔️ |
+    /// | `_0x1` | ❌ |
+    /// | `0_x1` | ❌ |
+    /// | `0x_1` | ✔️ |
+    /// | `0x__1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn get_base_prefix_trailing_digit_separator(&self) -> bool {
+        self.base_prefix_trailing_digit_separator
+    }
+
+    /// Get if multiple consecutive base prefix digit separators are allowed.
+    ///
+    /// That is, using `_` as a digit separator `__` would be allowed where any
+    /// digit separators (leading, trailing, internal) are allowed in the
+    /// base prefix. Defaults to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, a base prefix of `x`, and trailing base
+    /// prefix digit separators.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `0x1` | ✔️ |
+    /// | `_0x1` | ❌ |
+    /// | `0_x1` | ❌ |
+    /// | `0x_1` | ✔️ |
+    /// | `0x__1` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn get_base_prefix_consecutive_digit_separator(&self) -> bool {
+        self.base_prefix_consecutive_digit_separator
+    }
+
+    /// Get if a digit separator is allowed between the base suffix.
+    ///
+    /// This is currently unused, since base suffixes are a single character.
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn get_base_suffix_internal_digit_separator(&self) -> bool {
+        self.base_suffix_internal_digit_separator
+    }
+
+    /// Get if a digit separator is allowed before the base suffix.
+    ///
+    /// If a base suffix is present, then [`integer_trailing_digit_separator`]
+    /// or [`exponent_trailing_digit_separator`] may overlap
+    /// with this functionality (depending on the number components), and either
+    /// being enabled, as well as consecutive digit separators, will
+    /// consider it to be valid. If both are set and neither
+    /// enables consecutive digit separators, then `1__h` is not valid.
+    ///
+    /// [`integer_trailing_digit_separator`]: Self::get_integer_trailing_digit_separator
+    /// [`exponent_trailing_digit_separator`]: Self::get_exponent_trailing_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_` and a base suffix of `h`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `12h` | ✔️ |
+    /// | `1_2h` | ❌ |
+    /// | `12_h` | ✔️ |
+    /// | `12__h` | ✔️ |
+    /// | `12h_` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn get_base_suffix_leading_digit_separator(&self) -> bool {
+        self.base_suffix_leading_digit_separator
+    }
+
+    /// Get if a digit separator is allowed after the base suffix.
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_` and a base suffix of `h`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `12h` | ✔️ |
+    /// | `1_2h` | ❌ |
+    /// | `12_h` | ❌ |
+    /// | `12h_` | ✔️ |
+    /// | `12h__` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn get_base_suffix_trailing_digit_separator(&self) -> bool {
+        self.base_suffix_trailing_digit_separator
+    }
+
+    /// Get if multiple consecutive base suffix digit separators are allowed.
+    ///
+    /// That is, using `_` as a digit separator `__` would be allowed where any
+    /// digit separators (leading, trailing, internal) are allowed in the
+    /// base suffix. Defaults to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, a base suffix of `h`, and trailing base
+    /// suffix digit separators.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `12h` | ✔️ |
+    /// | `1_2h` | ❌ |
+    /// | `12_h` | ❌ |
+    /// | `12h_` | ✔️ |
+    /// | `12h__` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn get_base_suffix_consecutive_digit_separator(&self) -> bool {
+        self.base_suffix_consecutive_digit_separator
+    }
+
     /// Get if digit separators are allowed between integer digits.
     ///
     /// This will not consider an input of only the digit separator
@@ -1461,13 +2052,26 @@ impl NumberFormatBuilder {
 
     /// Get if a digit separator is allowed before any integer digits.
     ///
+    /// This is taken **after** any signs and base prefixes, and therefore
+    /// may be at the absolute start of the number or internal to it. You
+    /// can disable support for digit separators at the absolute start
+    /// using the [`start_digit_separator`] flag. For only those before or after
+    /// a base prefix, see [`base_prefix_leading_digit_separator`] and
+    /// [`base_prefix_trailing_digit_separator`], respectively. For only those
+    /// prior to a sign, see [`integer_sign_digit_separator`].
+    ///
     /// This will consider an input of only the digit separator
-    /// to be a identical to empty input. Can only be modified with
-    /// [`feature`][crate#features] `format`. Defaults to [`false`].
+    /// to be a identical to empty input. Defaults to [`false`].
+    ///
+    /// [`start_digit_separator`]: Self::get_start_digit_separator
+    /// [`base_prefix_leading_digit_separator`]: Self::get_base_prefix_leading_digit_separator
+    /// [`base_prefix_trailing_digit_separator`]: Self::get_base_prefix_trailing_digit_separator
+    /// [`integer_sign_digit_separator`]: Self::get_integer_sign_digit_separator
     ///
     /// # Examples
     ///
-    /// Using a digit separator of `_`.
+    /// Using a digit separator of `_`, and an optional base prefix of
+    /// `x` and starting digit separators enabled.
     ///
     /// | Input | Valid? |
     /// |:-:|:-:|
@@ -1476,6 +2080,10 @@ impl NumberFormatBuilder {
     /// | `1_1` | ❌ |
     /// | `1_` | ❌ |
     /// | `_1` | ✔️ |
+    /// | `_+1` | ❌ |
+    /// | `+_1` | ✔️ |
+    /// | `+0x_1` | ✔️ |
+    /// | `+_0x1` | ❌ |
     ///
     /// # Used For
     ///
@@ -1906,6 +2514,10 @@ impl NumberFormatBuilder {
     /// [`required_base_prefix`] is [`true`]. This is ignored for special
     /// floating-point numbers.
     ///
+    /// Note that base prefixes are not allowed for the exponent digits
+    /// of a float: the prefix (such as `0x`) must come before any other
+    /// significant digits, optionally with digit separators present.
+    ///
     /// # Examples
     ///
     /// Using a base prefix of `x`.
@@ -1960,6 +2572,12 @@ impl NumberFormatBuilder {
     /// allowed. This is only used for writing numbers if
     /// [`required_base_suffix`] is [`true`]. This is ignored for special
     /// floating-point numbers.
+    ///
+    /// Note that base suffixes are not allowed for the exponent digits
+    /// of a float: the suffix, if it's present, will always refer to the
+    /// float as a whole, optionally with digit separators present. For
+    /// example, `4d2p0101x` would have the `x` refer to the full float,
+    /// not the exponent of `0101`.
     ///
     /// # Examples
     ///
@@ -3014,6 +3632,652 @@ impl NumberFormatBuilder {
         self
     }
 
+    /// Set if digit separators are allowed at the absolute start of the number.
+    ///
+    /// This modifies the behavior of [`integer_sign_digit_separator`] and
+    /// [`integer_leading_digit_separator`] so that the digit separators can
+    /// occur at the absolute start and not just internal to the number.
+    ///
+    /// Defaults to [`true`].
+    ///
+    /// [`integer_sign_digit_separator`]: Self::get_integer_sign_digit_separator
+    /// [`integer_leading_digit_separator`]: Self::get_integer_leading_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, integer leading digit separators
+    /// enabled, and starting digit separators enabled.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `_1` | ✔️ |
+    /// | `_+1` | ❌ |
+    /// | `+_1` | ✔️ |
+    /// | `+0x_1` | ✔️ |
+    /// | `+_0x1` | ❌ |
+    ///
+    /// Using a digit separator of `_`, integer leading digit separators
+    /// enabled, and starting digit separators disabled.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `_1` | ❌ |
+    /// | `_+1` | ❌ |
+    /// | `+_1` | ✔️ |
+    /// | `+0x_1` | ✔️ |
+    /// | `+_0x1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const START: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .integer_leading_digit_separator(true)
+    ///     .start_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, START>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, START>(b"_1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, START>(b"+_1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, START>(b"_+1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    ///
+    /// const NO_START: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .integer_leading_digit_separator(true)
+    ///     .start_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<i64, NO_START>(b"1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, NO_START>(b"_1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<i64, NO_START>(b"+_1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, NO_START>(b"_+1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn start_digit_separator(mut self, flag: bool) -> Self {
+        self.start_digit_separator = flag;
+        self
+    }
+
+    /// Set if digit separators are allowed before the sign of the integer.
+    ///
+    /// You can disable support for digit separators at the absolute start
+    /// using the [`start_digit_separator`] flag.
+    ///
+    /// [`start_digit_separator`]: Self::get_start_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `_` | ❌ |
+    /// | `_1` | ❌ |
+    /// | `_+1` | ✔️ |
+    /// | `+_1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    ///
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const START: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .integer_sign_digit_separator(true)
+    ///     .start_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, START>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, START>(b"_1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, START>(b"+_1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, START>(b"_+1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, START>(b"__+1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    ///
+    /// const NO_START: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .integer_sign_digit_separator(true)
+    ///     .start_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<i64, NO_START>(b"1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, NO_START>(b"_1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<i64, NO_START>(b"+_1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, NO_START>(b"_+1", &PI_OPTS), Ok(1));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn integer_sign_digit_separator(mut self, flag: bool) -> Self {
+        self.integer_sign_digit_separator = flag;
+        self
+    }
+
+    /// Set if consecutive digit separators are allowed before the sign of the
+    /// integer.
+    ///
+    /// That is, using `_` as a digit separator `__` would be allowed. Defaults
+    /// to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `_` | ❌ |
+    /// | `_1` | ❌ |
+    /// | `_+1` | ✔️ |
+    /// | `__+1` | ✔️ |
+    /// | `+_1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const START: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .integer_sign_digit_separator(true)
+    ///     .integer_consecutive_sign_digit_separator(true)
+    ///     .start_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, START>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, START>(b"_1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, START>(b"+_1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, START>(b"_+1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, START>(b"__+1", &PF_OPTS), Ok(1.0));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn integer_consecutive_sign_digit_separator(mut self, flag: bool) -> Self {
+        self.integer_consecutive_sign_digit_separator = flag;
+        self
+    }
+
+    /// Set if digit separators are allowed before the sign of the exponent.
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1.0e1` | ✔️ |
+    /// | `1.0e_` | ❌ |
+    /// | `1.0e_1` | ❌ |
+    /// | `1.0e_+1` | ✔️ |
+    /// | `1.0e+_1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .exponent_sign_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e1", &PF_OPTS), Ok(10.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_", &PF_OPTS), Err(Error::InvalidDigit(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_1", &PF_OPTS), Err(Error::InvalidDigit(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_+1", &PF_OPTS), Ok(10.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e__+1", &PF_OPTS), Err(Error::InvalidDigit(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e+_1", &PF_OPTS), Err(Error::InvalidDigit(4)));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn exponent_sign_digit_separator(mut self, flag: bool) -> Self {
+        self.exponent_sign_digit_separator = flag;
+        self
+    }
+
+    /// Set if consecutive digit separators are allowed before the sign of the
+    /// exponent.
+    ///
+    /// That is, using `_` as a digit separator `__` would be allowed.
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1.0e1` | ✔️ |
+    /// | `1.0e_` | ❌ |
+    /// | `1.0e_1` | ❌ |
+    /// | `1.0e_+1` | ✔️ |
+    /// | `1.0e__+1` | ✔️ |
+    /// | `1.0e+_1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .exponent_sign_digit_separator(true)
+    ///     .exponent_consecutive_sign_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e1", &PF_OPTS), Ok(10.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_", &PF_OPTS), Err(Error::InvalidDigit(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_1", &PF_OPTS), Err(Error::InvalidDigit(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_+1", &PF_OPTS), Ok(10.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e__+1", &PF_OPTS), Ok(10.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e+_1", &PF_OPTS), Err(Error::InvalidDigit(4)));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn exponent_consecutive_sign_digit_separator(mut self, flag: bool) -> Self {
+        self.exponent_consecutive_sign_digit_separator = flag;
+        self
+    }
+
+    /// Set if a digit separator is allowed between the `0` and the base prefix.
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, and a base prefix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `0x1` | ✔️ |
+    /// | `_0x1` | ❌ |
+    /// | `0x_1` | ❌ |
+    /// | `0_x1` | ✔️ |
+    /// | `+0_x1` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_prefix(num::NonZeroU8::new(b'd'))
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .base_prefix_internal_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0x1", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x_1", &PF_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0_x1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+0_x1", &PF_OPTS), Ok(1.0));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0x1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x_1", &PI_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0_x1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+0_x1", &PI_OPTS), Ok(1));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    pub const fn base_prefix_internal_digit_separator(mut self, flag: bool) -> Self {
+        self.base_prefix_internal_digit_separator = flag;
+        self
+    }
+
+    /// Set if a digit separator is allowed before the base prefix.
+    ///
+    /// This is taken **after** the sign and therefore  may be at the absolute
+    /// start of the number or internal to it. You can disable support for
+    /// digit separators at the absolute start using the
+    /// [`start_digit_separator`] flag.
+    ///
+    /// [`start_digit_separator`]: Self::get_start_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, a base prefix of `x`, and starting digit
+    /// separators enabled.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `0x1` | ✔️ |
+    /// | `_0x1` | ✔️ |
+    /// | `0x_1` | ❌ |
+    /// | `0_x1` | ❌ |
+    /// | `+_0x1` | ✔️ |
+    /// | `_+0x1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_prefix(num::NonZeroU8::new(b'd'))
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .base_prefix_leading_digit_separator(true)
+    ///     .start_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_+1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0x1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x_1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+_0x1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_+0x1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_+1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0x1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x_1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+_0x1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_+0x1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    ///
+    /// const NO_START: u128 = NumberFormatBuilder::rebuild(FORMAT)
+    ///     .start_digit_separator(false)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0x1", &PF_OPTS), Err(Error::Empty(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0x1", &PI_OPTS), Err(Error::Empty(1)));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    pub const fn base_prefix_leading_digit_separator(mut self, flag: bool) -> Self {
+        self.base_prefix_leading_digit_separator = flag;
+        self
+    }
+
+    /// Set if a digit separator is allowed after the base prefix.
+    ///
+    /// If a base prefix is present, then [`integer_leading_digit_separator`]
+    /// overlaps with this functionality, and either being enabled, as well
+    /// as consecutive digit separators, will consider it to be valid. If
+    /// both are set and neither enables consecutive digit separators, then
+    /// `0x__1` is not valid.
+    ///
+    /// [`integer_leading_digit_separator`]: Self::get_integer_leading_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_` and a base prefix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `0x1` | ✔️ |
+    /// | `_0x1` | ❌ |
+    /// | `0_x1` | ❌ |
+    /// | `0x_1` | ✔️ |
+    /// | `0x__1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_prefix(num::NonZeroU8::new(b'd'))
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .base_prefix_trailing_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0x1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0_x1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x_1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x__1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0x1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0_x1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x_1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x__1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    pub const fn base_prefix_trailing_digit_separator(mut self, flag: bool) -> Self {
+        self.base_prefix_trailing_digit_separator = flag;
+        self
+    }
+
+    /// Set if multiple consecutive base prefix digit separators are allowed.
+    ///
+    /// That is, using `_` as a digit separator `__` would be allowed where any
+    /// digit separators (leading, trailing, internal) are allowed in the
+    /// base prefix. Defaults to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, a base prefix of `x`, and trailing base
+    /// prefix digit separators.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `0x1` | ✔️ |
+    /// | `_0x1` | ❌ |
+    /// | `0_x1` | ❌ |
+    /// | `0x_1` | ✔️ |
+    /// | `0x__1` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_prefix(num::NonZeroU8::new(b'd'))
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .base_prefix_trailing_digit_separator(true)
+    ///     .base_prefix_consecutive_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0x1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0_x1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x_1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x__1", &PF_OPTS), Ok(1.0));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0x1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0_x1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x_1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x__1", &PI_OPTS), Ok(1));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    pub const fn base_prefix_consecutive_digit_separator(mut self, flag: bool) -> Self {
+        self.base_prefix_consecutive_digit_separator = flag;
+        self
+    }
+
+    /// Set if a digit separator is allowed between the base suffix.
+    ///
+    /// This is currently unused, since base suffixes are a single character.
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    pub const fn base_suffix_internal_digit_separator(mut self, flag: bool) -> Self {
+        self.base_suffix_internal_digit_separator = flag;
+        self
+    }
+
+    /// Set if a digit separator is allowed before the base suffix.
+    ///
+    /// If a base suffix is present, then [`integer_trailing_digit_separator`]
+    /// or [`exponent_trailing_digit_separator`] may overlap
+    /// with this functionality (depending on the number components), and either
+    /// being enabled, as well as consecutive digit separators, will
+    /// consider it to be valid. If both are set and neither
+    /// enables consecutive digit separators, then `1__h` is not valid.
+    ///
+    /// [`integer_trailing_digit_separator`]: Self::get_integer_trailing_digit_separator
+    /// [`exponent_trailing_digit_separator`]: Self::get_exponent_trailing_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_` and a base suffix of `h`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `12h` | ✔️ |
+    /// | `1_2h` | ❌ |
+    /// | `12_h` | ✔️ |
+    /// | `12__h` | ✔️ |
+    /// | `12h_` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_suffix(num::NonZeroU8::new(b'd'))
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .base_suffix_leading_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d", &PF_OPTS), Ok(12.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_2d", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12_d", &PF_OPTS), Ok(12.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12__d", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d_", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d", &PI_OPTS), Ok(12));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_2d", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12_d", &PI_OPTS), Ok(12));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12__d", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d_", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    pub const fn base_suffix_leading_digit_separator(mut self, flag: bool) -> Self {
+        self.base_suffix_leading_digit_separator = flag;
+        self
+    }
+
+    /// Set if a digit separator is allowed after the base suffix.
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_` and a base suffix of `h`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `12h` | ✔️ |
+    /// | `1_2h` | ❌ |
+    /// | `12_h` | ❌ |
+    /// | `12h_` | ✔️ |
+    /// | `12h__` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_suffix(num::NonZeroU8::new(b'd'))
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .base_suffix_trailing_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d", &PF_OPTS), Ok(12.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_2d", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12_d", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d_", &PF_OPTS), Ok(12.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d__", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d", &PI_OPTS), Ok(12));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_2d", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12_d", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d_", &PI_OPTS), Ok(12));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d__", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    pub const fn base_suffix_trailing_digit_separator(mut self, flag: bool) -> Self {
+        self.base_suffix_trailing_digit_separator = flag;
+        self
+    }
+
+    /// Set if multiple consecutive base suffix digit separators are allowed.
+    ///
+    /// That is, using `_` as a digit separator `__` would be allowed where any
+    /// digit separators (leading, trailing, internal) are allowed in the
+    /// base suffix. Defaults to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, a base suffix of `h`, and trailing base
+    /// suffix digit separators.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `12h` | ✔️ |
+    /// | `1_2h` | ❌ |
+    /// | `12_h` | ❌ |
+    /// | `12h_` | ✔️ |
+    /// | `12h__` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_suffix(num::NonZeroU8::new(b'd'))
+    ///     .digit_separator(num::NonZeroU8::new(b'_'))
+    ///     .base_suffix_trailing_digit_separator(true)
+    ///     .base_suffix_consecutive_digit_separator(true)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d", &PF_OPTS), Ok(12.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_2d", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12_d", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d_", &PF_OPTS), Ok(12.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d__", &PF_OPTS), Ok(12.0));
+    ///
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d", &PI_OPTS), Ok(12));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_2d", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12_d", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d_", &PI_OPTS), Ok(12));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d__", &PI_OPTS), Ok(12));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    pub const fn base_suffix_consecutive_digit_separator(mut self, flag: bool) -> Self {
+        self.base_suffix_consecutive_digit_separator = flag;
+        self
+    }
+
     /// Set if digit separators are allowed between integer digits.
     ///
     /// This will not consider an input of only the digit separator
@@ -3169,12 +4433,26 @@ impl NumberFormatBuilder {
 
     /// Set if a digit separator is allowed before any integer digits.
     ///
+    /// This is taken **after** any signs and base prefixes, and therefore
+    /// may be at the absolute start of the number or internal to it. You
+    /// can disable support for digit separators at the absolute start
+    /// using the [`start_digit_separator`] flag. For only those before or after
+    /// a base prefix, see [`base_prefix_leading_digit_separator`] and
+    /// [`base_prefix_trailing_digit_separator`], respectively. For only those
+    /// prior to a sign, see [`integer_sign_digit_separator`].
+    ///
     /// This will consider an input of only the digit separator
     /// to be a identical to empty input. Defaults to [`false`].
     ///
+    /// [`start_digit_separator`]: Self::get_start_digit_separator
+    /// [`base_prefix_leading_digit_separator`]: Self::get_base_prefix_leading_digit_separator
+    /// [`base_prefix_trailing_digit_separator`]: Self::get_base_prefix_trailing_digit_separator
+    /// [`integer_sign_digit_separator`]: Self::get_integer_sign_digit_separator
+    ///
     /// # Examples
     ///
-    /// Using a digit separator of `_`.
+    /// Using a digit separator of `_`, an optional base prefix of `x` and
+    /// starting digit separators enabled.
     ///
     /// | Input | Valid? |
     /// |:-:|:-:|
@@ -3183,6 +4461,10 @@ impl NumberFormatBuilder {
     /// | `1_1` | ❌ |
     /// | `1_` | ❌ |
     /// | `_1` | ✔️ |
+    /// | `_+1` | ❌ |
+    /// | `+_1` | ✔️ |
+    /// | `+0x_1` | ✔️ |
+    /// | `+_0x1` | ❌ |
     ///
     /// # Used For
     ///
@@ -3192,20 +4474,36 @@ impl NumberFormatBuilder {
     /// <!-- TEST
     /// ```rust
     /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_prefix(num::NonZeroU8::new(b'd'))
     ///     .digit_separator(num::NonZeroU8::new(b'_'))
     ///     .integer_leading_digit_separator(true)
+    ///     .start_digit_separator(true)
     ///     .build_strict();
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_", &PF_OPTS), Err(Error::Empty(1)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_1", &PF_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_", &PF_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_+1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+_1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+0d_1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+_0d1", &PF_OPTS), Err(Error::InvalidDigit(1)));
     ///
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_", &PI_OPTS), Err(Error::Empty(1)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_1", &PI_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_", &PI_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_+1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+_1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+0d_1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+_0d1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    ///
+    /// const NO_START: u128 = NumberFormatBuilder::rebuild(FORMAT)
+    ///     .start_digit_separator(false)
+    ///     .build_strict();
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_1", &PF_OPTS), Err(Error::Empty(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_1", &PI_OPTS), Err(Error::Empty(1)));
     /// ```
     /// -->
     #[inline(always)]
@@ -3272,6 +4570,8 @@ impl NumberFormatBuilder {
     /// | `1.1e1_1` | ❌ |
     /// | `1.1e1_` | ❌ |
     /// | `1.1e_1` | ✔️ |
+    /// | `1.1e_+1` | ❌ |
+    /// | `1.1e+_1` | ✔️ |
     ///
     /// # Used For
     ///
@@ -3288,6 +4588,8 @@ impl NumberFormatBuilder {
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1_1", &PF_OPTS), Err(Error::InvalidDigit(5)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e1_", &PF_OPTS), Err(Error::InvalidDigit(5)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e_1", &PF_OPTS), Ok(11.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e_+1", &PF_OPTS), Err(Error::EmptyExponent(5)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1e+_1", &PF_OPTS), Ok(11.0));
     /// ```
     /// -->
     #[inline(always)]
@@ -3787,6 +5089,19 @@ impl NumberFormatBuilder {
             self.supports_writing_floats, SUPPORTS_WRITING_FLOATS ;
             self.required_base_prefix, REQUIRED_BASE_PREFIX ;
             self.required_base_suffix, REQUIRED_BASE_SUFFIX ;
+            self.start_digit_separator,  START_DIGIT_SEPARATOR ;
+            self.integer_sign_digit_separator,  INTEGER_SIGN_DIGIT_SEPARATOR ;
+            self.integer_consecutive_sign_digit_separator,  INTEGER_CONSECUTIVE_SIGN_DIGIT_SEPARATOR ;
+            self.exponent_sign_digit_separator,  EXPONENT_SIGN_DIGIT_SEPARATOR ;
+            self.exponent_consecutive_sign_digit_separator,  EXPONENT_CONSECUTIVE_SIGN_DIGIT_SEPARATOR ;
+            self.base_prefix_internal_digit_separator,  BASE_PREFIX_INTERNAL_DIGIT_SEPARATOR ;
+            self.base_prefix_leading_digit_separator,  BASE_PREFIX_LEADING_DIGIT_SEPARATOR ;
+            self.base_prefix_trailing_digit_separator,  BASE_PREFIX_TRAILING_DIGIT_SEPARATOR ;
+            self.base_prefix_consecutive_digit_separator,  BASE_PREFIX_CONSECUTIVE_DIGIT_SEPARATOR ;
+            self.base_suffix_internal_digit_separator,  BASE_SUFFIX_INTERNAL_DIGIT_SEPARATOR ;
+            self.base_suffix_leading_digit_separator,  BASE_SUFFIX_LEADING_DIGIT_SEPARATOR ;
+            self.base_suffix_trailing_digit_separator,  BASE_SUFFIX_TRAILING_DIGIT_SEPARATOR ;
+            self.base_suffix_consecutive_digit_separator,  BASE_SUFFIX_CONSECUTIVE_DIGIT_SEPARATOR ;
             self.integer_internal_digit_separator, INTEGER_INTERNAL_DIGIT_SEPARATOR ;
             self.fraction_internal_digit_separator, FRACTION_INTERNAL_DIGIT_SEPARATOR ;
             self.exponent_internal_digit_separator, EXPONENT_INTERNAL_DIGIT_SEPARATOR ;
@@ -3898,6 +5213,49 @@ impl NumberFormatBuilder {
             supports_writing_floats: has_flag!(format, SUPPORTS_WRITING_FLOATS),
             required_base_prefix: has_flag!(format, REQUIRED_BASE_PREFIX),
             required_base_suffix: has_flag!(format, REQUIRED_BASE_SUFFIX),
+            start_digit_separator: has_flag!(format, START_DIGIT_SEPARATOR),
+            integer_sign_digit_separator: has_flag!(format, INTEGER_SIGN_DIGIT_SEPARATOR),
+            integer_consecutive_sign_digit_separator: has_flag!(
+                format,
+                INTEGER_CONSECUTIVE_SIGN_DIGIT_SEPARATOR
+            ),
+            exponent_sign_digit_separator: has_flag!(format, EXPONENT_SIGN_DIGIT_SEPARATOR),
+            exponent_consecutive_sign_digit_separator: has_flag!(
+                format,
+                EXPONENT_CONSECUTIVE_SIGN_DIGIT_SEPARATOR
+            ),
+            base_prefix_internal_digit_separator: has_flag!(
+                format,
+                BASE_PREFIX_INTERNAL_DIGIT_SEPARATOR
+            ),
+            base_prefix_leading_digit_separator: has_flag!(
+                format,
+                BASE_PREFIX_LEADING_DIGIT_SEPARATOR
+            ),
+            base_prefix_trailing_digit_separator: has_flag!(
+                format,
+                BASE_PREFIX_TRAILING_DIGIT_SEPARATOR
+            ),
+            base_prefix_consecutive_digit_separator: has_flag!(
+                format,
+                BASE_PREFIX_CONSECUTIVE_DIGIT_SEPARATOR
+            ),
+            base_suffix_internal_digit_separator: has_flag!(
+                format,
+                BASE_SUFFIX_INTERNAL_DIGIT_SEPARATOR
+            ),
+            base_suffix_leading_digit_separator: has_flag!(
+                format,
+                BASE_SUFFIX_LEADING_DIGIT_SEPARATOR
+            ),
+            base_suffix_trailing_digit_separator: has_flag!(
+                format,
+                BASE_SUFFIX_TRAILING_DIGIT_SEPARATOR
+            ),
+            base_suffix_consecutive_digit_separator: has_flag!(
+                format,
+                BASE_SUFFIX_CONSECUTIVE_DIGIT_SEPARATOR
+            ),
             integer_internal_digit_separator: has_flag!(format, INTEGER_INTERNAL_DIGIT_SEPARATOR),
             fraction_internal_digit_separator: has_flag!(format, FRACTION_INTERNAL_DIGIT_SEPARATOR),
             exponent_internal_digit_separator: has_flag!(format, EXPONENT_INTERNAL_DIGIT_SEPARATOR),
