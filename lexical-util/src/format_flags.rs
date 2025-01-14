@@ -30,12 +30,12 @@
 //!
 //! 32  33  34  35  36  37  38  39  40  41 42  43  44  45  46  47   48
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-//! |I/I|F/I|E/I|I/L|F/L|E/L|I/T|F/T|E/T|I/C|F/C|E/C|S/D|           |
+//! |I/I|F/I|E/I|I/L|F/L|E/L|I/T|F/T|E/T|I/C|F/C|E/C|S/D|s/D|I/s|I/c|
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 //!
 //! 48  49  50  51  52  53  54  55  56  57  58  59  60  62  62  63  64
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-//! |                                                               |
+//! |E/s|E/c|P/I|P/L|P/T|P/C|S/I|S/L|S/T|S/C|                       |
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 //!
 //! Where:
@@ -54,7 +54,7 @@
 //!         S/C = Case-sensitive special (non-finite) values.
 //!         N/I = No integer leading zeros.
 //!         N/F = No float leading zeros.
-//!         R/e = Required exponent characters.
+//!         R/e = Required exponent notation.
 //!         e/C = Case-sensitive exponent character.
 //!         e/P = Case-sensitive base prefix.
 //!         e/S = Case-sensitive base suffix.
@@ -82,6 +82,19 @@
 //!         F/C = Fraction consecutive digit separator.
 //!         E/C = Exponent consecutive digit separator.
 //!         S/D = Special (non-finite) digit separator.
+//!         s/D = Absolute start digit separator.
+//!         I/s = Integer sign digit separator.
+//!         I/c = Integer sign consecutive digit separator.
+//!         E/s = Exponent sign digit separator.
+//!         E/c = Exponent sign consecutive digit separator.
+//!         P/I = Base prefix internal digit separator.
+//!         P/L = Base prefix leading digit separator.
+//!         P/T = Base prefix trailing digit separator.
+//!         P/C = Base prefix consecutive digit separator.
+//!         S/I = Base suffix internal digit separator.
+//!         S/L = Base suffix leading digit separator.
+//!         S/T = Base suffix trailing digit separator.
+//!         S/C = Base suffix consecutive digit separator.
 //! ```
 //!
 //! The upper 64-bits are designated for control characters and radixes,
@@ -268,6 +281,9 @@ pub const REQUIRED_DIGITS: u128 =
     REQUIRED_INTEGER_DIGITS |
     REQUIRED_FRACTION_DIGITS |
     REQUIRED_EXPONENT_DIGITS |
+    REQUIRED_INTEGER_DIGITS_WITH_EXPONENT |
+    REQUIRED_FRACTION_DIGITS_WITH_EXPONENT |
+    REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT |
     REQUIRED_MANTISSA_DIGITS;
 
 /// Positive sign before the mantissa is not allowed.
@@ -466,8 +482,47 @@ pub const CONSECUTIVE_DIGIT_SEPARATOR: u128 =
     FRACTION_CONSECUTIVE_DIGIT_SEPARATOR |
     EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
 
-/// Any digit separators are allowed in special (non-finite) values.
+/// If any digit separators are allowed in special (non-finite) values.
 pub const SPECIAL_DIGIT_SEPARATOR: u128 = 1 << 44;
+
+/// If digit separators are allowed at the absolute start of the number.
+pub const START_DIGIT_SEPARATOR: u128 = 1 << 45;
+
+/// If digit separators are allowed before the sign of the integer.
+pub const INTEGER_SIGN_DIGIT_SEPARATOR: u128 = 1 << 46;
+
+/// If consecutive digit separators are allowed before the sign of the integer.
+pub const INTEGER_CONSECUTIVE_SIGN_DIGIT_SEPARATOR: u128 = 1 << 47;
+
+/// If digit separators are allowed before the sign of the exponent.
+pub const EXPONENT_SIGN_DIGIT_SEPARATOR: u128 = 1 << 48;
+
+/// If consecutive digit separators are allowed before the sign of the exponent.
+pub const EXPONENT_CONSECUTIVE_SIGN_DIGIT_SEPARATOR: u128 = 1 << 49;
+
+/// If a digit separator is allowed between the `0` and the base prefix.
+pub const BASE_PREFIX_INTERNAL_DIGIT_SEPARATOR: u128 = 1 << 50;
+
+/// If a digit separator is allowed before the base prefix.
+pub const BASE_PREFIX_LEADING_DIGIT_SEPARATOR: u128 = 1 << 51;
+
+/// If a digit separator is allowed after the base prefix.
+pub const BASE_PREFIX_TRAILING_DIGIT_SEPARATOR: u128 = 1 << 52;
+
+/// Multiple consecutive base prefix digit separators are allowed.
+pub const BASE_PREFIX_CONSECUTIVE_DIGIT_SEPARATOR: u128 = 1 << 53;
+
+/// If a digit separator is allowed between the base suffix.
+pub const BASE_SUFFIX_INTERNAL_DIGIT_SEPARATOR: u128 = 1 << 54;
+
+/// If a digit separator is allowed before the base suffix.
+pub const BASE_SUFFIX_LEADING_DIGIT_SEPARATOR: u128 = 1 << 55;
+
+/// If a digit separator is allowed after the base suffix.
+pub const BASE_SUFFIX_TRAILING_DIGIT_SEPARATOR: u128 = 1 << 56;
+
+/// Multiple consecutive base suffix digit separators are allowed.
+pub const BASE_SUFFIX_CONSECUTIVE_DIGIT_SEPARATOR: u128 = 1 << 57;
 
 // Digit separator flags.
 const _: () = assert!(INTEGER_INTERNAL_DIGIT_SEPARATOR == 1 << 32);
@@ -483,6 +538,19 @@ check_subsequent_flags!(EXPONENT_TRAILING_DIGIT_SEPARATOR, INTEGER_CONSECUTIVE_D
 check_subsequent_flags!(INTEGER_CONSECUTIVE_DIGIT_SEPARATOR, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR);
 check_subsequent_flags!(FRACTION_CONSECUTIVE_DIGIT_SEPARATOR, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
 check_subsequent_flags!(EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPARATOR);
+check_subsequent_flags!(SPECIAL_DIGIT_SEPARATOR, START_DIGIT_SEPARATOR);
+check_subsequent_flags!(START_DIGIT_SEPARATOR, INTEGER_SIGN_DIGIT_SEPARATOR);
+check_subsequent_flags!(INTEGER_SIGN_DIGIT_SEPARATOR, INTEGER_CONSECUTIVE_SIGN_DIGIT_SEPARATOR);
+check_subsequent_flags!(INTEGER_CONSECUTIVE_SIGN_DIGIT_SEPARATOR, EXPONENT_SIGN_DIGIT_SEPARATOR);
+check_subsequent_flags!(EXPONENT_SIGN_DIGIT_SEPARATOR, EXPONENT_CONSECUTIVE_SIGN_DIGIT_SEPARATOR);
+check_subsequent_flags!(EXPONENT_CONSECUTIVE_SIGN_DIGIT_SEPARATOR, BASE_PREFIX_INTERNAL_DIGIT_SEPARATOR);
+check_subsequent_flags!(BASE_PREFIX_INTERNAL_DIGIT_SEPARATOR, BASE_PREFIX_LEADING_DIGIT_SEPARATOR);
+check_subsequent_flags!(BASE_PREFIX_LEADING_DIGIT_SEPARATOR, BASE_PREFIX_TRAILING_DIGIT_SEPARATOR);
+check_subsequent_flags!(BASE_PREFIX_TRAILING_DIGIT_SEPARATOR, BASE_PREFIX_CONSECUTIVE_DIGIT_SEPARATOR);
+check_subsequent_flags!(BASE_PREFIX_CONSECUTIVE_DIGIT_SEPARATOR, BASE_SUFFIX_INTERNAL_DIGIT_SEPARATOR);
+check_subsequent_flags!(BASE_SUFFIX_INTERNAL_DIGIT_SEPARATOR, BASE_SUFFIX_LEADING_DIGIT_SEPARATOR);
+check_subsequent_flags!(BASE_SUFFIX_LEADING_DIGIT_SEPARATOR, BASE_SUFFIX_TRAILING_DIGIT_SEPARATOR);
+check_subsequent_flags!(BASE_SUFFIX_TRAILING_DIGIT_SEPARATOR, BASE_SUFFIX_CONSECUTIVE_DIGIT_SEPARATOR);
 
 // CONTROL CHARACTER & RADIX MASKS
 // -------------------------------
@@ -574,9 +642,6 @@ pub const FLAG_MASK: u128 =
     CASE_SENSITIVE_EXPONENT |
     CASE_SENSITIVE_BASE_PREFIX |
     CASE_SENSITIVE_BASE_SUFFIX |
-    REQUIRED_INTEGER_DIGITS_WITH_EXPONENT |
-    REQUIRED_FRACTION_DIGITS_WITH_EXPONENT |
-    REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT |
     SUPPORTS_PARSING_FLOATS |
     SUPPORTS_PARSING_INTEGERS |
     SUPPORTS_WRITING_FLOATS |
@@ -622,7 +687,11 @@ pub const DIGIT_SEPARATOR_FLAG_MASK: u128 =
     LEADING_DIGIT_SEPARATOR |
     TRAILING_DIGIT_SEPARATOR |
     CONSECUTIVE_DIGIT_SEPARATOR |
-    SPECIAL_DIGIT_SEPARATOR;
+    SPECIAL_DIGIT_SEPARATOR |
+    START_DIGIT_SEPARATOR_FLAG_MASK |
+    SIGN_DIGIT_SEPARATOR_FLAG_MASK |
+    BASE_PREFIX_DIGIT_SEPARATOR_FLAG_MASK |
+    BASE_SUFFIX_DIGIT_SEPARATOR_FLAG_MASK;
 
 /// Mask to extract exponent flags.
 #[doc(hidden)]
@@ -664,6 +733,34 @@ pub const EXPONENT_DIGIT_SEPARATOR_FLAG_MASK: u128 =
     EXPONENT_LEADING_DIGIT_SEPARATOR |
     EXPONENT_TRAILING_DIGIT_SEPARATOR |
     EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
+
+/// Mask to extract start digit separator flags.
+#[doc(hidden)]
+pub const START_DIGIT_SEPARATOR_FLAG_MASK: u128 = START_DIGIT_SEPARATOR;
+
+/// Mask to extract sign digit separator flags.
+#[doc(hidden)]
+pub const SIGN_DIGIT_SEPARATOR_FLAG_MASK: u128 =
+    INTEGER_SIGN_DIGIT_SEPARATOR |
+    INTEGER_CONSECUTIVE_SIGN_DIGIT_SEPARATOR |
+    EXPONENT_SIGN_DIGIT_SEPARATOR |
+    EXPONENT_CONSECUTIVE_SIGN_DIGIT_SEPARATOR;
+
+/// Mask to extract base prefix digit separator flags.
+#[doc(hidden)]
+pub const BASE_PREFIX_DIGIT_SEPARATOR_FLAG_MASK: u128 =
+    BASE_PREFIX_INTERNAL_DIGIT_SEPARATOR |
+    BASE_PREFIX_LEADING_DIGIT_SEPARATOR |
+    BASE_PREFIX_TRAILING_DIGIT_SEPARATOR |
+    BASE_PREFIX_CONSECUTIVE_DIGIT_SEPARATOR;
+
+/// Mask to extract base suffix digit separator flags.
+#[doc(hidden)]
+pub const BASE_SUFFIX_DIGIT_SEPARATOR_FLAG_MASK: u128 =
+    BASE_SUFFIX_INTERNAL_DIGIT_SEPARATOR |
+    BASE_SUFFIX_LEADING_DIGIT_SEPARATOR |
+    BASE_SUFFIX_TRAILING_DIGIT_SEPARATOR |
+    BASE_SUFFIX_CONSECUTIVE_DIGIT_SEPARATOR;
 
 // EXTRACTORS
 // ----------
