@@ -204,12 +204,13 @@ macro_rules! parse_sign {
     (
         $byte:ident,
         $is_signed:expr,
+        $as_iter:ident,
         $no_positive:expr,
         $required:expr,
         $invalid_positive:ident,
-        $missing:ident
+        $missing:ident $(,)?
     ) => {
-        match $byte.integer_iter().parse_sign() {
+        match $byte.$as_iter().parse_sign() {
             (false, true) if !$no_positive => {
                 // SAFETY: We have at least 1 item left since we peaked a value
                 unsafe { $byte.step_unchecked() };
@@ -234,6 +235,7 @@ pub fn parse_sign<T: Integer, const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) 
     parse_sign!(
         byte,
         T::IS_SIGNED,
+        integer_iter,
         format.no_positive_mantissa_sign(),
         format.required_mantissa_sign(),
         InvalidPositiveSign,

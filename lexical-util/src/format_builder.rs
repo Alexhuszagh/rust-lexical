@@ -443,19 +443,19 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`supports_writing_integers`]: https://github.com/Alexhuszagh/rust-lexical/blob/f53fae0/lexical-util/src/format_builder.rs#L1201\n
 [`supports_writing_floats`]: https://github.com/Alexhuszagh/rust-lexical/blob/f53fae0/lexical-util/src/format_builder.rs#L1211\n
 [`case_sensitive_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L765\n
-[`start_digit_separator`]: https://TODO.com\n
-[`integer_sign_digit_separator`]: https://TODO.com\n
-[`integer_consecutive_sign_digit_separator`]: https://TODO.com\n
-[`exponent_sign_digit_separator`]: https://TODO.com\n
-[`exponent_consecutive_sign_digit_separator`]: https://TODO.com\n
-[`base_prefix_internal_digit_separator`]: https://TODO.com\n
-[`base_prefix_leading_digit_separator`]: https://TODO.com\n
-[`base_prefix_trailing_digit_separator`]: https://TODO.com\n
-[`base_prefix_consecutive_digit_separator`]: https://TODO.com\n
-[`base_suffix_internal_digit_separator`]: https://TODO.com\n
-[`base_suffix_leading_digit_separator`]: https://TODO.com\n
-[`base_suffix_trailing_digit_separator`]: https://TODO.com\n
-[`base_suffix_consecutive_digit_separator`]: https://TODO.com\n
+[`start_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1650\n
+[`integer_sign_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1678\n
+[`integer_consecutive_sign_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1706\n
+[`exponent_sign_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1728\n
+[`exponent_consecutive_sign_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1754\n
+[`base_prefix_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1777\n
+[`base_prefix_leading_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1809\n
+[`base_prefix_trailing_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1841\n
+[`base_prefix_consecutive_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1870\n
+[`base_suffix_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1883\n
+[`base_suffix_leading_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1916\n
+[`base_suffix_trailing_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1939\n
+[`base_suffix_consecutive_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1967\n
 [`integer_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L793\n
 [`fraction_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L805\n
 [`exponent_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L817\n
@@ -742,7 +742,7 @@ impl NumberFormatBuilder {
             supports_writing_floats: true,
             required_base_prefix: false,
             required_base_suffix: false,
-            start_digit_separator: true,
+            start_digit_separator: cfg!(feature = "format"),
             integer_sign_digit_separator: false,
             integer_consecutive_sign_digit_separator: false,
             exponent_sign_digit_separator: false,
@@ -3729,26 +3729,15 @@ impl NumberFormatBuilder {
     ///
     /// <!-- TEST
     /// ```rust
-    /// const START: u128 = NumberFormatBuilder::new()
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
     ///     .digit_separator(num::NonZeroU8::new(b'_'))
     ///     .integer_sign_digit_separator(true)
-    ///     .start_digit_separator(true)
     ///     .build_strict();
-    /// assert_eq!(parse_with_options::<f64, START>(b"1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, START>(b"_1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, START>(b"+_1", &PF_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<f64, START>(b"_+1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, START>(b"__+1", &PF_OPTS), Err(Error::InvalidDigit(1)));
-    ///
-    /// const NO_START: u128 = NumberFormatBuilder::new()
-    ///     .digit_separator(num::NonZeroU8::new(b'_'))
-    ///     .integer_sign_digit_separator(true)
-    ///     .start_digit_separator(true)
-    ///     .build_strict();
-    /// assert_eq!(parse_with_options::<i64, NO_START>(b"1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, NO_START>(b"_1", &PI_OPTS), Err(Error::InvalidDigit(0)));
-    /// assert_eq!(parse_with_options::<i64, NO_START>(b"+_1", &PI_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<i64, NO_START>(b"_+1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_1", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+_1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_+1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"__+1", &PF_OPTS), Err(Error::InvalidDigit(0)));
     /// ```
     /// -->
     #[inline(always)]
@@ -3784,17 +3773,16 @@ impl NumberFormatBuilder {
     ///
     /// <!-- TEST
     /// ```rust
-    /// const START: u128 = NumberFormatBuilder::new()
+    /// const FORMAT: u128 = NumberFormatBuilder::new()
     ///     .digit_separator(num::NonZeroU8::new(b'_'))
     ///     .integer_sign_digit_separator(true)
     ///     .integer_consecutive_sign_digit_separator(true)
-    ///     .start_digit_separator(true)
     ///     .build_strict();
-    /// assert_eq!(parse_with_options::<f64, START>(b"1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, START>(b"_1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, START>(b"+_1", &PF_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<f64, START>(b"_+1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, START>(b"__+1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_1", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+_1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_+1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"__+1", &PF_OPTS), Ok(1.0));
     /// ```
     /// -->
     #[inline(always)]
@@ -3829,11 +3817,11 @@ impl NumberFormatBuilder {
     ///     .exponent_sign_digit_separator(true)
     ///     .build_strict();
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e1", &PF_OPTS), Ok(10.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_", &PF_OPTS), Err(Error::InvalidDigit(4)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_1", &PF_OPTS), Err(Error::InvalidDigit(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_", &PF_OPTS), Err(Error::EmptyExponent(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_1", &PF_OPTS), Err(Error::EmptyExponent(4)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_+1", &PF_OPTS), Ok(10.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e__+1", &PF_OPTS), Err(Error::InvalidDigit(4)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e+_1", &PF_OPTS), Err(Error::InvalidDigit(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e__+1", &PF_OPTS), Err(Error::EmptyExponent(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e+_1", &PF_OPTS), Err(Error::EmptyExponent(5)));
     /// ```
     /// -->
     #[inline(always)]
@@ -3873,11 +3861,11 @@ impl NumberFormatBuilder {
     ///     .exponent_consecutive_sign_digit_separator(true)
     ///     .build_strict();
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e1", &PF_OPTS), Ok(10.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_", &PF_OPTS), Err(Error::InvalidDigit(4)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_1", &PF_OPTS), Err(Error::InvalidDigit(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_", &PF_OPTS), Err(Error::EmptyExponent(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_1", &PF_OPTS), Err(Error::EmptyExponent(4)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e_+1", &PF_OPTS), Ok(10.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e__+1", &PF_OPTS), Ok(10.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e+_1", &PF_OPTS), Err(Error::InvalidDigit(4)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.0e+_1", &PF_OPTS), Err(Error::EmptyExponent(5)));
     /// ```
     /// -->
     #[inline(always)]
@@ -4973,8 +4961,8 @@ impl NumberFormatBuilder {
     /// Allow digit separators in all locations for all components.
     ///
     /// This enables leading, trailing, internal, and consecutive digit
-    /// separators for the integer, fraction, and exponent components. Defaults
-    /// to [`false`].
+    /// separators for the integer, fraction, exponent, special, sign, base
+    /// prefix, and base suffix components. Defaults to [`false`].
     ///
     /// # Used For
     ///
@@ -4987,6 +4975,13 @@ impl NumberFormatBuilder {
         self = self.fraction_digit_separator_flags(flag);
         self = self.exponent_digit_separator_flags(flag);
         self = self.special_digit_separator(flag);
+        self = self.start_digit_separator(flag);
+        self = self.sign_digit_separator_flags(flag);
+        #[cfg(feature = "power-of-two")]
+        {
+            self = self.base_prefix_digit_separator_flags(flag);
+            self = self.base_suffix_digit_separator_flags(flag);
+        }
         self
     }
 
@@ -5045,6 +5040,61 @@ impl NumberFormatBuilder {
         self
     }
 
+    /// Set all sign digit separator flag masks.
+    ///
+    /// This enables digit separators, including consecutive ones,
+    /// for the integer and exponent formats. Defaults to [`false`].
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn sign_digit_separator_flags(mut self, flag: bool) -> Self {
+        self = self.integer_sign_digit_separator(flag);
+        self = self.integer_consecutive_sign_digit_separator(flag);
+        self = self.exponent_sign_digit_separator(flag);
+        self = self.exponent_consecutive_sign_digit_separator(flag);
+        self
+    }
+
+    /// Set all base prefix digit separator flag masks.
+    ///
+    /// This enables leading, trailing, internal, and consecutive digit
+    /// separators for the base prefix component. Defaults to [`false`].
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    pub const fn base_prefix_digit_separator_flags(mut self, flag: bool) -> Self {
+        self = self.base_prefix_internal_digit_separator(flag);
+        self = self.base_prefix_leading_digit_separator(flag);
+        self = self.base_prefix_trailing_digit_separator(flag);
+        self = self.base_prefix_consecutive_digit_separator(flag);
+        self
+    }
+
+    /// Set all base suffix digit separator flag masks.
+    ///
+    /// This enables leading, trailing, internal, and consecutive digit
+    /// separators for the base suffix component. Defaults to [`false`].
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[cfg(all(feature = "format", feature = "power-of-two"))]
+    pub const fn base_suffix_digit_separator_flags(mut self, flag: bool) -> Self {
+        self = self.base_suffix_internal_digit_separator(flag);
+        self = self.base_suffix_leading_digit_separator(flag);
+        self = self.base_suffix_trailing_digit_separator(flag);
+        self = self.base_suffix_consecutive_digit_separator(flag);
+        self
+    }
+
     // BUILDER
 
     /// Create 128-bit, packed number format struct from builder options.
@@ -5089,19 +5139,19 @@ impl NumberFormatBuilder {
             self.supports_writing_floats, SUPPORTS_WRITING_FLOATS ;
             self.required_base_prefix, REQUIRED_BASE_PREFIX ;
             self.required_base_suffix, REQUIRED_BASE_SUFFIX ;
-            self.start_digit_separator,  START_DIGIT_SEPARATOR ;
-            self.integer_sign_digit_separator,  INTEGER_SIGN_DIGIT_SEPARATOR ;
-            self.integer_consecutive_sign_digit_separator,  INTEGER_CONSECUTIVE_SIGN_DIGIT_SEPARATOR ;
-            self.exponent_sign_digit_separator,  EXPONENT_SIGN_DIGIT_SEPARATOR ;
-            self.exponent_consecutive_sign_digit_separator,  EXPONENT_CONSECUTIVE_SIGN_DIGIT_SEPARATOR ;
-            self.base_prefix_internal_digit_separator,  BASE_PREFIX_INTERNAL_DIGIT_SEPARATOR ;
-            self.base_prefix_leading_digit_separator,  BASE_PREFIX_LEADING_DIGIT_SEPARATOR ;
-            self.base_prefix_trailing_digit_separator,  BASE_PREFIX_TRAILING_DIGIT_SEPARATOR ;
-            self.base_prefix_consecutive_digit_separator,  BASE_PREFIX_CONSECUTIVE_DIGIT_SEPARATOR ;
-            self.base_suffix_internal_digit_separator,  BASE_SUFFIX_INTERNAL_DIGIT_SEPARATOR ;
-            self.base_suffix_leading_digit_separator,  BASE_SUFFIX_LEADING_DIGIT_SEPARATOR ;
-            self.base_suffix_trailing_digit_separator,  BASE_SUFFIX_TRAILING_DIGIT_SEPARATOR ;
-            self.base_suffix_consecutive_digit_separator,  BASE_SUFFIX_CONSECUTIVE_DIGIT_SEPARATOR ;
+            self.start_digit_separator, START_DIGIT_SEPARATOR ;
+            self.integer_sign_digit_separator, INTEGER_SIGN_DIGIT_SEPARATOR ;
+            self.integer_consecutive_sign_digit_separator, INTEGER_CONSECUTIVE_SIGN_DIGIT_SEPARATOR ;
+            self.exponent_sign_digit_separator, EXPONENT_SIGN_DIGIT_SEPARATOR ;
+            self.exponent_consecutive_sign_digit_separator, EXPONENT_CONSECUTIVE_SIGN_DIGIT_SEPARATOR ;
+            self.base_prefix_internal_digit_separator, BASE_PREFIX_INTERNAL_DIGIT_SEPARATOR ;
+            self.base_prefix_leading_digit_separator, BASE_PREFIX_LEADING_DIGIT_SEPARATOR ;
+            self.base_prefix_trailing_digit_separator, BASE_PREFIX_TRAILING_DIGIT_SEPARATOR ;
+            self.base_prefix_consecutive_digit_separator, BASE_PREFIX_CONSECUTIVE_DIGIT_SEPARATOR ;
+            self.base_suffix_internal_digit_separator, BASE_SUFFIX_INTERNAL_DIGIT_SEPARATOR ;
+            self.base_suffix_leading_digit_separator, BASE_SUFFIX_LEADING_DIGIT_SEPARATOR ;
+            self.base_suffix_trailing_digit_separator, BASE_SUFFIX_TRAILING_DIGIT_SEPARATOR ;
+            self.base_suffix_consecutive_digit_separator, BASE_SUFFIX_CONSECUTIVE_DIGIT_SEPARATOR ;
             self.integer_internal_digit_separator, INTEGER_INTERNAL_DIGIT_SEPARATOR ;
             self.fraction_internal_digit_separator, FRACTION_INTERNAL_DIGIT_SEPARATOR ;
             self.exponent_internal_digit_separator, EXPONENT_INTERNAL_DIGIT_SEPARATOR ;

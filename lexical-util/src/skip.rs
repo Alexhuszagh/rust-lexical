@@ -1404,9 +1404,108 @@ macro_rules! skip_iterator_digits_iter_base {
     };
 }
 
+/// Internal helper for parsing the sign once a given index is known.
+#[inline(always)]
+fn parse_sign_impl(bytes: &[u8], index: usize) -> (bool, bool) {
+    match bytes.get(index) {
+        Some(&b'+') => (false, true),
+        Some(&b'-') => (true, true),
+        _ => (false, false),
+    }
+}
+
+/// Uses the internal flags to parse out flags.
+#[inline(always)]
+fn parse_sign<'a, T>(
+    iter: &mut T,
+    digit_separator: u8,
+    can_skip: bool,
+    consecutive: bool,
+) -> (bool, bool)
+where
+    T: DigitsIter<'a>,
+{
+    let bytes = iter.get_buffer();
+    let mut index = iter.cursor();
+    if digit_separator != 0 && can_skip {
+        if consecutive {
+            while bytes.get(index) == Some(&digit_separator) {
+                index += 1;
+            }
+        } else if bytes.get(index) == Some(&digit_separator) {
+            index += 1;
+        }
+        // only advance the internal state if we have a sign
+        // otherwise, we need to keep the start exactly where
+        // the buffer started
+        match parse_sign_impl(bytes, index) {
+            (is_negative, true) => {
+                // SAFETY: safe, since the was fetched from processing
+                // digits above, that is, it must be <= iterator size.
+                // This was validated by `parse_sign_impl`, which returned
+                // `Some(...)`.
+                unsafe { iter.set_cursor(index) };
+                (is_negative, true)
+            },
+            (_, false) => (false, false),
+        }
+    } else {
+        parse_sign_impl(bytes, index)
+    }
+}
+
+/// Parse specifically the integer sign component.
+#[inline(always)]
+fn integer_parse_sign<'a, T, const FORMAT: u128>(iter: &mut T) -> (bool, bool)
+where
+    T: DigitsIter<'a>,
+{
+    let format = NumberFormat::<{ FORMAT }> {};
+    parse_sign(
+        iter,
+        format.digit_separator(),
+        format.integer_sign_digit_separator(),
+        format.integer_consecutive_sign_digit_separator(),
+    )
+}
+
+/// Parse specifically the fraction sign component.
+#[inline(always)]
+fn fraction_parse_sign<'a, T, const FORMAT: u128>(iter: &mut T) -> (bool, bool)
+where
+    T: DigitsIter<'a>,
+{
+    _ = iter;
+    unimplemented!()
+}
+
+/// Parse specifically the exponent sign component.
+#[inline(always)]
+fn exponent_parse_sign<'a, T, const FORMAT: u128>(iter: &mut T) -> (bool, bool)
+where
+    T: DigitsIter<'a>,
+{
+    let format = NumberFormat::<{ FORMAT }> {};
+    parse_sign(
+        iter,
+        format.digit_separator(),
+        format.exponent_sign_digit_separator(),
+        format.exponent_consecutive_sign_digit_separator(),
+    )
+}
+
 /// Create impl `ByteIter` block for skip iterator.
 macro_rules! skip_iterator_bytesiter_impl {
-    ($iterator:ident, $mask:ident, $count:ident, $i:ident, $l:ident, $t:ident, $c:ident) => {
+    (
+        $iterator:ident,
+        $mask:ident,
+        $count:ident,
+        $i:ident,
+        $l:ident,
+        $t:ident,
+        $c:ident,
+        $sign_parser:ident $(,)?
+    ) => {
         unsafe impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for $iterator<'a, 'b, FORMAT> {
             skip_iterator_iter_base!(FORMAT, $mask, $count);
         }
@@ -1480,6 +1579,11 @@ macro_rules! skip_iterator_bytesiter_impl {
                 let format = NumberFormat::<{ FORMAT }> {};
                 char_is_digit_const(value, format.mantissa_radix())
             }
+
+            #[inline(always)]
+            fn parse_sign(&mut self) -> (bool, bool) {
+                $sign_parser::<_, FORMAT>(self)
+            }
         }
     };
 }
@@ -1497,7 +1601,8 @@ skip_iterator_bytesiter_impl!(
     INTEGER_INTERNAL_DIGIT_SEPARATOR,
     INTEGER_LEADING_DIGIT_SEPARATOR,
     INTEGER_TRAILING_DIGIT_SEPARATOR,
-    INTEGER_CONSECUTIVE_DIGIT_SEPARATOR
+    INTEGER_CONSECUTIVE_DIGIT_SEPARATOR,
+    integer_parse_sign,
 );
 
 // FRACTION DIGITS ITERATOR
@@ -1516,7 +1621,8 @@ skip_iterator_bytesiter_impl!(
     FRACTION_INTERNAL_DIGIT_SEPARATOR,
     FRACTION_LEADING_DIGIT_SEPARATOR,
     FRACTION_TRAILING_DIGIT_SEPARATOR,
-    FRACTION_CONSECUTIVE_DIGIT_SEPARATOR
+    FRACTION_CONSECUTIVE_DIGIT_SEPARATOR,
+    fraction_parse_sign,
 );
 
 // EXPONENT DIGITS ITERATOR
@@ -1535,7 +1641,8 @@ skip_iterator_bytesiter_impl!(
     EXPONENT_INTERNAL_DIGIT_SEPARATOR,
     EXPONENT_LEADING_DIGIT_SEPARATOR,
     EXPONENT_TRAILING_DIGIT_SEPARATOR,
-    EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR
+    EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR,
+    exponent_parse_sign,
 );
 
 // SPECIAL DIGITS ITERATOR
