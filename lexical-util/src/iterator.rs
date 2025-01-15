@@ -115,13 +115,23 @@ pub unsafe trait Iter<'a> {
         Self::IS_CONTIGUOUS
     }
 
+    /// Get a value at an index without stepping to it from the underlying
+    /// buffer.
+    ///
+    /// This does **NOT** skip digits, and directly fetches the item
+    /// from the underlying buffer, relative to the current cursor.
+    #[inline(always)]
+    fn get(&self, index: usize) -> Option<&'a u8> {
+        self.get_buffer().get(self.cursor() + index)
+    }
+
     /// Get the next value available without consuming it.
     ///
     /// This does **NOT** skip digits, and directly fetches the item
     /// from the underlying buffer.
     #[inline(always)]
     fn first(&self) -> Option<&'a u8> {
-        self.get_buffer().get(self.cursor())
+        self.get(0)
     }
 
     /// Check if the next element is a given value, in a case-
@@ -463,7 +473,7 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         match self.first() {
             Some(&b'+') => (false, true),
             Some(&b'-') => (true, true),
-            _ => (false, false)
+            _ => (false, false),
         }
     }
 }

@@ -175,6 +175,7 @@ pub fn parse_mantissa_sign<const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> 
     parse_sign!(
         byte,
         true,
+        integer_iter,
         format.no_positive_mantissa_sign(),
         format.required_mantissa_sign(),
         InvalidPositiveSign,
@@ -189,6 +190,7 @@ pub fn parse_exponent_sign<const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> 
     parse_sign!(
         byte,
         true,
+        exponent_iter,
         format.no_positive_exponent_sign(),
         format.required_exponent_sign(),
         InvalidPositiveExponentSign,
