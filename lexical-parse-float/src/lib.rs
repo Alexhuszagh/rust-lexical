@@ -59,7 +59,7 @@
 //! [Comprehensive Configuration]: #comprehensive-configuration
 //!
 //! ```rust
-//! # #[cfg(feature = "radix")] {
+//! # #[cfg(feature = "format")] {
 //! # use core::str;
 //! use lexical_parse_float::{Error, FromLexicalWithOptions, NumberFormatBuilder, Options};
 //!

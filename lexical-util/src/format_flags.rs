@@ -648,11 +648,8 @@ pub const FLAG_MASK: u128 =
     SUPPORTS_WRITING_INTEGERS |
     REQUIRED_BASE_PREFIX |
     REQUIRED_BASE_SUFFIX |
-    INTERNAL_DIGIT_SEPARATOR |
-    LEADING_DIGIT_SEPARATOR |
-    TRAILING_DIGIT_SEPARATOR |
-    CONSECUTIVE_DIGIT_SEPARATOR |
-    SPECIAL_DIGIT_SEPARATOR;
+    START_DIGIT_SEPARATOR_FLAG_MASK |
+    ALL_DIGIT_SEPARATOR_FLAG_MASK;
 
 /// Mask to extract the flag bits controlling interface parsing.
 ///
@@ -681,17 +678,32 @@ pub const INTERFACE_FLAG_MASK: u128 =
     CONSECUTIVE_DIGIT_SEPARATOR;
 
 /// Mask to extract digit separator flags.
+/// NOTE: This **CANNOT** incude the special or other digit
+/// separators for how our skip iterators are optimized.
+/// We have a 2nd one, `ALL_DIGIT_SEPARATOR_FLAG_MASK`,
+/// just in case this is required.
 #[doc(hidden)]
 pub const DIGIT_SEPARATOR_FLAG_MASK: u128 =
     INTERNAL_DIGIT_SEPARATOR |
     LEADING_DIGIT_SEPARATOR |
     TRAILING_DIGIT_SEPARATOR |
-    CONSECUTIVE_DIGIT_SEPARATOR |
+    CONSECUTIVE_DIGIT_SEPARATOR;
+
+/// Mask to extract digit separator flags.
+/// NOTE: `START_DIGIT_SEPARATOR` is a modifier and
+/// therefore not a digit separator flag.
+#[cfg(feature = "power-of-two")]
+pub const ALL_DIGIT_SEPARATOR_FLAG_MASK: u128 =
+    DIGIT_SEPARATOR_FLAG_MASK |
     SPECIAL_DIGIT_SEPARATOR |
-    START_DIGIT_SEPARATOR_FLAG_MASK |
     SIGN_DIGIT_SEPARATOR_FLAG_MASK |
     BASE_PREFIX_DIGIT_SEPARATOR_FLAG_MASK |
     BASE_SUFFIX_DIGIT_SEPARATOR_FLAG_MASK;
+
+#[cfg(not(feature = "power-of-two"))]
+pub const ALL_DIGIT_SEPARATOR_FLAG_MASK: u128 =
+    DIGIT_SEPARATOR_FLAG_MASK |
+    SPECIAL_DIGIT_SEPARATOR;
 
 /// Mask to extract exponent flags.
 #[doc(hidden)]

@@ -836,13 +836,13 @@ macro_rules! peek_1 {
         if is_digit_separator {
             // NOTE: This cannot iteratively search for the next value,
             // or else the consecutive digit separator has no effect (#96).
-            let is_skip = if $self.current_count() == 0 {
+            let is_skip = if $self.digits() == 0 {
                 $is_skip!(@first $self)
             } else {
                 $is_skip!(@internal $self)
             };
             if is_skip {
-                // SAFETY: Safe since `index < buffer.len()`, so `index + 1 <= buffer.len()``
+                // SAFETY: Safe since `index < buffer.len()`, so `index + 1 <= buffer.len()`
                 unsafe { $self.set_cursor(index + 1) };
                 buffer.get(index + 1)
             } else {
@@ -869,7 +869,7 @@ macro_rules! peek_n {
         // NOTE: We can do some pretty major optimizations for internal values,
         // since we can check the location and don't need to check previous values.
         if is_digit_separator {
-            let is_skip = if $self.current_count() == 0 {
+            let is_skip = if $self.digits() == 0 {
                 $is_skip!(@first $self)
             } else {
                 $is_skip!(@internal $self)
@@ -1048,15 +1048,6 @@ pub struct Bytes<'a, const FORMAT: u128> {
     slc: &'a [u8],
     /// Current index of the iterator in the slice.
     index: usize,
-    /// The current count of integer digits returned by the iterator.
-    /// This is only used if the iterator is not contiguous.
-    integer_count: usize,
-    /// The current count of fraction digits returned by the iterator.
-    /// This is only used if the iterator is not contiguous.
-    fraction_count: usize,
-    /// The current count of exponent digits returned by the iterator.
-    /// This is only used if the iterator is not contiguous.
-    exponent_count: usize,
 }
 
 impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
@@ -1066,9 +1057,6 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         Self {
             slc,
             index: 0,
-            integer_count: 0,
-            fraction_count: 0,
-            exponent_count: 0,
         }
     }
 
@@ -1088,9 +1076,6 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         Self {
             slc,
             index,
-            integer_count: 0,
-            fraction_count: 0,
-            exponent_count: 0,
         }
     }
 
@@ -1099,6 +1084,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     pub fn integer_iter<'b>(&'b mut self) -> IntegerDigitsIterator<'a, 'b, FORMAT> {
         IntegerDigitsIterator {
             byte: self,
+            digits: 0,
         }
     }
 
@@ -1107,6 +1093,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     pub fn fraction_iter<'b>(&'b mut self) -> FractionDigitsIterator<'a, 'b, FORMAT> {
         FractionDigitsIterator {
             byte: self,
+            digits: 0,
         }
     }
 
@@ -1115,6 +1102,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     pub fn exponent_iter<'b>(&'b mut self) -> ExponentDigitsIterator<'a, 'b, FORMAT> {
         ExponentDigitsIterator {
             byte: self,
+            digits: 0,
         }
     }
 
@@ -1123,6 +1111,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     pub fn special_iter<'b>(&'b mut self) -> SpecialDigitsIterator<'a, 'b, FORMAT> {
         SpecialDigitsIterator {
             byte: self,
+            digits: 0,
         }
     }
 
@@ -1176,7 +1165,11 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
 
 unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
     /// If each yielded value is adjacent in memory.
-    const IS_CONTIGUOUS: bool = NumberFormat::<{ FORMAT }>::DIGIT_SEPARATOR == 0;
+    /// We can have leading and trailing digit separators
+    /// prior to our significant digits which will still use
+    /// consecutive digit separators, so we ignore those for
+    /// our checks.
+    const IS_CONTIGUOUS: bool = FORMAT & flags::DIGIT_SEPARATOR_FLAG_MASK == 0;
 
     #[inline(always)]
     fn get_buffer(&self) -> &'a [u8] {
@@ -1198,23 +1191,6 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
     unsafe fn set_cursor(&mut self, index: usize) {
         debug_assert!(index <= self.buffer_length());
         self.index = index;
-    }
-
-    /// Get the current number of digits returned by the iterator.
-    ///
-    /// For contiguous iterators, this can include the sign character, decimal
-    /// point, and the exponent sign (that is, it is always the cursor). For
-    /// non-contiguous iterators, this must always be the only the number of
-    /// digits returned.
-    #[inline(always)]
-    fn current_count(&self) -> usize {
-        // If the buffer is contiguous, then we don't need to track the
-        // number of values: the current index is enough.
-        if Self::IS_CONTIGUOUS {
-            self.index
-        } else {
-            self.integer_count + self.fraction_count + self.exponent_count
-        }
     }
 
     #[inline(always)]
@@ -1240,6 +1216,8 @@ macro_rules! skip_iterator {
         pub struct $iterator<'a: 'b, 'b, const FORMAT: u128> {
             /// The internal byte object for the skip iterator.
             byte: &'b mut Bytes<'a, FORMAT>,
+            /// The number of digits found.
+            digits: usize,
         }
     };
 }
@@ -1280,7 +1258,8 @@ macro_rules! skip_iterator_impl {
             #[inline(always)]
             pub fn new(byte: &'b mut Bytes<'a, FORMAT>) -> Self {
                 Self {
-                    byte,
+                    byte: byte,
+                    digits: 0,
                 }
             }
 
@@ -1342,7 +1321,7 @@ macro_rules! skip_iterator_iterator_impl {
 
 /// Create base methods for the Iter block of a skip iterator.
 macro_rules! skip_iterator_iter_base {
-    ($format:ident, $mask:ident, $count:ident) => {
+    ($format:ident, $mask:ident) => {
         // It's contiguous if we don't skip over any values.
         // IE, the digit separator flags for the iterator over
         // the digits doesn't skip any values.
@@ -1363,21 +1342,6 @@ macro_rules! skip_iterator_iter_base {
             debug_assert!(index <= self.buffer_length());
             // SAFETY: safe if `index <= self.buffer_length()`.
             unsafe { self.byte.set_cursor(index) };
-        }
-
-        /// Get the current number of digits returned by the iterator.
-        ///
-        /// For contiguous iterators, this can include the sign character, decimal
-        /// point, and the exponent sign (that is, it is always the cursor). For
-        /// non-contiguous iterators, this must always be the only the number of
-        /// digits returned.
-        #[inline(always)]
-        fn current_count(&self) -> usize {
-            if Self::IS_CONTIGUOUS {
-                self.byte.current_count()
-            } else {
-                self.byte.$count
-            }
         }
 
         #[inline(always)]
@@ -1404,6 +1368,22 @@ macro_rules! skip_iterator_digits_iter_base {
     };
 }
 
+/// Iteratively consume digits matching the given value.
+///
+/// This simplifies consuming digit separators for our internal, specialized
+/// use, since for signs and base prefixes/suffixes they're 1-off uses.
+#[inline(always)]
+fn consume(bytes: &[u8], value: u8, mut index: usize, consecutive: bool) -> usize {
+    if consecutive {
+        while bytes.get(index) == Some(&value) {
+            index += 1;
+        }
+    } else if bytes.get(index) == Some(&value) {
+        index += 1;
+    }
+    index
+}
+
 /// Internal helper for parsing the sign once a given index is known.
 #[inline(always)]
 fn parse_sign_impl(bytes: &[u8], index: usize) -> (bool, bool) {
@@ -1426,31 +1406,24 @@ where
     T: DigitsIter<'a>,
 {
     let bytes = iter.get_buffer();
-    let mut index = iter.cursor();
     if digit_separator != 0 && can_skip {
-        if consecutive {
-            while bytes.get(index) == Some(&digit_separator) {
-                index += 1;
-            }
-        } else if bytes.get(index) == Some(&digit_separator) {
-            index += 1;
-        }
+        let index = consume(bytes, digit_separator, iter.cursor(), consecutive);
         // only advance the internal state if we have a sign
         // otherwise, we need to keep the start exactly where
         // the buffer started
         match parse_sign_impl(bytes, index) {
             (is_negative, true) => {
-                // SAFETY: safe, since the was fetched from processing
-                // digits above, that is, it must be <= iterator size.
-                // This was validated by `parse_sign_impl`, which returned
-                // `Some(...)`.
+                // SAFETY: safe, since consume will never go `> bytes.len()`, and
+                // `iter.cursor() <= bytes.len()`, that is, we must be within
+                // the valid bounds, and `bytes.get(index)` in `parse_sign_impl`
+                // just returned `Some(...)`.
                 unsafe { iter.set_cursor(index) };
                 (is_negative, true)
             },
             (_, false) => (false, false),
         }
     } else {
-        parse_sign_impl(bytes, index)
+        parse_sign_impl(bytes, iter.cursor())
     }
 }
 
@@ -1499,7 +1472,6 @@ macro_rules! skip_iterator_bytesiter_impl {
     (
         $iterator:ident,
         $mask:ident,
-        $count:ident,
         $i:ident,
         $l:ident,
         $t:ident,
@@ -1507,7 +1479,7 @@ macro_rules! skip_iterator_bytesiter_impl {
         $sign_parser:ident $(,)?
     ) => {
         unsafe impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for $iterator<'a, 'b, FORMAT> {
-            skip_iterator_iter_base!(FORMAT, $mask, $count);
+            skip_iterator_iter_base!(FORMAT, $mask);
         }
 
         impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for $iterator<'a, 'b, FORMAT> {
@@ -1519,7 +1491,18 @@ macro_rules! skip_iterator_bytesiter_impl {
             /// this increments the count by 1.
             #[inline(always)]
             fn increment_count(&mut self) {
-                self.byte.$count += 1;
+                if !self.is_contiguous() {
+                    self.digits += 1;
+                }
+            }
+
+            #[inline(always)]
+            fn digits(&self) -> usize {
+                if self.is_contiguous() {
+                    self.cursor()
+                } else {
+                    self.digits
+                }
             }
 
             /// Peek the next value of the iterator, without consuming it.
@@ -1553,22 +1536,37 @@ macro_rules! skip_iterator_bytesiter_impl {
                 const LTC: u128 = LT | C;
                 const ILTC: u128 = ILT | C;
 
+                // NOTE: This is a special case where we would normally use a leading
+                // digit separator, however, we're not at the start of our buffer.
+                // We're doing as many compile-time conditions as possible.
+                let is_integer = flags::$i == flags::INTEGER_INTERNAL_DIGIT_SEPARATOR;
+                let can_skip = !is_integer || format.start_digit_separator() || self.cursor() != 0;
                 match format.digit_separator_flags() & flags::$mask {
                     0 => peek_noskip!(self),
                     I => peek_i!(self),
-                    L => peek_l!(self),
+                    L if can_skip => peek_l!(self),
                     T => peek_t!(self),
-                    IL => peek_il!(self),
+                    IL if can_skip => peek_il!(self),
                     IT => peek_it!(self),
-                    LT => peek_lt!(self),
-                    ILT => peek_ilt!(self),
+                    LT if can_skip => peek_lt!(self),
+                    ILT if can_skip => peek_ilt!(self),
                     IC => peek_ic!(self),
-                    LC => peek_lc!(self),
+                    LC if can_skip => peek_lc!(self),
                     TC => peek_tc!(self),
-                    ILC => peek_ilc!(self),
+                    ILC if can_skip => peek_ilc!(self),
                     ITC => peek_itc!(self),
-                    LTC => peek_ltc!(self),
-                    ILTC => peek_iltc!(self),
+                    LTC if can_skip => peek_ltc!(self),
+                    ILTC if can_skip => peek_iltc!(self),
+
+                    L if !can_skip => peek_noskip!(self),
+                    IL if !can_skip => peek_i!(self),
+                    LT if !can_skip => peek_t!(self),
+                    ILT if !can_skip => peek_it!(self),
+                    LC if !can_skip => peek_noskip!(self),
+                    ILC if !can_skip => peek_ic!(self),
+                    LTC if !can_skip => peek_tc!(self),
+                    ILTC if !can_skip => peek_itc!(self),
+
                     _ => unreachable!(),
                 }
             }
@@ -1584,6 +1582,71 @@ macro_rules! skip_iterator_bytesiter_impl {
             fn parse_sign(&mut self) -> (bool, bool) {
                 $sign_parser::<_, FORMAT>(self)
             }
+
+            #[inline(always)]
+            fn read_base_prefix(&mut self) -> bool {
+                let format = NumberFormat::<{ FORMAT }> {};
+                let digit_separator = format.digit_separator();
+                let base_prefix = format.base_prefix();
+                let is_cased = format.case_sensitive_base_prefix();
+
+                let is_integer = flags::$i == flags::INTEGER_INTERNAL_DIGIT_SEPARATOR;
+                if !is_integer || !cfg!(feature = "power-of-two") || base_prefix == 0 {
+                    return false;
+                }
+
+                // grab our cursor information
+                let mut index = self.cursor();
+                let bytes = self.get_buffer();
+
+                // we can skip if we're not at the absolute start (a preceeding sign)
+                // or we've enabled start digit separators.
+                let consecutive = format.base_prefix_consecutive_digit_separator();
+                let skip_start = format.start_digit_separator() || index > 0;
+                if skip_start && format.base_prefix_leading_digit_separator() {
+                    index = consume(bytes, digit_separator, index, consecutive);
+                }
+
+                if bytes.get(index) != Some(&b'0') {
+                    return false;
+                }
+                index += 1;
+                debug_assert!(index <= bytes.len());
+
+                if format.base_prefix_internal_digit_separator() {
+                    index = consume(bytes, digit_separator, index, consecutive);
+                }
+                if bytes
+                    .get(index)
+                    .map(|&x| !Self::is_value_equal(x, base_prefix, is_cased))
+                    .unwrap_or(false)
+                {
+                    return false;
+                }
+                index += 1;
+                debug_assert!(index <= bytes.len());
+
+                // NOTE: We want to simplify our implementation, so leave this in a
+                // simple state for our integer parser. We shouldn't skip digits
+                // if the integer can skip leading digit separators and we can skip
+                // trailing, but they can consume consecutive separators, since that
+                // would just be re-processing data.
+                let prefix_trailing = format.base_prefix_trailing_digit_separator();
+                let mut should_skip = prefix_trailing;
+                if format.integer_leading_digit_separator() {
+                    should_skip &= consecutive && !format.integer_consecutive_digit_separator();
+                }
+                if should_skip {
+                    index = consume(bytes, digit_separator, index, consecutive);
+                }
+
+                // SAFETY: safe, since we've consumed at most 1 digit prior to
+                // consume, we will never go `> bytes.len()`, so this is safe.
+                debug_assert!(index <= bytes.len());
+                unsafe { self.set_cursor(index) };
+
+                true
+            }
         }
     };
 }
@@ -1597,7 +1660,6 @@ skip_iterator_iterator_impl!(IntegerDigitsIterator);
 skip_iterator_bytesiter_impl!(
     IntegerDigitsIterator,
     INTEGER_DIGIT_SEPARATOR_FLAG_MASK,
-    integer_count,
     INTEGER_INTERNAL_DIGIT_SEPARATOR,
     INTEGER_LEADING_DIGIT_SEPARATOR,
     INTEGER_TRAILING_DIGIT_SEPARATOR,
@@ -1617,7 +1679,6 @@ skip_iterator_iterator_impl!(FractionDigitsIterator);
 skip_iterator_bytesiter_impl!(
     FractionDigitsIterator,
     FRACTION_DIGIT_SEPARATOR_FLAG_MASK,
-    fraction_count,
     FRACTION_INTERNAL_DIGIT_SEPARATOR,
     FRACTION_LEADING_DIGIT_SEPARATOR,
     FRACTION_TRAILING_DIGIT_SEPARATOR,
@@ -1637,7 +1698,6 @@ skip_iterator_iterator_impl!(ExponentDigitsIterator);
 skip_iterator_bytesiter_impl!(
     ExponentDigitsIterator,
     EXPONENT_DIGIT_SEPARATOR_FLAG_MASK,
-    exponent_count,
     EXPONENT_INTERNAL_DIGIT_SEPARATOR,
     EXPONENT_LEADING_DIGIT_SEPARATOR,
     EXPONENT_TRAILING_DIGIT_SEPARATOR,
@@ -1660,7 +1720,7 @@ impl<'a: 'b, 'b, const FORMAT: u128> SpecialDigitsIterator<'a, 'b, FORMAT> {
 }
 
 unsafe impl<'a: 'b, 'b, const FORMAT: u128> Iter<'a> for SpecialDigitsIterator<'a, 'b, FORMAT> {
-    skip_iterator_iter_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR, integer_count);
+    skip_iterator_iter_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
 }
 
 impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for SpecialDigitsIterator<'a, 'b, FORMAT> {
@@ -1669,6 +1729,15 @@ impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for SpecialDigitsIterator<'a
     // Always a no-op.
     #[inline(always)]
     fn increment_count(&mut self) {
+    }
+
+    #[inline(always)]
+    fn digits(&self) -> usize {
+        if self.is_contiguous() {
+            self.cursor()
+        } else {
+            self.digits
+        }
     }
 
     /// Peek the next value of the iterator, without consuming it.
@@ -1687,5 +1756,15 @@ impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for SpecialDigitsIterator<'a
     fn is_digit(&self, value: u8) -> bool {
         let format = NumberFormat::<{ FORMAT }> {};
         char_is_digit_const(value, format.mantissa_radix())
+    }
+
+    #[inline(always)]
+    fn parse_sign(&mut self) -> (bool, bool) {
+        unimplemented!();
+    }
+
+    #[inline(always)]
+    fn read_base_prefix(&mut self) -> bool {
+        unimplemented!();
     }
 }

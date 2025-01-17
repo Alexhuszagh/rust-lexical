@@ -125,17 +125,6 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
         self.index = index;
     }
 
-    /// Get the current number of digits returned by the iterator.
-    ///
-    /// For contiguous iterators, this can include the sign character, decimal
-    /// point, and the exponent sign (that is, it is always the cursor). For
-    /// non-contiguous iterators, this must always be the only the number of
-    /// digits returned.
-    #[inline(always)]
-    fn current_count(&self) -> usize {
-        self.index
-    }
-
     #[inline(always)]
     #[allow(clippy::assertions_on_constants)] // reason="ensuring safety invariants are valid"
     unsafe fn step_by_unchecked(&mut self, count: usize) {
@@ -218,11 +207,6 @@ unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> 
     }
 
     #[inline(always)]
-    fn current_count(&self) -> usize {
-        self.byte.current_count()
-    }
-
-    #[inline(always)]
     unsafe fn step_by_unchecked(&mut self, count: usize) {
         debug_assert!(self.as_slice().len() >= count);
         // SAFETY: safe as long as `slc.len() >= count`.
@@ -249,6 +233,11 @@ impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for DigitsIterator<'a, 'b, F
     }
 
     #[inline(always)]
+    fn digits(&self) -> usize {
+        self.cursor()
+    }
+
+    #[inline(always)]
     fn peek(&mut self) -> Option<<Self as Iterator>::Item> {
         self.byte.slc.get(self.byte.index)
     }
@@ -258,6 +247,21 @@ impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for DigitsIterator<'a, 'b, F
     fn is_digit(&self, value: u8) -> bool {
         let format = NumberFormat::<{ FORMAT }> {};
         char_is_digit_const(value, format.mantissa_radix())
+    }
+
+    #[inline(always)]
+    fn parse_sign(&mut self) -> (bool, bool) {
+        // NOTE: `read_if` optimizes poorly since we then match after
+        match self.first() {
+            Some(&b'+') => (false, true),
+            Some(&b'-') => (true, true),
+            _ => (false, false),
+        }
+    }
+
+    #[inline(always)]
+    fn read_base_prefix(&mut self) -> bool {
+        false
     }
 }
 
