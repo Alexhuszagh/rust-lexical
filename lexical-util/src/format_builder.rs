@@ -1339,16 +1339,20 @@ impl NumberFormatBuilder {
 
     /// Get if leading zeros before an integer are not allowed.
     ///
-    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
-    /// to [`false`].
+    /// Can only be modified with [`feature`][crate#features] `format`. This
+    /// only applies if there is no base prefix: that is, the zeros are
+    /// at the absolute start of the number. Defaults to [`false`].
     ///
     /// # Examples
+    ///
+    /// With a base prefix of `x`.
     ///
     /// | Input | Valid? |
     /// |:-:|:-:|
     /// | `01` | ❌ |
     /// | `0` | ✔️ |
     /// | `10` | ✔️ |
+    /// | `0x01` | ✔️ |
     ///
     /// # Used For
     ///
@@ -1362,10 +1366,13 @@ impl NumberFormatBuilder {
     ///
     /// This is before the significant digits of the float, that is, if there is
     /// 1 or more digits in the integral component and the leading digit is 0,
-    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
-    /// to [`false`].
+    /// Can only be modified with [`feature`][crate#features] `format`. This
+    /// only applies if there is no base prefix: that is, the zeros are
+    /// at the absolute start of the number. Defaults to [`false`].
     ///
     /// # Examples
+    ///
+    /// With a base prefix of `x`.
     ///
     /// | Input | Valid? |
     /// |:-:|:-:|
@@ -1373,6 +1380,7 @@ impl NumberFormatBuilder {
     /// | `01.0` | ❌ |
     /// | `0` | ✔️ |
     /// | `10` | ✔️ |
+    /// | `0x01.0` | ✔️ |
     /// | `0.1` | ✔️ |
     ///
     /// # Used For
@@ -3148,15 +3156,19 @@ impl NumberFormatBuilder {
 
     /// Set if leading zeros before an integer are not allowed.
     ///
-    /// Defaults to [`false`].
+    /// This only applies if there is no base prefix: that is, the zeros are
+    /// at the absolute start of the number. Defaults to [`false`].
     ///
     /// # Examples
+    ///
+    /// With a base prefix of `x`.
     ///
     /// | Input | Valid? |
     /// |:-:|:-:|
     /// | `01` | ❌ |
     /// | `0` | ✔️ |
     /// | `10` | ✔️ |
+    /// | `0x01` | ✔️ |
     ///
     /// # Used For
     ///
@@ -3165,6 +3177,7 @@ impl NumberFormatBuilder {
     /// <!-- TEST
     /// ```rust
     /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_prefix(num::NonZeroU8::new(b'd'))
     ///     .no_integer_leading_zeros(true)
     ///     .build_strict();
     /// assert_eq!(parse::<i64>(b"01"), Ok(1));
@@ -3172,10 +3185,11 @@ impl NumberFormatBuilder {
     /// assert_eq!(parse::<i64>(b"0"), Ok(0));
     /// assert_eq!(parse::<i64>(b"10"), Ok(10));
     ///
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"01", &PI_OPTS), Err(Error::InvalidLeadingZeros(0)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"01", &PI_OPTS), Ok(0));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+01", &PI_OPTS), Err(Error::InvalidLeadingZeros(1)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0", &PI_OPTS), Ok(0));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"10", &PI_OPTS), Ok(10));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d01", &PI_OPTS), Ok(1));
     /// ```
     /// -->
     #[inline(always)]
@@ -3189,9 +3203,12 @@ impl NumberFormatBuilder {
     ///
     /// This is before the significant digits of the float, that is, if there is
     /// 1 or more digits in the integral component and the leading digit is 0,
-    /// Defaults to [`false`].
+    /// This only applies if there is no base prefix: that is, the zeros are
+    /// at the absolute start of the number. Defaults to [`false`].
     ///
     /// # Examples
+    ///
+    /// With a base prefix of `x`.
     ///
     /// | Input | Valid? |
     /// |:-:|:-:|
@@ -3199,6 +3216,7 @@ impl NumberFormatBuilder {
     /// | `01.0` | ❌ |
     /// | `0` | ✔️ |
     /// | `10` | ✔️ |
+    /// | `0x01.0` | ✔️ |
     /// | `0.1` | ✔️ |
     ///
     /// # Used For
@@ -3208,6 +3226,7 @@ impl NumberFormatBuilder {
     /// <!-- TEST
     /// ```rust
     /// const FORMAT: u128 = NumberFormatBuilder::new()
+    ///     .base_prefix(num::NonZeroU8::new(b'd'))
     ///     .no_float_leading_zeros(true)
     ///     .build_strict();
     /// assert_eq!(parse::<f64>(b"01"), Ok(1.0));
@@ -3221,6 +3240,8 @@ impl NumberFormatBuilder {
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0", &PF_OPTS), Ok(0.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"10", &PF_OPTS), Ok(10.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0.1", &PF_OPTS), Ok(0.1));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d01", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d01.1", &PF_OPTS), Ok(1.1));
     /// ```
     /// -->
     #[inline(always)]
