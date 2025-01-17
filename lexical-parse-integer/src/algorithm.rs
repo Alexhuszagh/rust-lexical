@@ -674,14 +674,15 @@ macro_rules! algorithm {
     let mut byte = $bytes.bytes::<FORMAT>();
     let format = NumberFormat::<FORMAT> {};
     let radix = format.mantissa_radix();
+    debug_assert!(format.is_valid(), "should have already checked for an invalid number format");
 
     let is_negative = parse_sign::<T, FORMAT>(&mut byte)?;
     let mut iter = byte.integer_iter();
     maybe_into_empty!(iter, $into_ok);
 
     // skip and validate an optional base prefix
-    #[cfg(all(feature = "format", feature = "power-of-two"))]
-    if iter.read_base_prefix() {
+    let has_base_prefix = cfg!(feature = "format") && iter.read_base_prefix();
+    if cfg!(feature = "format") && has_base_prefix {
         maybe_into_empty!(iter, $into_ok);
     } else if format.required_base_prefix() {
         return Err(Error::MissingBasePrefix(iter.cursor()));
@@ -689,8 +690,7 @@ macro_rules! algorithm {
 
     // NOTE: always do a peek so any leading digit separators
     // are skipped, and we can get the correct index
-    #[cfg(feature = "format")]
-    if format.no_integer_leading_zeros() && iter.peek() == Some(&b'0') {
+    if cfg!(feature = "format") && format.no_integer_leading_zeros() && !has_base_prefix && iter.peek() == Some(&b'0') {
         // NOTE: Skipping zeros is **EXPENSIVE* so we skip that without our format feature
         let index = iter.cursor();
         let zeros = iter.skip_zeros();
@@ -719,7 +719,6 @@ macro_rules! algorithm {
     //      and even if parsing a 64-bit integer is marginally faster, it
     //      culminates in **way** slower performance overall for simple
     //      integers, and no improvement for large integers.
-    #[allow(unused)]
     let mut has_suffix = false;
     // FIXME: This is only used for the parsing of the base suffix.
     #[allow(unused)]
@@ -776,8 +775,7 @@ macro_rules! algorithm {
         );
     }
 
-    #[cfg(all(feature = "format", feature = "power-of-two"))]
-    if format.required_base_suffix() && !has_suffix {
+    if cfg!(all(feature = "format", feature = "power-of-two")) && format.required_base_suffix() && !has_suffix {
         return Err(Error::MissingBaseSuffix(iter.cursor()));
     }
 

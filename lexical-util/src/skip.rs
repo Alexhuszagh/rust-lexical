@@ -1258,7 +1258,7 @@ macro_rules! skip_iterator_impl {
             #[inline(always)]
             pub fn new(byte: &'b mut Bytes<'a, FORMAT>) -> Self {
                 Self {
-                    byte: byte,
+                    byte,
                     digits: 0,
                 }
             }

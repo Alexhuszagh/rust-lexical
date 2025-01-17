@@ -474,16 +474,20 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
 
     /// Get if leading zeros before an integer are not allowed.
     ///
-    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
-    /// to [`false`].
+    /// Can only be modified with [`feature`][crate#features] `format`. This
+    /// only applies if there is no base prefix: that is, the zeros are
+    /// at the absolute start of the number. Defaults to [`false`].
     ///
     /// # Examples
+    ///
+    /// With a base prefix of `x`.
     ///
     /// | Input | Valid? |
     /// |:-:|:-:|
     /// | `01` | ❌ |
     /// | `0` | ✔️ |
     /// | `10` | ✔️ |
+    /// | `0x01` | ✔️ |
     ///
     /// # Used For
     ///
@@ -502,10 +506,13 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     ///
     /// This is before the significant digits of the float, that is, if there is
     /// 1 or more digits in the integral component and the leading digit is 0,
-    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
-    /// to [`false`].
+    /// Can only be modified with [`feature`][crate#features] `format`. This
+    /// only applies if there is no base prefix: that is, the zeros are
+    /// at the absolute start of the number. Defaults to [`false`].
     ///
     /// # Examples
+    ///
+    /// With a base prefix of `x`.
     ///
     /// | Input | Valid? |
     /// |:-:|:-:|
@@ -513,6 +520,7 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// | `01.0` | ❌ |
     /// | `0` | ✔️ |
     /// | `10` | ✔️ |
+    /// | `0x01.0` | ✔️ |
     /// | `0.1` | ✔️ |
     ///
     /// # Used For
