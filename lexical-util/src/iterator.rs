@@ -97,19 +97,15 @@ pub unsafe trait Iter<'a> {
     /// pass if the cursor was set between the two.
     unsafe fn set_cursor(&mut self, index: usize);
 
-    /// Get the current number of digits returned by the iterator.
-    ///
-    /// For contiguous iterators, this can include the sign character, decimal
-    /// point, and the exponent sign (that is, it is always the cursor). For
-    /// non-contiguous iterators, this must always be the only the number of
-    /// digits returned.
-    ///
-    /// This is never used for indexing but will be used for API detection.
-    fn current_count(&self) -> usize;
-
     // PROPERTIES
 
-    /// Determine if the buffer is contiguous.
+    /// Determine if the iterator is contiguous.
+    ///
+    /// For digits iterators, this may mean that only that component
+    /// of the number if contiguous, but the rest is not: that is,
+    /// digit separators may be allowed in the integer but not the
+    /// fraction, and the integer iterator would be contiguous but
+    /// the fraction would not.
     #[inline(always)]
     fn is_contiguous(&self) -> bool {
         Self::IS_CONTIGUOUS
@@ -123,6 +119,16 @@ pub unsafe trait Iter<'a> {
     #[inline(always)]
     fn get(&self, index: usize) -> Option<&'a u8> {
         self.get_buffer().get(self.cursor() + index)
+    }
+
+    /// Check if two values are equal, with optional case sensitivity.
+    #[inline(always)]
+    fn is_value_equal(lhs: u8, rhs: u8, is_cased: bool) -> bool {
+        if is_cased {
+            lhs == rhs
+        } else {
+            lhs.eq_ignore_ascii_case(&rhs)
+        }
     }
 
     /// Get the next value available without consuming it.
@@ -322,6 +328,28 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     /// this increments the count by 1.
     fn increment_count(&mut self);
 
+    /// Get the number of digits the iterator has encountered.
+    ///
+    /// This is always relative to the start of the iterator: recreating
+    /// the iterator will reset this count. The absolute value of this
+    /// is not defined: only the relative value between 2 calls. For
+    /// consecutive digit separators, this is based on the index in the
+    /// buffer. For non-consecutive iterators, the count is internally
+    /// incremented.
+    fn digits(&self) -> usize;
+
+    /// Get number of digits returned relative to a previous state.
+    ///
+    /// This allows you to determine how many digits were returned
+    /// since a previous state, but is meant to be strongish-ly
+    /// typed so the caller knows it only works within a single
+    /// iterator. Calling this on an iterator other than the one
+    /// used at the start may lead to unpredictable results.
+    #[inline(always)]
+    fn digits_since(&self, start: usize) -> usize {
+        self.digits() - start
+    }
+
     /// Peek the next value of the iterator, without consuming it.
     ///
     /// Note that this can modify the internal state, by skipping digits
@@ -448,11 +476,11 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     /// Skip zeros from the start of the iterator.
     #[inline(always)]
     fn skip_zeros(&mut self) -> usize {
-        let start = self.current_count();
+        let start = self.digits();
         while self.read_if_value_cased(b'0').is_some() {
             self.increment_count();
         }
-        self.current_count() - start
+        self.digits_since(start)
     }
 
     /// Determine if the character is a digit.
@@ -467,13 +495,22 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     /// returned if the value is negative and if a sign was found.
     ///
     /// The default implementation does not support digit separators.
-    #[inline(always)]
-    fn parse_sign(&mut self) -> (bool, bool) {
-        // NOTE: `read_if` optimizes poorly since we then match after
-        match self.first() {
-            Some(&b'+') => (false, true),
-            Some(&b'-') => (true, true),
-            _ => (false, false),
-        }
-    }
+    fn parse_sign(&mut self) -> (bool, bool);
+
+    /// Read the base prefix, if present, returning if the base prefix
+    /// was present.
+    ///
+    /// If the base prefix was not present, it does not consume any
+    /// leading zeroes, so they can be processed afterwards. Otherwise,
+    /// it advances the iterator state to the end of the base prefix,
+    /// including consuming any trailing digit separators.
+    ///
+    /// Any caller that consumes leading digit separators will need
+    /// to ignore it if base prefix trailing digit separators are enabled.
+    fn read_base_prefix(&mut self) -> bool;
+
+    // TODO: Should implement the `is_base_prefix` internally here at
+    // the start and should only be used if it has one. Since the format
+    // will be known in the skip iterator, this is doable.
+    // TODO: Should implement `is_base_suffix` here
 }

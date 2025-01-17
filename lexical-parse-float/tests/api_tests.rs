@@ -1051,7 +1051,7 @@ fn f64_exponent_leading_digit_separator_test() {
         .build_strict();
     const OPTIONS: Options = Options::new();
     assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e7_1", &OPTIONS).is_err());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e_71", &OPTIONS).is_ok());
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"31.01e_71", &OPTIONS), Ok(31.01e71));
     assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e71_", &OPTIONS).is_err());
 }
 
@@ -1342,4 +1342,47 @@ fn require_base_prefix_test() {
     assert_eq!(value, Ok(-12345.0));
     let value = f64::from_lexical_with_options::<SUFFIX>(b"-0d12345", &OPTIONS);
     assert_eq!(value, Err(Error::MissingBaseSuffix(8)));
+}
+
+#[test]
+#[cfg(all(feature = "format", feature = "power-of-two"))]
+fn base_prefix_digit_separator_edge_cases_test() {
+    use core::num;
+
+    const OPTIONS: Options = Options::new();
+    const NO_PREFIX: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .leading_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"_+12345", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(1)));
+
+    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"+_12345", &OPTIONS);
+    assert_eq!(value, Ok(12345.0));
+
+    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"+12345e_+23", &OPTIONS);
+    assert_eq!(value, Err(Error::EmptyExponent(8)));
+
+    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"+12345e+_23", &OPTIONS);
+    assert_eq!(value, Ok(1.2345e27));
+
+    const PREFIX: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .base_prefix(num::NonZeroU8::new(b'd'))
+        .required_base_prefix(true)
+        .leading_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"_+0d12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+_0d12345", &OPTIONS);
+    assert_eq!(value, Ok(12345.0));
+
+    // TODO: This fails
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0d_12345", &OPTIONS);
+    assert_eq!(value, Ok(12345.0));
+
+    // TODO:> Add suffix
 }

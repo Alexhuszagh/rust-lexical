@@ -7,7 +7,8 @@ use lexical_util::format;
 #[test]
 fn ignore_test() {
     let fmt = format::NumberFormat::<{ format::IGNORE }> {};
-    let expected = format::DIGIT_SEPARATOR_FLAG_MASK
+    let expected = format::ALL_DIGIT_SEPARATOR_FLAG_MASK
+        | format::START_DIGIT_SEPARATOR
         | format::SUPPORTS_PARSING_FLOATS
         | format::SUPPORTS_PARSING_INTEGERS
         | format::SUPPORTS_WRITING_FLOATS

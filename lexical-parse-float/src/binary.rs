@@ -101,7 +101,7 @@ pub fn binary<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> Ext
 #[cfg_attr(not(feature = "compact"), inline(always))]
 #[allow(unused_mut)]
 pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
-    mut iter: Iter,
+    iter: &mut Iter,
     mantissa: &mut u64,
     step: &mut usize,
     overflowed: &mut bool,
@@ -118,7 +118,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
         debug_assert!(radix < 16, "larger radices will wrap on radix^8");
         let radix8 = format.radix8() as u64;
         while *step > 8 {
-            if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
+            if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(iter) {
                 *mantissa = mantissa.wrapping_mul(radix8).wrapping_add(v);
                 *step -= 8;
             } else {
@@ -169,9 +169,10 @@ pub fn slow_binary<F: RawFloat, const FORMAT: u128>(num: Number) -> ExtendedFloa
     // Parse the integer digits.
     let mut step = u64_step(radix);
     let mut integer = num.integer.bytes::<FORMAT>();
-    integer.integer_iter().skip_zeros();
+    let mut integer_iter = integer.integer_iter();
+    integer_iter.skip_zeros();
     parse_u64_digits::<_, FORMAT>(
-        integer.integer_iter(),
+        &mut integer_iter,
         &mut mantissa,
         &mut step,
         &mut overflow,
@@ -181,11 +182,12 @@ pub fn slow_binary<F: RawFloat, const FORMAT: u128>(num: Number) -> ExtendedFloa
     // Parse the fraction digits.
     if let Some(fraction) = num.fraction {
         let mut fraction = fraction.bytes::<FORMAT>();
+        let mut fraction_iter = fraction.fraction_iter();
         if mantissa == 0 {
-            fraction.fraction_iter().skip_zeros();
+            fraction_iter.skip_zeros();
         }
         parse_u64_digits::<_, FORMAT>(
-            fraction.fraction_iter(),
+            &mut fraction_iter,
             &mut mantissa,
             &mut step,
             &mut overflow,

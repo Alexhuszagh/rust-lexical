@@ -3901,17 +3901,17 @@ impl NumberFormatBuilder {
     ///     .digit_separator(num::NonZeroU8::new(b'_'))
     ///     .base_prefix_internal_digit_separator(true)
     ///     .build_strict();
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0x1", &PF_OPTS), Err(Error::InvalidDigit(0)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x_1", &PF_OPTS), Err(Error::InvalidDigit(2)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0_x1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+0_x1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0d1", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d_1", &PF_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0_d1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+0_d1", &PF_OPTS), Ok(1.0));
     ///
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0x1", &PI_OPTS), Err(Error::InvalidDigit(0)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x_1", &PI_OPTS), Err(Error::InvalidDigit(2)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0_x1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+0_x1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0d1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d_1", &PI_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0_d1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+0_d1", &PI_OPTS), Ok(1));
     /// ```
     /// -->
     #[inline(always)]
@@ -3958,26 +3958,26 @@ impl NumberFormatBuilder {
     ///     .start_digit_separator(true)
     ///     .build_strict();
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_1", &PF_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_+1", &PF_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0x1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x_1", &PF_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+_0x1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_+0x1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_1", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_+1", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0d1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d_1", &PF_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+_0d1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_+0d1", &PF_OPTS), Err(Error::InvalidDigit(0)));
     ///
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_1", &PI_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_+1", &PI_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0x1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x_1", &PI_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+_0x1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_+0x1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_+1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0d1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d_1", &PI_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+_0d1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_+0d1", &PI_OPTS), Err(Error::InvalidDigit(0)));
     ///
     /// const NO_START: u128 = NumberFormatBuilder::rebuild(FORMAT)
     ///     .start_digit_separator(false)
     ///     .build_strict();
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0x1", &PF_OPTS), Err(Error::Empty(1)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0x1", &PI_OPTS), Err(Error::Empty(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0d1", &PF_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0d1", &PI_OPTS), Err(Error::InvalidDigit(0)));
     /// ```
     /// -->
     #[inline(always)]
@@ -4023,18 +4023,18 @@ impl NumberFormatBuilder {
     ///     .base_prefix_trailing_digit_separator(true)
     ///     .build_strict();
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0x1", &PF_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0_x1", &PF_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x_1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x__1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0d1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0_d1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d_1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d__1", &PF_OPTS), Err(Error::InvalidDigit(1)));
     ///
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0x1", &PI_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0_x1", &PI_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x_1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x__1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0d1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0_d1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d_1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d__1", &PI_OPTS), Err(Error::InvalidDigit(1)));
     /// ```
     /// -->
     #[inline(always)]
@@ -4077,17 +4077,17 @@ impl NumberFormatBuilder {
     ///     .base_prefix_trailing_digit_separator(true)
     ///     .base_prefix_consecutive_digit_separator(true)
     ///     .build_strict();
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0x1", &PF_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0_x1", &PF_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x_1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0x__1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0d1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0_d1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d_1", &PF_OPTS), Ok(1.0));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d__1", &PF_OPTS), Ok(1.0));
     ///
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0x1", &PI_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0_x1", &PI_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x_1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x__1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0d1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0_d1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d_1", &PI_OPTS), Ok(1));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d__1", &PI_OPTS), Ok(1));
     /// ```
     /// -->
     #[inline(always)]
@@ -5166,7 +5166,7 @@ impl NumberFormatBuilder {
             self.exponent_consecutive_digit_separator, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR ;
             self.special_digit_separator, SPECIAL_DIGIT_SEPARATOR ;
         );
-        if format & flags::DIGIT_SEPARATOR_FLAG_MASK != 0 {
+        if format & flags::ALL_DIGIT_SEPARATOR_FLAG_MASK != 0 {
             format |=
                 (unwrap_or_zero(self.digit_separator) as u128) << flags::DIGIT_SEPARATOR_SHIFT;
         }

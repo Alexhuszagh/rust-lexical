@@ -541,6 +541,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     // NOTE: `lz_prefix` is if we had a leading zero when
     // checking for a base prefix: it is not if the prefix
     // exists or not.
+    // TODO: MIGRATE TO BASE PREFIX LOGIC
     #[allow(unused_variables)]
     let mut lz_prefix = false;
     #[cfg(all(feature = "format", feature = "power-of-two"))]
@@ -568,12 +569,14 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     // Parse our integral digits.
     let mut mantissa = 0_u64;
     let start = byte.clone();
+    let mut integer_iter = byte.integer_iter();
+    let start_count = integer_iter.digits();
     #[cfg(not(feature = "compact"))]
-    parse_8digits::<_, FORMAT>(byte.integer_iter(), &mut mantissa);
-    parse_digits(byte.integer_iter(), format.mantissa_radix(), |digit| {
+    parse_8digits::<_, FORMAT>(&mut integer_iter, &mut mantissa);
+    parse_digits(&mut integer_iter, format.mantissa_radix(), |digit| {
         mantissa = mantissa.wrapping_mul(format.radix() as u64).wrapping_add(digit as u64);
     });
-    let mut n_digits = byte.current_count() - start.current_count();
+    let mut n_digits = integer_iter.digits_since(start_count);
     #[cfg(feature = "format")]
     let n_before_dot = n_digits;
     #[cfg(feature = "format")]
@@ -598,7 +601,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     // SAFETY: safe, since `n_digits <= start.as_slice().len()`.
     // This is since `byte.len() >= start.len()` but has to have
     // the same end bounds (that is, `start = byte.clone()`), so
-    // `0 <= byte.current_count() <= start.current_count() <= start.lent()`
+    // `0 <= byte.digits() <= start.digits() <= start.len()`
     // so, this will always return only the integer digits.
     //
     // NOTE: Removing this code leads to ~10% reduction in parsing
@@ -609,7 +612,8 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     // Check if integer leading zeros are disabled.
     #[cfg(feature = "format")]
     if !lz_prefix && format.no_float_leading_zeros() {
-        if integer_digits.len() > 1 && integer_digits.first() == Some(&b'0') {
+        let mut integer = integer_digits.bytes::<FORMAT>();
+        if integer_digits.len() > 1 && integer.integer_iter().peek() == Some(&b'0') {
             return Err(Error::InvalidLeadingZeros(start.cursor()));
         }
     }
@@ -627,17 +631,19 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
         // SAFETY: byte cannot be empty due to `first_is`
         unsafe { byte.step_unchecked() };
         let before = byte.clone();
+        let mut fraction_iter = byte.fraction_iter();
+        let start_count = fraction_iter.digits();
         #[cfg(not(feature = "compact"))]
-        parse_8digits::<_, FORMAT>(byte.fraction_iter(), &mut mantissa);
-        parse_digits(byte.fraction_iter(), format.mantissa_radix(), |digit| {
+        parse_8digits::<_, FORMAT>(&mut fraction_iter, &mut mantissa);
+        parse_digits(&mut fraction_iter, format.mantissa_radix(), |digit| {
             mantissa = mantissa.wrapping_mul(format.radix() as u64).wrapping_add(digit as u64);
         });
-        n_after_dot = byte.current_count() - before.current_count();
+        n_after_dot = fraction_iter.digits_since(start_count);
         // NOTE: We can't use the number of digits to extract the slice for
         // non-contiguous iterators, but we also need to the number of digits
         // for our value calculation. We store both, and let the compiler know
         // to optimize it out when not needed.
-        let b_after_dot = if cfg!(feature = "format") && !byte.fraction_iter().is_contiguous() {
+        let b_after_dot = if cfg!(feature = "format") && !fraction_iter.is_contiguous() {
             byte.cursor() - before.cursor()
         } else {
             n_after_dot
@@ -672,9 +678,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
 
     // check to see if we have any invalid leading zeros
     n_digits += n_after_dot;
-    if format.required_mantissa_digits()
-        && (n_digits == 0 || (cfg!(feature = "format") && byte.current_count() == 0))
-    {
+    if format.required_mantissa_digits() && n_digits == 0 {
         let any_digits = start.clone().integer_iter().peek().is_some();
         // NOTE: This is because numbers like `_12.34` have significant digits,
         // they just don't have a valid digit (#97).
@@ -731,14 +735,15 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
         }
 
         let is_negative_exponent = parse_exponent_sign(&mut byte)?;
-        let before = byte.current_count();
-        parse_digits(byte.exponent_iter(), format.exponent_radix(), |digit| {
+        let mut exponent_iter = byte.exponent_iter();
+        let start_count = exponent_iter.digits();
+        parse_digits(&mut exponent_iter, format.exponent_radix(), |digit| {
             if explicit_exponent < 0x10000000 {
                 explicit_exponent *= format.exponent_radix() as i64;
                 explicit_exponent += digit as i64;
             }
         });
-        if format.required_exponent_digits() && byte.current_count() - before == 0 {
+        if format.required_exponent_digits() && exponent_iter.digits_since(start_count) == 0 {
             return Err(Error::EmptyExponent(byte.cursor()));
         }
         // Handle our sign, and get the explicit part of the exponent.
@@ -755,10 +760,10 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     // Check to see if we have a valid base suffix.
     // We've already trimmed any leading digit separators here, so we can be safe
     // that the first character **is not** a digit separator.
-    #[allow(unused_variables)]
-    let base_suffix = format.base_suffix();
+    // FIXME: Improve parsing of this
     #[cfg(all(feature = "format", feature = "power-of-two"))]
-    if base_suffix != 0 {
+    if format.has_base_suffix() {
+        let base_suffix = format.base_suffix();
         let is_suffix = byte.first_is(base_suffix, format.case_sensitive_base_suffix());
         if is_suffix {
             // SAFETY: safe since `byte.len() >= 1`.
@@ -814,8 +819,9 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
         let mut integer = integer_digits.bytes::<{ FORMAT }>();
         // Skip leading zeros, so we can use the step properly.
         let mut integer_iter = integer.integer_iter();
+        let integer_start = integer_iter.digits();
         integer_iter.skip_zeros();
-        parse_u64_digits::<_, FORMAT>(integer_iter, &mut mantissa, &mut step);
+        parse_u64_digits::<_, FORMAT>(&mut integer_iter, &mut mantissa, &mut step);
         // NOTE: With the format feature enabled and non-contiguous iterators, we can
         // have null fraction digits even if step was not 0. We want to make the
         // none check as late in there as possible: any of them should
@@ -828,7 +834,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
             || (cfg!(feature = "format") && !byte.is_contiguous() && fraction_digits.is_none())
         {
             // Filled our mantissa with just the integer.
-            int_end - integer.current_count() as i64
+            int_end - integer_iter.digits_since(integer_start) as i64
         } else {
             // We know this can't be a None since we had more than 19
             // digits previously, so we overflowed a 64-bit integer,
@@ -837,12 +843,13 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
             // point, and at least 1 fractional digit.
             let mut fraction = fraction_digits.unwrap().bytes::<{ FORMAT }>();
             let mut fraction_iter = fraction.fraction_iter();
+            let fraction_start = fraction_iter.digits();
             // Skip leading zeros, so we can use the step properly.
             if mantissa == 0 {
                 fraction_iter.skip_zeros();
             }
-            parse_u64_digits::<_, FORMAT>(fraction_iter, &mut mantissa, &mut step);
-            -(fraction.current_count() as i64)
+            parse_u64_digits::<_, FORMAT>(&mut fraction_iter, &mut mantissa, &mut step);
+            -(fraction_iter.digits_since(fraction_start) as i64)
         };
         if format.mantissa_radix() == format.exponent_base() {
             exponent = implicit_exponent;
@@ -898,7 +905,7 @@ pub fn parse_complete_number<'a, const FORMAT: u128>(
 
 /// Iteratively parse and consume digits from bytes.
 #[inline(always)]
-pub fn parse_digits<'a, Iter, Cb>(mut iter: Iter, radix: u32, mut cb: Cb)
+pub fn parse_digits<'a, Iter, Cb>(iter: &mut Iter, radix: u32, mut cb: Cb)
 where
     Iter: DigitsIter<'a>,
     Cb: FnMut(u32),
@@ -923,7 +930,7 @@ where
 /// The iterator must be of the significant digits, not the exponent.
 #[inline(always)]
 #[cfg(not(feature = "compact"))]
-pub fn parse_8digits<'a, Iter, const FORMAT: u128>(mut iter: Iter, mantissa: &mut u64)
+pub fn parse_8digits<'a, Iter, const FORMAT: u128>(iter: &mut Iter, mantissa: &mut u64)
 where
     Iter: DigitsIter<'a>,
 {
@@ -934,7 +941,7 @@ where
         let radix8 = format.radix8() as u64;
         // Can do up to 2 iterations without overflowing, however, for large
         // inputs, this is much faster than any other alternative.
-        while let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
+        while let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(iter) {
             *mantissa = mantissa.wrapping_mul(radix8).wrapping_add(v);
         }
     }
@@ -948,7 +955,7 @@ where
 /// must be of the significant digits, not the exponent.
 #[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
-    mut iter: Iter,
+    iter: &mut Iter,
     mantissa: &mut u64,
     step: &mut usize,
 ) where
@@ -963,7 +970,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
         debug_assert!(radix < 16, "radices over 16 will overflow with radix^8");
         let radix8 = format.radix8() as u64;
         while *step > 8 {
-            if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
+            if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(iter) {
                 *mantissa = mantissa.wrapping_mul(radix8).wrapping_add(v);
                 *step -= 8;
             } else {
