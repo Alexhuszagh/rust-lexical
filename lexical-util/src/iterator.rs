@@ -9,10 +9,128 @@
 use core::mem;
 
 // Re-export our digit iterators.
+use crate::error::Error;
+use crate::format::NumberFormat;
 #[cfg(not(feature = "format"))]
 pub use crate::noskip::{AsBytes, Bytes};
+use crate::result::Result;
 #[cfg(feature = "format")]
 pub use crate::skip::{AsBytes, Bytes};
+
+/// Converts the sign parser to return a result and handles increment the
+/// internal state.
+///
+/// 1. Parses the sign digit.
+/// 2. Handles if positive signs before integers are not allowed.
+/// 3. Handles negative signs if the type is unsigned.
+/// 4. Handles if the sign is required, but missing.
+/// 5. Handles if the iterator is empty, before or after parsing the sign.
+/// 6. Handles if the iterator has invalid, leading zeros.
+///
+/// This does not handle missing digits: it is assumed the caller will.
+///
+/// It assumes the next digit is the sign character, that is,
+/// leading and trailing digits **HAVE** been handled for non-
+/// contiguous iterators.
+macro_rules! read_sign {
+    (
+        $byte:ident,
+        $index:ident,
+        $is_signed:expr,
+        $no_positive:expr,
+        $required:expr,
+        $invalid_positive:ident,
+        $missing:ident $(,)?
+    ) => {{
+        let (is_negative, have_sign) = match $byte.get_buffer().get($index) {
+            Some(&b'+') => (false, true),
+            Some(&b'-') => (true, true),
+            _ => (false, false),
+        };
+        match (is_negative, have_sign) {
+            (false, true) if !$no_positive => {
+                // SAFETY: We have at least 1 item left since we peaked a value
+                unsafe { $byte.set_cursor($index + 1) };
+                Ok(false)
+            },
+            (false, true) if $no_positive => Err(Error::$invalid_positive($byte.cursor())),
+            (true, true) if $is_signed => {
+                // SAFETY: We have at least 1 item left since we peaked a value
+                unsafe { $byte.set_cursor($index + 1) };
+                Ok(true)
+            },
+            _ if $required => Err(Error::$missing($byte.cursor())),
+            _ => Ok(false),
+        }
+    }};
+}
+
+/// Parse the sign from the leading integer digits.
+///
+/// It assumes the next digit is the sign character, that is,
+/// leading and trailing digits **HAVE** been handled for non-
+/// contiguous iterators.
+#[cfg_attr(not(feature = "compact"), inline(always))]
+pub(crate) fn read_integer_sign<const FORMAT: u128>(
+    byte: &mut Bytes<'_, FORMAT>,
+    index: usize,
+    is_signed: bool,
+) -> Result<bool> {
+    let format = NumberFormat::<FORMAT> {};
+    read_sign!(
+        byte,
+        index,
+        is_signed,
+        format.no_positive_mantissa_sign(),
+        format.required_mantissa_sign(),
+        InvalidPositiveSign,
+        MissingSign,
+    )
+}
+
+/// Parse the sign from the leading mantissa digits.
+///
+/// It assumes the next digit is the sign character, that is,
+/// leading and trailing digits **HAVE** been handled for non-
+/// contiguous iterators.
+#[cfg_attr(not(feature = "compact"), inline(always))]
+pub(crate) fn read_mantissa_sign<const FORMAT: u128>(
+    byte: &mut Bytes<'_, FORMAT>,
+    index: usize,
+) -> Result<bool> {
+    let format = NumberFormat::<FORMAT> {};
+    read_sign!(
+        byte,
+        index,
+        true,
+        format.no_positive_mantissa_sign(),
+        format.required_mantissa_sign(),
+        InvalidPositiveMantissaSign,
+        MissingMantissaSign,
+    )
+}
+
+/// Parse the sign from the leading exponent digits.
+///
+/// It assumes the next digit is the sign character, that is,
+/// leading and trailing digits **HAVE** been handled for non-
+/// contiguous iterators.
+#[cfg_attr(not(feature = "compact"), inline(always))]
+pub(crate) fn read_exponent_sign<const FORMAT: u128>(
+    byte: &mut Bytes<'_, FORMAT>,
+    index: usize,
+) -> Result<bool> {
+    let format = NumberFormat::<FORMAT> {};
+    read_sign!(
+        byte,
+        index,
+        true,
+        format.no_positive_exponent_sign(),
+        format.required_exponent_sign(),
+        InvalidPositiveExponentSign,
+        MissingExponentSign,
+    )
+}
 
 /// A trait for working with iterables of bytes.
 ///
@@ -282,6 +400,81 @@ pub unsafe trait Iter<'a> {
             None
         }
     }
+
+    /// Parse the sign from an integer (not for floats).
+    ///
+    /// If this allows leading digit separators, it will handle
+    /// those internally and advance the state as needed. This
+    /// returned if the value is negative, or any error found when parsing the
+    /// sign. This does not handle missing digits: it is assumed the caller
+    /// will. This internally increments the count to right after the sign.
+    ///
+    /// The default implementation does not support digit separators.
+    ///
+    /// 1. Parses the sign digit.
+    /// 2. Handles if positive signs are not allowed.
+    /// 3. Handles negative signs if the type is unsigned.
+    /// 4. Handles if the sign is required, but missing.
+    /// 5. Handles if the iterator is empty, before or after parsing the sign.
+    /// 6. Handles if the iterator has invalid, leading zeros.
+    fn read_integer_sign(&mut self, is_signed: bool) -> Result<bool>;
+
+    /// Parse the sign from a mantissa (only for floats).
+    ///
+    /// If this allows leading digit separators, it will handle
+    /// those internally and advance the state as needed. This
+    /// returned if the value is negative, or any error found when parsing the
+    /// sign. This does not handle missing digits: it is assumed the caller
+    /// will. This internally increments the count to right after the sign.
+    ///
+    /// The default implementation does not support digit separators.
+    ///
+    /// 1. Parses the sign digit.
+    /// 2. Handles if positive signs are not allowed.
+    /// 3. Handles negative signs if the type is unsigned.
+    /// 4. Handles if the sign is required, but missing.
+    /// 5. Handles if the iterator is empty, before or after parsing the sign.
+    /// 6. Handles if the iterator has invalid, leading zeros.
+    fn read_mantissa_sign(&mut self) -> Result<bool>;
+
+    /// Parse the sign from an exponent.
+    ///
+    /// If this allows leading digit separators, it will handle
+    /// those internally and advance the state as needed. This
+    /// returned if the value is negative, or any error found when parsing the
+    /// sign. This does not handle missing digits: it is assumed the caller
+    /// will. This internally increments the count to right after the sign.
+    ///
+    /// The default implementation does not support digit separators.
+    ///
+    /// 1. Parses the sign digit.
+    /// 2. Handles if positive signs are not allowed.
+    /// 3. Handles negative signs if the type is unsigned.
+    /// 4. Handles if the sign is required, but missing.
+    /// 5. Handles if the iterator is empty, before or after parsing the sign.
+    /// 6. Handles if the iterator has invalid, leading zeros.
+    fn read_exponent_sign(&mut self) -> Result<bool>;
+
+    /// Read the base prefix, if present, returning if the base prefix
+    /// was present.
+    ///
+    /// If the base prefix was not present, it does not consume any
+    /// leading zeroes or digit separators, so they can be processed afterwards.
+    /// Otherwise, it advances the iterator state to the end of the base
+    /// prefix, including consuming any trailing digit separators.
+    ///
+    /// Any caller that consumes leading digit separators will need
+    /// to ignore it if base prefix trailing digit separators are enabled.
+    fn read_base_prefix(&mut self) -> bool;
+
+    /// Read the base suffix, if present, returning if the base suffix
+    /// was present.
+    ///
+    /// If the base suffix was not present, it does not consume any
+    /// digits or digit separators, so the total digit count is valid.
+    /// Otherwise, it advances the iterator state to the end of the base
+    /// suffix, including consuming any trailing digit separators.
+    fn read_base_suffix(&mut self, has_exponent: bool) -> bool;
 }
 
 /// Iterator over a contiguous block of bytes.
@@ -485,32 +678,4 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
 
     /// Determine if the character is a digit.
     fn is_digit(&self, value: u8) -> bool;
-
-    // -------
-
-    /// Parse the sign from the iterator.
-    ///
-    /// If this allows leading digit separators, it will handle
-    /// those internally and advance the state as needed. This
-    /// returned if the value is negative and if a sign was found.
-    ///
-    /// The default implementation does not support digit separators.
-    fn parse_sign(&mut self) -> (bool, bool);
-
-    /// Read the base prefix, if present, returning if the base prefix
-    /// was present.
-    ///
-    /// If the base prefix was not present, it does not consume any
-    /// leading zeroes, so they can be processed afterwards. Otherwise,
-    /// it advances the iterator state to the end of the base prefix,
-    /// including consuming any trailing digit separators.
-    ///
-    /// Any caller that consumes leading digit separators will need
-    /// to ignore it if base prefix trailing digit separators are enabled.
-    fn read_base_prefix(&mut self) -> bool;
-
-    // TODO: Should implement the `is_base_prefix` internally here at
-    // the start and should only be used if it has one. Since the format
-    // will be known in the skip iterator, this is doable.
-    // TODO: Should implement `is_base_suffix` here
 }

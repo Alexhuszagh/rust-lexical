@@ -392,38 +392,45 @@ pub trait Number:
 {
     /// If the number can hold negative values.
     const IS_SIGNED: bool;
+
+    /// If the number is a floating-point number.
+    const IS_FLOAT: bool;
+
+    /// If the number is an integer.
+    const IS_INTEGER: bool = !Self::IS_FLOAT;
 }
 
 macro_rules! number_impl {
-    ($($t:tt $is_signed:literal ; )*) => ($(
+    ($($t:tt $is_signed:literal $is_float:literal ; )*) => ($(
         impl Number for $t {
             const IS_SIGNED: bool = $is_signed;
+            const IS_FLOAT: bool = $is_float;
         }
     )*)
 }
 
 number_impl! {
-    u8 false ;
-    u16 false ;
-    u32 false ;
-    u64 false ;
-    u128 false ;
-    usize false ;
-    i8 true ;
-    i16 true ;
-    i32 true ;
-    i64 true ;
-    i128 true ;
-    isize true ;
-    f32 true ;
-    f64 true ;
-    // f128 true
+    u8 false false ;
+    u16 false false ;
+    u32 false false ;
+    u64 false false ;
+    u128 false false ;
+    usize false false ;
+    i8 true false ;
+    i16 true false ;
+    i32 true false ;
+    i64 true false ;
+    i128 true false ;
+    isize true false ;
+    f32 true true ;
+    f64 true true ;
+    // f128 true true ;
 }
 
 #[cfg(feature = "f16")]
 number_impl! {
-    f16 true ;
-    bf16 true ;
+    f16 true true ;
+    bf16 true true ;
 }
 
 // INTEGER

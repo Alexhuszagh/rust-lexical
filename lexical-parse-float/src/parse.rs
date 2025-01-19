@@ -75,6 +75,35 @@ macro_rules! check_radix {
     }};
 }
 
+/// If a buffer is empty, return the value or an error.
+macro_rules! maybe_into_empty {
+    ($iter:expr, $into_ok:ident) => {{
+        let mut iter = $iter;
+        let format = NumberFormat::<FORMAT> {};
+        if iter.is_consumed() {
+            if format.required_integer_digits() || format.required_mantissa_digits() {
+                return Err(Error::Empty(iter.cursor()));
+            } else {
+                return $into_ok!(F::ZERO, iter.cursor());
+            }
+        }
+    }};
+}
+
+/// Return an value for a complete parser.
+macro_rules! into_ok_complete {
+    ($value:expr, $index:expr) => {{
+        Ok($value)
+    }};
+}
+
+/// Return an value and index for a partial parser.
+macro_rules! into_ok_partial {
+    ($value:expr, $index:expr) => {{
+        Ok(($value, $index))
+    }};
+}
+
 /// Parse integer trait, implemented in terms of the optimized back-end.
 pub trait ParseFloat: LemireFloat {
     /// Forward complete parser parameters to the backend.
@@ -168,36 +197,6 @@ parse_float_as_f32! { bf16 f16 }
 //  different internally. Most of the code is shared, so the duplicated
 //  code is only like 30 lines.
 
-/// Parse the sign from the leading digits.
-#[cfg_attr(not(feature = "compact"), inline(always))]
-pub fn parse_mantissa_sign<const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> Result<bool> {
-    let format = NumberFormat::<{ FORMAT }> {};
-    parse_sign!(
-        byte,
-        true,
-        integer_iter,
-        format.no_positive_mantissa_sign(),
-        format.required_mantissa_sign(),
-        InvalidPositiveSign,
-        MissingSign
-    )
-}
-
-/// Parse the sign from the leading digits.
-#[cfg_attr(not(feature = "compact"), inline(always))]
-pub fn parse_exponent_sign<const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> Result<bool> {
-    let format = NumberFormat::<{ FORMAT }> {};
-    parse_sign!(
-        byte,
-        true,
-        exponent_iter,
-        format.no_positive_exponent_sign(),
-        format.required_exponent_sign(),
-        InvalidPositiveExponentSign,
-        MissingExponentSign
-    )
-}
-
 /// Utility to extract the result and handle any errors from parsing a `Number`.
 ///
 /// - `format` - The numerical format as a packed integer
@@ -251,15 +250,8 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     options: &Options,
 ) -> Result<F> {
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let format = NumberFormat::<FORMAT> {};
-    let is_negative = parse_mantissa_sign(&mut byte)?;
-    if byte.integer_iter().is_consumed() {
-        if format.required_integer_digits() || format.required_mantissa_digits() {
-            return Err(Error::Empty(byte.cursor()));
-        } else {
-            return Ok(F::ZERO);
-        }
-    }
+    let is_negative = byte.read_mantissa_sign()?;
+    maybe_into_empty!(byte.integer_iter(), into_ok_complete);
 
     // Parse our a small representation of our number.
     let num: Number<'_> =
@@ -293,15 +285,8 @@ pub fn fast_path_complete<F: LemireFloat, const FORMAT: u128>(
     options: &Options,
 ) -> Result<F> {
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let format = NumberFormat::<FORMAT> {};
-    let is_negative = parse_mantissa_sign(&mut byte)?;
-    if byte.integer_iter().is_consumed() {
-        if format.required_integer_digits() || format.required_mantissa_digits() {
-            return Err(Error::Empty(byte.cursor()));
-        } else {
-            return Ok(F::ZERO);
-        }
-    }
+    let is_negative = byte.read_mantissa_sign()?;
+    maybe_into_empty!(byte.integer_iter(), into_ok_complete);
 
     // Parse our a small representation of our number.
     let num =
@@ -317,15 +302,8 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     options: &Options,
 ) -> Result<(F, usize)> {
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let format = NumberFormat::<FORMAT> {};
-    let is_negative = parse_mantissa_sign(&mut byte)?;
-    if byte.integer_iter().is_consumed() {
-        if format.required_integer_digits() || format.required_mantissa_digits() {
-            return Err(Error::Empty(byte.cursor()));
-        } else {
-            return Ok((F::ZERO, byte.cursor()));
-        }
-    }
+    let is_negative = byte.read_mantissa_sign()?;
+    maybe_into_empty!(byte.integer_iter(), into_ok_partial);
 
     // Parse our a small representation of our number.
     let (num, count) = parse_number!(
@@ -365,15 +343,8 @@ pub fn fast_path_partial<F: LemireFloat, const FORMAT: u128>(
     options: &Options,
 ) -> Result<(F, usize)> {
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let format = NumberFormat::<FORMAT> {};
-    let is_negative = parse_mantissa_sign(&mut byte)?;
-    if byte.integer_iter().is_consumed() {
-        if format.required_integer_digits() || format.required_mantissa_digits() {
-            return Err(Error::Empty(byte.cursor()));
-        } else {
-            return Ok((F::ZERO, byte.cursor()));
-        }
-    }
+    let is_negative = byte.read_mantissa_sign()?;
+    maybe_into_empty!(byte.integer_iter(), into_ok_partial);
 
     // Parse our a small representation of our number.
     let (num, count) = parse_number!(
@@ -532,12 +503,8 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     let bits_per_base = shared::log2(format.exponent_base()) as i64;
 
     // skip and validate an optional base prefix
-    let has_base_prefix = cfg!(feature = "format") && byte.integer_iter().read_base_prefix();
-    if cfg!(feature = "format") && has_base_prefix {
-        if byte.is_buffer_empty() && format.required_integer_digits() {
-            return Err(Error::EmptyInteger(byte.cursor()));
-        }
-    } else if format.required_base_prefix() {
+    let has_base_prefix = cfg!(feature = "format") && byte.read_base_prefix();
+    if cfg!(feature = "format") && !has_base_prefix && format.required_base_prefix() {
         return Err(Error::MissingBasePrefix(byte.cursor()));
     }
 
@@ -712,7 +679,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
             }
         }
 
-        let is_negative_exponent = parse_exponent_sign(&mut byte)?;
+        let is_negative_exponent = byte.read_exponent_sign()?;
         let mut exponent_iter = byte.exponent_iter();
         let exponent_start = exponent_iter.digits();
         parse_digits(&mut exponent_iter, format.exponent_radix(), |digit| {
@@ -738,7 +705,6 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     // Check to see if we have a valid base suffix.
     // We've already trimmed any leading digit separators here, so we can be safe
     // that the first character **is not** a digit separator.
-    // TODO: Improve parsing of this using a base suffix method
     if cfg!(all(feature = "format", feature = "power-of-two")) && format.has_base_suffix() {
         let base_suffix = format.base_suffix();
         let is_suffix = byte.first_is(base_suffix, format.case_sensitive_base_suffix());

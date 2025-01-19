@@ -46,7 +46,8 @@ use core::{mem, ptr};
 use crate::digit::char_is_digit_const;
 use crate::format::NumberFormat;
 use crate::format_flags as flags;
-use crate::iterator::{DigitsIter, Iter};
+use crate::iterator::{self, DigitsIter, Iter};
+use crate::result::Result;
 
 // IS_ILTC
 // -------
@@ -1204,6 +1205,115 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
         // SAFETY: Safe if the buffer has at least `size_of::<V>` elements.
         unsafe { self.peek_many_unchecked_impl(Self::IS_CONTIGUOUS) }
     }
+
+    #[inline(always)]
+    fn read_integer_sign(&mut self, is_signed: bool) -> Result<bool> {
+        let format = NumberFormat::<{ FORMAT }> {};
+        let index = maybe_consume(
+            self.get_buffer(),
+            format.digit_separator(),
+            self.cursor(),
+            format.integer_sign_digit_separator(),
+            format.integer_consecutive_sign_digit_separator(),
+        );
+        iterator::read_integer_sign(self, index, is_signed)
+    }
+
+    #[inline(always)]
+    fn read_mantissa_sign(&mut self) -> Result<bool> {
+        let format = NumberFormat::<{ FORMAT }> {};
+        let index = maybe_consume(
+            self.get_buffer(),
+            format.digit_separator(),
+            self.cursor(),
+            format.integer_sign_digit_separator(),
+            format.integer_consecutive_sign_digit_separator(),
+        );
+        iterator::read_mantissa_sign(self, index)
+    }
+
+    #[inline(always)]
+    fn read_exponent_sign(&mut self) -> Result<bool> {
+        let format = NumberFormat::<{ FORMAT }> {};
+        let index = maybe_consume(
+            self.get_buffer(),
+            format.digit_separator(),
+            self.cursor(),
+            format.exponent_sign_digit_separator(),
+            format.exponent_consecutive_sign_digit_separator(),
+        );
+        iterator::read_exponent_sign(self, index)
+    }
+
+    #[inline(always)]
+    fn read_base_prefix(&mut self) -> bool {
+        let format = NumberFormat::<{ FORMAT }> {};
+        let digit_separator = format.digit_separator();
+        let base_prefix = format.base_prefix();
+        let is_cased = format.case_sensitive_base_prefix();
+
+        if !cfg!(feature = "power-of-two") || base_prefix == 0 {
+            return false;
+        }
+
+        // grab our cursor information
+        let mut index = self.cursor();
+        let bytes = self.get_buffer();
+
+        // we can skip if we're not at the absolute start (a preceeding sign)
+        // or we've enabled start digit separators.
+        let consecutive = format.base_prefix_consecutive_digit_separator();
+        let skip_start = format.start_digit_separator() || index > 0;
+        if skip_start && format.base_prefix_leading_digit_separator() {
+            index = consume(bytes, digit_separator, index, consecutive);
+        }
+
+        if bytes.get(index) != Some(&b'0') {
+            return false;
+        }
+        index += 1;
+        debug_assert!(index <= bytes.len());
+
+        if format.base_prefix_internal_digit_separator() {
+            index = consume(bytes, digit_separator, index, consecutive);
+        }
+        if bytes
+            .get(index)
+            .map(|&x| !Self::is_value_equal(x, base_prefix, is_cased))
+            .unwrap_or(false)
+        {
+            return false;
+        }
+        index += 1;
+        debug_assert!(index <= bytes.len());
+
+        // NOTE: We want to simplify our implementation, so leave this in a
+        // simple state for our integer parser. We shouldn't skip digits
+        // if the integer can skip leading digit separators and we can skip
+        // trailing, but they can consume consecutive separators, since that
+        // would just be re-processing data.
+        let prefix_trailing = format.base_prefix_trailing_digit_separator();
+        let mut should_skip = prefix_trailing;
+        if format.integer_leading_digit_separator() {
+            should_skip &= consecutive && !format.integer_consecutive_digit_separator();
+        }
+        if should_skip {
+            index = consume(bytes, digit_separator, index, consecutive);
+        }
+
+        // SAFETY: safe, since we've consumed at most 1 digit prior to
+        // consume, we will never go `> bytes.len()`, so this is safe.
+        debug_assert!(index <= bytes.len());
+        unsafe { self.set_cursor(index) };
+
+        true
+    }
+
+    #[inline(always)]
+    fn read_base_suffix(&mut self, has_exponent: bool) -> bool {
+        _ = has_exponent;
+        todo!(); // TODO: Implement and test
+    }
 }
 
 // ITERATOR HELPERS
@@ -1355,6 +1465,31 @@ macro_rules! skip_iterator_iter_base {
             // SAFETY: Safe if the buffer has at least `size_of::<V>` elements.
             unsafe { self.byte.peek_many_unchecked_impl(Self::IS_CONTIGUOUS) }
         }
+
+        #[inline(always)]
+        fn read_integer_sign(&mut self, is_signed: bool) -> Result<bool> {
+            self.byte.read_integer_sign(is_signed)
+        }
+
+        #[inline(always)]
+        fn read_mantissa_sign(&mut self) -> Result<bool> {
+            self.byte.read_mantissa_sign()
+        }
+
+        #[inline(always)]
+        fn read_exponent_sign(&mut self) -> Result<bool> {
+            self.byte.read_exponent_sign()
+        }
+
+        #[inline(always)]
+        fn read_base_prefix(&mut self) -> bool {
+            self.byte.read_base_prefix()
+        }
+
+        #[inline(always)]
+        fn read_base_suffix(&mut self, has_exponent: bool) -> bool {
+            self.byte.read_base_suffix(has_exponent)
+        }
     };
 }
 
@@ -1384,87 +1519,20 @@ fn consume(bytes: &[u8], value: u8, mut index: usize, consecutive: bool) -> usiz
     index
 }
 
-/// Internal helper for parsing the sign once a given index is known.
+/// Maybe iteratively consume digits matching the value, if it's not 0.
 #[inline(always)]
-fn parse_sign_impl(bytes: &[u8], index: usize) -> (bool, bool) {
-    match bytes.get(index) {
-        Some(&b'+') => (false, true),
-        Some(&b'-') => (true, true),
-        _ => (false, false),
-    }
-}
-
-/// Uses the internal flags to parse out flags.
-#[inline(always)]
-fn parse_sign<'a, T>(
-    iter: &mut T,
-    digit_separator: u8,
+fn maybe_consume(
+    bytes: &[u8],
+    value: u8,
+    index: usize,
     can_skip: bool,
     consecutive: bool,
-) -> (bool, bool)
-where
-    T: DigitsIter<'a>,
-{
-    let bytes = iter.get_buffer();
-    if digit_separator != 0 && can_skip {
-        let index = consume(bytes, digit_separator, iter.cursor(), consecutive);
-        // only advance the internal state if we have a sign
-        // otherwise, we need to keep the start exactly where
-        // the buffer started
-        match parse_sign_impl(bytes, index) {
-            (is_negative, true) => {
-                // SAFETY: safe, since consume will never go `> bytes.len()`, and
-                // `iter.cursor() <= bytes.len()`, that is, we must be within
-                // the valid bounds, and `bytes.get(index)` in `parse_sign_impl`
-                // just returned `Some(...)`.
-                unsafe { iter.set_cursor(index) };
-                (is_negative, true)
-            },
-            (_, false) => (false, false),
-        }
+) -> usize {
+    if value != 0 && can_skip {
+        consume(bytes, value, index, consecutive)
     } else {
-        parse_sign_impl(bytes, iter.cursor())
+        index
     }
-}
-
-/// Parse specifically the integer sign component.
-#[inline(always)]
-fn integer_parse_sign<'a, T, const FORMAT: u128>(iter: &mut T) -> (bool, bool)
-where
-    T: DigitsIter<'a>,
-{
-    let format = NumberFormat::<{ FORMAT }> {};
-    parse_sign(
-        iter,
-        format.digit_separator(),
-        format.integer_sign_digit_separator(),
-        format.integer_consecutive_sign_digit_separator(),
-    )
-}
-
-/// Parse specifically the fraction sign component.
-#[inline(always)]
-fn fraction_parse_sign<'a, T, const FORMAT: u128>(iter: &mut T) -> (bool, bool)
-where
-    T: DigitsIter<'a>,
-{
-    _ = iter;
-    unimplemented!()
-}
-
-/// Parse specifically the exponent sign component.
-#[inline(always)]
-fn exponent_parse_sign<'a, T, const FORMAT: u128>(iter: &mut T) -> (bool, bool)
-where
-    T: DigitsIter<'a>,
-{
-    let format = NumberFormat::<{ FORMAT }> {};
-    parse_sign(
-        iter,
-        format.digit_separator(),
-        format.exponent_sign_digit_separator(),
-        format.exponent_consecutive_sign_digit_separator(),
-    )
 }
 
 /// Create impl `ByteIter` block for skip iterator.
@@ -1577,76 +1645,6 @@ macro_rules! skip_iterator_bytesiter_impl {
                 let format = NumberFormat::<{ FORMAT }> {};
                 char_is_digit_const(value, format.mantissa_radix())
             }
-
-            #[inline(always)]
-            fn parse_sign(&mut self) -> (bool, bool) {
-                $sign_parser::<_, FORMAT>(self)
-            }
-
-            #[inline(always)]
-            fn read_base_prefix(&mut self) -> bool {
-                let format = NumberFormat::<{ FORMAT }> {};
-                let digit_separator = format.digit_separator();
-                let base_prefix = format.base_prefix();
-                let is_cased = format.case_sensitive_base_prefix();
-
-                let is_integer = flags::$i == flags::INTEGER_INTERNAL_DIGIT_SEPARATOR;
-                if !is_integer || !cfg!(feature = "power-of-two") || base_prefix == 0 {
-                    return false;
-                }
-
-                // grab our cursor information
-                let mut index = self.cursor();
-                let bytes = self.get_buffer();
-
-                // we can skip if we're not at the absolute start (a preceeding sign)
-                // or we've enabled start digit separators.
-                let consecutive = format.base_prefix_consecutive_digit_separator();
-                let skip_start = format.start_digit_separator() || index > 0;
-                if skip_start && format.base_prefix_leading_digit_separator() {
-                    index = consume(bytes, digit_separator, index, consecutive);
-                }
-
-                if bytes.get(index) != Some(&b'0') {
-                    return false;
-                }
-                index += 1;
-                debug_assert!(index <= bytes.len());
-
-                if format.base_prefix_internal_digit_separator() {
-                    index = consume(bytes, digit_separator, index, consecutive);
-                }
-                if bytes
-                    .get(index)
-                    .map(|&x| !Self::is_value_equal(x, base_prefix, is_cased))
-                    .unwrap_or(false)
-                {
-                    return false;
-                }
-                index += 1;
-                debug_assert!(index <= bytes.len());
-
-                // NOTE: We want to simplify our implementation, so leave this in a
-                // simple state for our integer parser. We shouldn't skip digits
-                // if the integer can skip leading digit separators and we can skip
-                // trailing, but they can consume consecutive separators, since that
-                // would just be re-processing data.
-                let prefix_trailing = format.base_prefix_trailing_digit_separator();
-                let mut should_skip = prefix_trailing;
-                if format.integer_leading_digit_separator() {
-                    should_skip &= consecutive && !format.integer_consecutive_digit_separator();
-                }
-                if should_skip {
-                    index = consume(bytes, digit_separator, index, consecutive);
-                }
-
-                // SAFETY: safe, since we've consumed at most 1 digit prior to
-                // consume, we will never go `> bytes.len()`, so this is safe.
-                debug_assert!(index <= bytes.len());
-                unsafe { self.set_cursor(index) };
-
-                true
-            }
         }
     };
 }
@@ -1756,15 +1754,5 @@ impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for SpecialDigitsIterator<'a
     fn is_digit(&self, value: u8) -> bool {
         let format = NumberFormat::<{ FORMAT }> {};
         char_is_digit_const(value, format.mantissa_radix())
-    }
-
-    #[inline(always)]
-    fn parse_sign(&mut self) -> (bool, bool) {
-        unimplemented!();
-    }
-
-    #[inline(always)]
-    fn read_base_prefix(&mut self) -> bool {
-        unimplemented!();
     }
 }
