@@ -3,7 +3,7 @@ mod util;
 use core::fmt::Debug;
 use core::str::{from_utf8_unchecked, FromStr};
 
-#[cfg(feature = "radix")]
+#[cfg(any(feature = "format", feature = "radix"))]
 use lexical_util::constants::BUFFER_SIZE;
 #[cfg(feature = "format")]
 use lexical_util::format::NumberFormatBuilder;
@@ -213,6 +213,64 @@ fn options_radix_test() {
     let mut buffer = [b'\x00'; 128];
     const OPTIONS: Options = Options::new();
     assert_eq!(b"A8", 128u8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &OPTIONS));
+}
+
+#[test]
+#[should_panic]
+#[cfg(feature = "format")]
+fn unsupported_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new().supports_writing_integers(false).build_strict();
+    const OPTIONS: Options = Options::new();
+
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let integer = 12345i64;
+    _ = integer.to_lexical_with_options::<FORMAT>(&mut buffer, &OPTIONS);
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn supported_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new()
+        .supports_parsing_integers(false)
+        .supports_parsing_floats(false)
+        .supports_writing_floats(false)
+        .build_strict();
+    const OPTIONS: Options = Options::new();
+
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let integer = 12345i64;
+    assert_eq!(b"12345", integer.to_lexical_with_options::<FORMAT>(&mut buffer, &OPTIONS));
+
+    let integer = 12345u64;
+    assert_eq!(b"12345", integer.to_lexical_with_options::<FORMAT>(&mut buffer, &OPTIONS));
+}
+
+#[test]
+#[cfg(all(feature = "format", feature = "power-of-two"))]
+fn require_base_prefix_test() {
+    use core::num;
+
+    const PREFIX: u128 = NumberFormatBuilder::new()
+        .base_prefix(num::NonZeroU8::new(b'd'))
+        .required_base_prefix(true)
+        .build_strict();
+    const OPTIONS: Options = Options::new();
+
+    const PREFIX_SIZE: usize = OPTIONS.buffer_size_const::<u64, PREFIX>();
+    let mut buffer = [b'\x00'; PREFIX_SIZE];
+    let pos = 12345u64;
+    let neg = -12345i64;
+    assert_eq!(b"0d12345", pos.to_lexical_with_options::<PREFIX>(&mut buffer, &OPTIONS));
+    assert_eq!(b"-0d12345", neg.to_lexical_with_options::<PREFIX>(&mut buffer, &OPTIONS));
+
+    const SUFFIX: u128 = NumberFormatBuilder::rebuild(PREFIX)
+        .base_suffix(num::NonZeroU8::new(b'z'))
+        .required_base_suffix(true)
+        .build_strict();
+    const SUFFIX_SIZE: usize = OPTIONS.buffer_size_const::<i64, SUFFIX>();
+    let mut buffer = [b'\x00'; SUFFIX_SIZE];
+    assert_eq!(b"0d12345z", pos.to_lexical_with_options::<SUFFIX>(&mut buffer, &OPTIONS));
+    assert_eq!(b"-0d12345z", neg.to_lexical_with_options::<SUFFIX>(&mut buffer, &OPTIONS));
 }
 
 fn roundtrip<T>(x: T) -> T

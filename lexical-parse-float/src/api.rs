@@ -51,7 +51,9 @@ macro_rules! float_from_lexical {
             ) -> lexical_util::result::Result<Self>
             {
                 let format = NumberFormat::<{ FORMAT }> {};
-                if !format.is_valid() {
+                if !format.supports_parsing_floats() {
+                    return Err(Error::Unsupported);
+                } else if !format.is_valid() {
                     return Err(format.error());
                 } else if !is_valid_options_punctuation(FORMAT, options.exponent(), options.decimal_point()) {
                     return Err(Error::InvalidPunctuation);
@@ -65,6 +67,14 @@ macro_rules! float_from_lexical {
                 options: &Self::Options,
             ) -> lexical_util::result::Result<(Self, usize)>
             {
+                let format = NumberFormat::<{ FORMAT }> {};
+                if !format.supports_parsing_floats() {
+                    return Err(Error::Unsupported);
+                } else if !format.is_valid() {
+                    return Err(format.error());
+                } else if !is_valid_options_punctuation(FORMAT, options.exponent(), options.decimal_point()) {
+                    return Err(Error::InvalidPunctuation);
+                }
                 Self::parse_partial::<FORMAT>(bytes, options)
             }
         }

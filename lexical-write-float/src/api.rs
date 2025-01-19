@@ -4,9 +4,10 @@
 
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
+use lexical_util::error::Error;
 #[cfg(feature = "f16")]
 use lexical_util::f16::f16;
-use lexical_util::format::STANDARD;
+use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::{to_lexical, to_lexical_with_options};
 
 use crate::options::Options;
@@ -38,6 +39,10 @@ macro_rules! float_to_lexical {
                 options: &Self::Options,
             ) -> &'a mut [u8]
             {
+                let format = NumberFormat::<{ FORMAT }> {};
+                if !format.supports_writing_floats() {
+                    core::panic!("{}", Error::Unsupported.description());
+                }
                 let count = self.write_float::<{ FORMAT }>(bytes, &options);
                 &mut bytes[..count]
             }

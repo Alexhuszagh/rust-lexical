@@ -858,11 +858,11 @@ fn f64_no_exponent_notation_test() {
 fn f64_optional_exponent_test() {
     const FORMAT: u128 = format::PERMISSIVE;
     const OPTIONS: Options = Options::new();
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e7", &OPTIONS).is_ok());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-7", &OPTIONS).is_ok());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e", &OPTIONS).is_ok());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-", &OPTIONS).is_ok());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &OPTIONS).is_ok());
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e7", &OPTIONS), Ok(3.0e7));
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-7", &OPTIONS), Ok(3.0e-7));
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e", &OPTIONS), Ok(3.0));
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-", &OPTIONS), Ok(3.0));
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &OPTIONS), Ok(3.0));
 }
 
 #[test]
@@ -870,11 +870,11 @@ fn f64_optional_exponent_test() {
 fn f64_required_exponent_test() {
     const FORMAT: u128 = rebuild(format::PERMISSIVE).required_exponent_digits(true).build_strict();
     const OPTIONS: Options = Options::new();
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e7", &OPTIONS).is_ok());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-7", &OPTIONS).is_ok());
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e7", &OPTIONS), Ok(3.0e7));
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-7", &OPTIONS), Ok(3.0e-7));
     assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e", &OPTIONS).is_err());
     assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-", &OPTIONS).is_err());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &OPTIONS).is_ok());
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &OPTIONS), Ok(3.0));
 }
 
 #[test]
@@ -910,6 +910,46 @@ fn f64_no_exponent_without_fraction_test() {
     assert!(f64::from_lexical_with_options::<F2>(b"3.0e7", &OPTIONS).is_ok());
     assert!(f64::from_lexical_with_options::<F2>(b"3.e7", &OPTIONS).is_err());
     assert!(f64::from_lexical_with_options::<F2>(b"3e7", &OPTIONS).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_required_integer_digits_with_exponent() {
+    const F1: u128 = rebuild(format::STANDARD)
+        .required_mantissa_digits(false)
+        .required_integer_digits_with_exponent(true)
+        .build_strict();
+    const OPTIONS: Options = Options::new();
+    assert!(f64::from_lexical_with_options::<F1>(b"1e5", &OPTIONS).is_ok());
+    assert!(f64::from_lexical_with_options::<F1>(b".1e5", &OPTIONS).is_err());
+    assert!(f64::from_lexical_with_options::<F1>(b".e5", &OPTIONS).is_err());
+    assert!(f64::from_lexical_with_options::<F1>(b"1.e5", &OPTIONS).is_ok());
+    assert!(f64::from_lexical_with_options::<F1>(b"1.0e5", &OPTIONS).is_ok());
+
+    const F2: u128 = rebuild(F1).required_fraction_digits(true).build_strict();
+    assert!(f64::from_lexical_with_options::<F2>(b"1e5", &OPTIONS).is_ok());
+    assert!(f64::from_lexical_with_options::<F2>(b"1.e5", &OPTIONS).is_err());
+    assert!(f64::from_lexical_with_options::<F2>(b"1.0e5", &OPTIONS).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_required_fraction_digits_with_exponent() {
+    const F1: u128 = rebuild(format::STANDARD)
+        .required_mantissa_digits(false)
+        .required_fraction_digits_with_exponent(true)
+        .build_strict();
+    const OPTIONS: Options = Options::new();
+    assert!(f64::from_lexical_with_options::<F1>(b"1e5", &OPTIONS).is_ok());
+    assert!(f64::from_lexical_with_options::<F1>(b".1e5", &OPTIONS).is_ok());
+    assert!(f64::from_lexical_with_options::<F1>(b".e5", &OPTIONS).is_err());
+    assert!(f64::from_lexical_with_options::<F1>(b"1.e5", &OPTIONS).is_err());
+    assert!(f64::from_lexical_with_options::<F1>(b"1.0e5", &OPTIONS).is_ok());
+
+    const F2: u128 = rebuild(F1).required_fraction_digits(true).build_strict();
+    assert!(f64::from_lexical_with_options::<F2>(b"1e5", &OPTIONS).is_ok());
+    assert!(f64::from_lexical_with_options::<F2>(b"1.e5", &OPTIONS).is_err());
+    assert!(f64::from_lexical_with_options::<F2>(b"1.0e5", &OPTIONS).is_ok());
 }
 
 #[test]
@@ -1011,7 +1051,7 @@ fn f64_exponent_leading_digit_separator_test() {
         .build_strict();
     const OPTIONS: Options = Options::new();
     assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e7_1", &OPTIONS).is_err());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e_71", &OPTIONS).is_ok());
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"31.01e_71", &OPTIONS), Ok(31.01e71));
     assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e71_", &OPTIONS).is_err());
 }
 
@@ -1234,4 +1274,115 @@ fn issue68_test() {
     let hex = b"1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111";
     assert_eq!(f32::INFINITY, f32::from_lexical_with_options::<FORMAT>(hex, &OPTIONS).unwrap());
     assert_eq!(f64::INFINITY, f64::from_lexical_with_options::<FORMAT>(hex, &OPTIONS).unwrap());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn unsupported_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new().supports_parsing_floats(false).build_strict();
+    const OPTIONS: Options = Options::new();
+
+    let float = "12345.0";
+    let value = f64::from_lexical_with_options::<FORMAT>(float.as_bytes(), &OPTIONS);
+    assert_eq!(value, Err(Error::Unsupported));
+
+    let value = f64::from_lexical_partial_with_options::<FORMAT>(float.as_bytes(), &OPTIONS);
+    assert_eq!(value, Err(Error::Unsupported));
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn supported_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new()
+        .supports_parsing_integers(false)
+        .supports_writing_integers(false)
+        .supports_writing_floats(false)
+        .build_strict();
+    const OPTIONS: Options = Options::new();
+
+    let float = "12345.0";
+    let value = f64::from_lexical_with_options::<FORMAT>(float.as_bytes(), &OPTIONS);
+    assert_eq!(value, Ok(12345.0));
+
+    let value = f64::from_lexical_partial_with_options::<FORMAT>(float.as_bytes(), &OPTIONS);
+    assert_eq!(value, Ok((12345.0, 7)));
+}
+
+#[test]
+#[cfg(all(feature = "format", feature = "power-of-two"))]
+fn require_base_prefix_test() {
+    use core::num;
+
+    const PREFIX: u128 = NumberFormatBuilder::new()
+        .base_prefix(num::NonZeroU8::new(b'd'))
+        .required_base_prefix(true)
+        .build_strict();
+    const OPTIONS: Options = Options::new();
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"0d12345", &OPTIONS);
+    assert_eq!(value, Ok(12345.0));
+    let value = f64::from_lexical_with_options::<PREFIX>(b"12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(0)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"-0d12345", &OPTIONS);
+    assert_eq!(value, Ok(-12345.0));
+    let value = f64::from_lexical_with_options::<PREFIX>(b"-12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+
+    const SUFFIX: u128 = NumberFormatBuilder::rebuild(PREFIX)
+        .base_suffix(num::NonZeroU8::new(b'z'))
+        .required_base_suffix(true)
+        .build_strict();
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"0d12345z", &OPTIONS);
+    assert_eq!(value, Ok(12345.0));
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"0d12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(7)));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"-0d12345z", &OPTIONS);
+    assert_eq!(value, Ok(-12345.0));
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"-0d12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(8)));
+}
+
+#[test]
+#[cfg(all(feature = "format", feature = "power-of-two"))]
+fn base_prefix_digit_separator_edge_cases_test() {
+    use core::num;
+
+    const OPTIONS: Options = Options::new();
+    const NO_PREFIX: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .leading_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"_+12345", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(1)));
+
+    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"+_12345", &OPTIONS);
+    assert_eq!(value, Ok(12345.0));
+
+    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"+12345e_+23", &OPTIONS);
+    assert_eq!(value, Err(Error::EmptyExponent(8)));
+
+    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"+12345e+_23", &OPTIONS);
+    assert_eq!(value, Ok(1.2345e27));
+
+    const PREFIX: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .base_prefix(num::NonZeroU8::new(b'd'))
+        .required_base_prefix(true)
+        .leading_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"_+0d12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+_0d12345", &OPTIONS);
+    assert_eq!(value, Ok(12345.0));
+
+    // TODO: This fails
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0d_12345", &OPTIONS);
+    assert_eq!(value, Ok(12345.0));
+
+    // TODO:> Add suffix
 }

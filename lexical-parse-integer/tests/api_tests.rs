@@ -357,3 +357,93 @@ fn base_prefix_and_suffix_test() {
     assert!(i32::from_lexical_with_options::<FORMAT>(b"+h", &OPTIONS).is_err());
     assert!(i32::from_lexical_with_options::<FORMAT>(b"+0x", &OPTIONS).is_err());
 }
+
+#[test]
+#[cfg(feature = "format")]
+fn unsupported_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new().supports_parsing_integers(false).build_strict();
+    const OPTIONS: Options = Options::new();
+
+    let integer = "12345";
+    let value = i64::from_lexical_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
+    assert_eq!(value, Err(Error::Unsupported));
+
+    let value = i64::from_lexical_partial_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
+    assert_eq!(value, Err(Error::Unsupported));
+
+    let value = u64::from_lexical_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
+    assert_eq!(value, Err(Error::Unsupported));
+
+    let value = u64::from_lexical_partial_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
+    assert_eq!(value, Err(Error::Unsupported));
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn supported_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new()
+        .supports_parsing_floats(false)
+        .supports_writing_integers(false)
+        .supports_writing_floats(false)
+        .build_strict();
+    const OPTIONS: Options = Options::new();
+
+    let integer = "12345";
+    let value = i64::from_lexical_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
+    assert_eq!(value, Ok(12345));
+
+    let value = i64::from_lexical_partial_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
+    assert_eq!(value, Ok((12345, 5)));
+
+    let value = u64::from_lexical_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
+    assert_eq!(value, Ok(12345));
+
+    let value = u64::from_lexical_partial_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
+    assert_eq!(value, Ok((12345, 5)));
+}
+
+#[test]
+#[cfg(all(feature = "format", feature = "power-of-two"))]
+fn require_base_prefix_test() {
+    use core::num;
+
+    const PREFIX: u128 = NumberFormatBuilder::new()
+        .base_prefix(num::NonZeroU8::new(b'd'))
+        .required_base_prefix(true)
+        .build_strict();
+    const OPTIONS: Options = Options::new();
+
+    let value = i64::from_lexical_with_options::<PREFIX>(b"0d12345", &OPTIONS);
+    assert_eq!(value, Ok(12345));
+    let value = i64::from_lexical_with_options::<PREFIX>(b"12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(0)));
+
+    let value = i64::from_lexical_with_options::<PREFIX>(b"-0d12345", &OPTIONS);
+    assert_eq!(value, Ok(-12345));
+    let value = i64::from_lexical_with_options::<PREFIX>(b"-12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+
+    let value = u64::from_lexical_with_options::<PREFIX>(b"0d12345", &OPTIONS);
+    assert_eq!(value, Ok(12345));
+    let value = u64::from_lexical_with_options::<PREFIX>(b"12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(0)));
+
+    const SUFFIX: u128 = NumberFormatBuilder::rebuild(PREFIX)
+        .base_suffix(num::NonZeroU8::new(b'z'))
+        .required_base_suffix(true)
+        .build_strict();
+    let value = i64::from_lexical_with_options::<SUFFIX>(b"0d12345z", &OPTIONS);
+    assert_eq!(value, Ok(12345));
+    let value = i64::from_lexical_with_options::<SUFFIX>(b"0d12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(7)));
+
+    let value = i64::from_lexical_with_options::<SUFFIX>(b"-0d12345z", &OPTIONS);
+    assert_eq!(value, Ok(-12345));
+    let value = i64::from_lexical_with_options::<SUFFIX>(b"-0d12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(8)));
+
+    let value = u64::from_lexical_with_options::<SUFFIX>(b"0d12345z", &OPTIONS);
+    assert_eq!(value, Ok(12345));
+    let value = u64::from_lexical_with_options::<SUFFIX>(b"0d12345", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(7)));
+}
