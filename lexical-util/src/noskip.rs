@@ -9,7 +9,8 @@ use core::{mem, ptr};
 
 use crate::digit::char_is_digit_const;
 use crate::format::NumberFormat;
-use crate::iterator::{DigitsIter, Iter};
+use crate::iterator::{self, DigitsIter, Iter};
+use crate::result::Result;
 
 // AS DIGITS
 // ---------
@@ -142,6 +143,32 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
         // SAFETY: safe as long as the slice has at least count elements.
         unsafe { ptr::read_unaligned::<V>(self.as_ptr() as *const _) }
     }
+
+    #[inline(always)]
+    fn read_integer_sign(&mut self, is_signed: bool) -> Result<bool> {
+        iterator::read_integer_sign(self, self.cursor(), is_signed)
+    }
+
+    #[inline(always)]
+    fn read_mantissa_sign(&mut self) -> Result<bool> {
+        iterator::read_mantissa_sign(self, self.cursor())
+    }
+
+    #[inline(always)]
+    fn read_exponent_sign(&mut self) -> Result<bool> {
+        iterator::read_exponent_sign(self, self.cursor())
+    }
+
+    #[inline(always)]
+    fn read_base_prefix(&mut self) -> bool {
+        false
+    }
+
+    #[inline(always)]
+    fn read_base_suffix(&mut self, has_exponent: bool) -> bool {
+        _ = has_exponent;
+        false
+    }
 }
 
 // DIGITS ITERATOR
@@ -219,6 +246,31 @@ unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> 
         // SAFETY: safe as long as the slice has at least count elements.
         unsafe { self.byte.peek_many_unchecked() }
     }
+
+    #[inline(always)]
+    fn read_integer_sign(&mut self, is_signed: bool) -> Result<bool> {
+        self.byte.read_integer_sign(is_signed)
+    }
+
+    #[inline(always)]
+    fn read_mantissa_sign(&mut self) -> Result<bool> {
+        self.byte.read_mantissa_sign()
+    }
+
+    #[inline(always)]
+    fn read_exponent_sign(&mut self) -> Result<bool> {
+        self.byte.read_exponent_sign()
+    }
+
+    #[inline(always)]
+    fn read_base_prefix(&mut self) -> bool {
+        self.byte.read_base_prefix()
+    }
+
+    #[inline(always)]
+    fn read_base_suffix(&mut self, has_exponent: bool) -> bool {
+        self.byte.read_base_suffix(has_exponent)
+    }
 }
 
 impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for DigitsIterator<'a, 'b, FORMAT> {
@@ -247,21 +299,6 @@ impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for DigitsIterator<'a, 'b, F
     fn is_digit(&self, value: u8) -> bool {
         let format = NumberFormat::<{ FORMAT }> {};
         char_is_digit_const(value, format.mantissa_radix())
-    }
-
-    #[inline(always)]
-    fn parse_sign(&mut self) -> (bool, bool) {
-        // NOTE: `read_if` optimizes poorly since we then match after
-        match self.first() {
-            Some(&b'+') => (false, true),
-            Some(&b'-') => (true, true),
-            _ => (false, false),
-        }
-    }
-
-    #[inline(always)]
-    fn read_base_prefix(&mut self) -> bool {
-        false
     }
 }
 

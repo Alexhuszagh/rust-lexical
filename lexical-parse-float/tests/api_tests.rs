@@ -858,11 +858,11 @@ fn f64_no_exponent_notation_test() {
 fn f64_optional_exponent_test() {
     const FORMAT: u128 = format::PERMISSIVE;
     const OPTIONS: Options = Options::new();
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e7", &OPTIONS).is_ok());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-7", &OPTIONS).is_ok());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e", &OPTIONS).is_ok());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-", &OPTIONS).is_ok());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &OPTIONS).is_ok());
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e7", &OPTIONS), Ok(3.0e7));
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-7", &OPTIONS), Ok(3.0e-7));
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e", &OPTIONS), Ok(3.0));
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-", &OPTIONS), Ok(3.0));
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &OPTIONS), Ok(3.0));
 }
 
 #[test]
@@ -870,11 +870,11 @@ fn f64_optional_exponent_test() {
 fn f64_required_exponent_test() {
     const FORMAT: u128 = rebuild(format::PERMISSIVE).required_exponent_digits(true).build_strict();
     const OPTIONS: Options = Options::new();
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e7", &OPTIONS).is_ok());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-7", &OPTIONS).is_ok());
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e7", &OPTIONS), Ok(3.0e7));
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-7", &OPTIONS), Ok(3.0e-7));
     assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e", &OPTIONS).is_err());
     assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-", &OPTIONS).is_err());
-    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &OPTIONS).is_ok());
+    assert_eq!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &OPTIONS), Ok(3.0));
 }
 
 #[test]

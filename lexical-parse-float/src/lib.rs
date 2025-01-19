@@ -78,7 +78,7 @@
 //!
 //! let value = "1.234e+300";
 //! let result = f64::from_lexical_with_options::<FORMAT>(value.as_bytes(), &OPTIONS);
-//! assert_eq!(result, Err(Error::MissingSign(0)));
+//! assert_eq!(result, Err(Error::MissingMantissaSign(0)));
 //! # }
 //! ```
 //!
@@ -132,7 +132,7 @@
 //! }
 //!
 //! assert_eq!(parse_json_float(b"-1"), Ok(-1.0));
-//! assert_eq!(parse_json_float(b"+1"), Err(Error::InvalidPositiveSign(0)));
+//! assert_eq!(parse_json_float(b"+1"), Err(Error::InvalidPositiveMantissaSign(0)));
 //! assert_eq!(parse_json_float(b"1"), Ok(1.0));
 //! assert_eq!(parse_json_float(b"1."), Err(Error::EmptyFraction(2)));
 //! assert_eq!(parse_json_float(b"0.1"), Ok(0.1));
@@ -193,7 +193,7 @@
 //! assert_eq!(value.map(|x| x.is_nan()), Ok(true));
 //!
 //! let value = f64::from_lexical_with_options::<FORMAT>(b"+1_2.3_4", &OPTIONS);
-//! assert_eq!(value, Err(Error::InvalidPositiveSign(0)));
+//! assert_eq!(value, Err(Error::InvalidPositiveMantissaSign(0)));
 //!
 //! let value = f64::from_lexical_with_options::<FORMAT>(b"0.3_4", &OPTIONS);
 //! assert_eq!(value, Ok(0.34));
@@ -565,9 +565,6 @@ mod table_large;
 mod table_lemire;
 mod table_radix;
 mod table_small;
-
-#[macro_use(parse_sign)]
-extern crate lexical_parse_integer;
 
 // Re-exports
 #[cfg(feature = "f16")]
