@@ -516,6 +516,30 @@ fn base_prefix_no_digit_separator_test() {
 
 #[test]
 #[cfg(all(feature = "format", feature = "power-of-two"))]
+fn base_prefix_leading_zeros_test() {
+    use core::num;
+
+    const OPTIONS: Options = Options::new();
+    const OPT_PREFIX: u128 = NumberFormatBuilder::new()
+        .base_prefix(num::NonZeroU8::new(b'd'))
+        .no_integer_leading_zeros(true)
+        .build_strict();
+
+    let value = i64::from_lexical_with_options::<OPT_PREFIX>(b"1", &OPTIONS);
+    assert_eq!(value, Ok(1));
+
+    let value = i64::from_lexical_with_options::<OPT_PREFIX>(b"01", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidLeadingZeros(0)));
+
+    let value = i64::from_lexical_with_options::<OPT_PREFIX>(b"0d1", &OPTIONS);
+    assert_eq!(value, Ok(1));
+
+    let value = i64::from_lexical_with_options::<OPT_PREFIX>(b"0d01", &OPTIONS);
+    assert_eq!(value, Ok(1));
+}
+
+#[test]
+#[cfg(all(feature = "format", feature = "power-of-two"))]
 fn base_prefix_l_digit_separator_test() {
     use core::num;
 
