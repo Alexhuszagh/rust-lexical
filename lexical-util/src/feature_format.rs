@@ -866,8 +866,9 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
 
     /// Get if the format requires base suffixes.
     ///
-    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
-    /// to [`false`].
+    /// Can only be modified with [`feature`][crate#features] `format`. This will
+    /// override most errors, including all invalid digit errors. Defaults to
+    /// [`false`].
     ///
     /// # Examples
     ///

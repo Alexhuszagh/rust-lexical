@@ -160,14 +160,14 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
     }
 
     #[inline(always)]
-    fn read_base_prefix(&mut self) -> bool {
-        false
+    fn read_base_prefix(&mut self) -> Result<bool> {
+        Ok(false)
     }
 
     #[inline(always)]
-    fn read_base_suffix(&mut self, has_exponent: bool) -> bool {
+    fn read_base_suffix(&mut self, has_exponent: bool) -> Result<bool> {
         _ = has_exponent;
-        false
+        Ok(false)
     }
 }
 
@@ -263,12 +263,12 @@ unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> 
     }
 
     #[inline(always)]
-    fn read_base_prefix(&mut self) -> bool {
+    fn read_base_prefix(&mut self) -> Result<bool> {
         self.byte.read_base_prefix()
     }
 
     #[inline(always)]
-    fn read_base_suffix(&mut self, has_exponent: bool) -> bool {
+    fn read_base_suffix(&mut self, has_exponent: bool) -> Result<bool> {
         self.byte.read_base_suffix(has_exponent)
     }
 }

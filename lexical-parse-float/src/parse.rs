@@ -503,10 +503,8 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     let bits_per_base = shared::log2(format.exponent_base()) as i64;
 
     // skip and validate an optional base prefix
-    let has_base_prefix = cfg!(feature = "format") && byte.read_base_prefix();
-    if cfg!(feature = "format") && !has_base_prefix && format.required_base_prefix() {
-        return Err(Error::MissingBasePrefix(byte.cursor()));
-    }
+    let has_base_prefix =
+        cfg!(all(feature = "format", feature = "power-of-two")) && byte.read_base_prefix()?;
 
     // INTEGER
 
@@ -703,18 +701,7 @@ pub fn parse_number<'a, const FORMAT: u128, const IS_PARTIAL: bool>(
     }
 
     // Check to see if we have a valid base suffix.
-    // We've already trimmed any leading digit separators here, so we can be safe
-    // that the first character **is not** a digit separator.
-    if cfg!(all(feature = "format", feature = "power-of-two")) && format.has_base_suffix() {
-        let base_suffix = format.base_suffix();
-        let is_suffix = byte.first_is(base_suffix, format.case_sensitive_base_suffix());
-        if is_suffix {
-            // SAFETY: safe since `byte.len() >= 1`.
-            unsafe { byte.step_unchecked() };
-        } else if format.required_base_suffix() {
-            return Err(Error::MissingBaseSuffix(byte.cursor()));
-        }
-    }
+    _ = byte.read_base_suffix(has_exponent)?;
 
     // CHECK OVERFLOW
 

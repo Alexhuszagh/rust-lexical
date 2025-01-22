@@ -44,6 +44,7 @@
 use core::{mem, ptr};
 
 use crate::digit::char_is_digit_const;
+use crate::error::Error;
 use crate::format::NumberFormat;
 use crate::format_flags as flags;
 use crate::iterator::{self, DigitsIter, Iter};
@@ -1246,14 +1247,22 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
     }
 
     #[inline(always)]
-    fn read_base_prefix(&mut self) -> bool {
+    fn read_base_prefix(&mut self) -> Result<bool> {
         let format = NumberFormat::<{ FORMAT }> {};
         let digit_separator = format.digit_separator();
         let base_prefix = format.base_prefix();
         let is_cased = format.case_sensitive_base_prefix();
 
+        let into_false = || {
+            if format.required_base_prefix() {
+                Err(Error::MissingBasePrefix(self.cursor()))
+            } else {
+                Ok(false)
+            }
+        };
+
         if !cfg!(feature = "power-of-two") || base_prefix == 0 {
-            return false;
+            return into_false();
         }
 
         // grab our cursor information
@@ -1269,7 +1278,7 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
         }
 
         if bytes.get(index) != Some(&b'0') {
-            return false;
+            return into_false();
         }
         index += 1;
         debug_assert!(index <= bytes.len());
@@ -1277,12 +1286,14 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
         if format.base_prefix_internal_digit_separator() {
             index = consume(bytes, digit_separator, index, consecutive);
         }
+        debug_assert!(index <= bytes.len());
+
         if bytes
             .get(index)
             .map(|&x| !Self::is_value_equal(x, base_prefix, is_cased))
-            .unwrap_or(false)
+            .unwrap_or(true)
         {
-            return false;
+            return into_false();
         }
         index += 1;
         debug_assert!(index <= bytes.len());
@@ -1292,8 +1303,7 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
         // if the integer can skip leading digit separators and we can skip
         // trailing, but they can consume consecutive separators, since that
         // would just be re-processing data.
-        let prefix_trailing = format.base_prefix_trailing_digit_separator();
-        let mut should_skip = prefix_trailing;
+        let mut should_skip = format.base_prefix_trailing_digit_separator();
         if format.integer_leading_digit_separator() {
             should_skip &= consecutive && !format.integer_consecutive_digit_separator();
         }
@@ -1306,13 +1316,68 @@ unsafe impl<'a, const FORMAT: u128> Iter<'a> for Bytes<'a, FORMAT> {
         debug_assert!(index <= bytes.len());
         unsafe { self.set_cursor(index) };
 
-        true
+        Ok(true)
     }
 
     #[inline(always)]
-    fn read_base_suffix(&mut self, has_exponent: bool) -> bool {
-        _ = has_exponent;
-        todo!(); // TODO: Implement and test
+    fn read_base_suffix(&mut self, has_exponent: bool) -> Result<bool> {
+        let format = NumberFormat::<{ FORMAT }> {};
+        let digit_separator = format.digit_separator();
+        let base_suffix = format.base_suffix();
+        let is_cased = format.case_sensitive_base_suffix();
+
+        let into_false = || {
+            if format.required_base_suffix() {
+                Err(Error::MissingBaseSuffix(self.cursor()))
+            } else {
+                Ok(false)
+            }
+        };
+
+        if !cfg!(feature = "power-of-two") || base_suffix == 0 {
+            return into_false();
+        }
+
+        // grab our cursor information
+        let mut index = self.cursor();
+        let bytes = self.get_buffer();
+        let consecutive = format.base_suffix_consecutive_digit_separator();
+
+        // we cannot skip leading digit separators if we do not have consecutive
+        // digit separators and accepted trailing digit separators before.
+        let mut should_skip = format.base_suffix_leading_digit_separator();
+        if has_exponent && format.exponent_trailing_digit_separator() {
+            should_skip &= !format.exponent_consecutive_digit_separator();
+        } else if !has_exponent && format.integer_trailing_digit_separator() {
+            should_skip &= !format.integer_consecutive_digit_separator();
+        }
+        if should_skip {
+            index = consume(bytes, digit_separator, index, consecutive);
+        }
+        debug_assert!(index <= bytes.len());
+
+        if bytes
+            .get(index)
+            .map(|&x| !Self::is_value_equal(x, base_suffix, is_cased))
+            .unwrap_or(true)
+        {
+            return into_false();
+        }
+        index += 1;
+        debug_assert!(index <= bytes.len());
+
+        // we had a base suffix: consume our trailing digits
+        // internal digit separators are a no-op.
+        if format.base_suffix_trailing_digit_separator() {
+            index = consume(bytes, digit_separator, index, consecutive);
+        }
+
+        // SAFETY: safe, since we've consumed at most 1 digit prior to
+        // consume, we will never go `> bytes.len()`, so this is safe.
+        debug_assert!(index <= bytes.len());
+        unsafe { self.set_cursor(index) };
+
+        Ok(true)
     }
 }
 
@@ -1482,12 +1547,12 @@ macro_rules! skip_iterator_iter_base {
         }
 
         #[inline(always)]
-        fn read_base_prefix(&mut self) -> bool {
+        fn read_base_prefix(&mut self) -> Result<bool> {
             self.byte.read_base_prefix()
         }
 
         #[inline(always)]
-        fn read_base_suffix(&mut self, has_exponent: bool) -> bool {
+        fn read_base_suffix(&mut self, has_exponent: bool) -> Result<bool> {
             self.byte.read_base_suffix(has_exponent)
         }
     };

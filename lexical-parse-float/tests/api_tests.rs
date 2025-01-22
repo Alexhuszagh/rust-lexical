@@ -1346,7 +1346,7 @@ fn require_base_prefix_test() {
 
 #[test]
 #[cfg(all(feature = "format", feature = "power-of-two"))]
-fn base_prefix_digit_separator_edge_cases_test() {
+fn base_prefix_no_digit_separator_test() {
     use core::num;
 
     const OPTIONS: Options = Options::new();
@@ -1355,34 +1355,331 @@ fn base_prefix_digit_separator_edge_cases_test() {
         .leading_digit_separator(true)
         .build_strict();
 
-    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"_+12345", &OPTIONS);
+    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"_+12345.6", &OPTIONS);
     assert_eq!(value, Err(Error::InvalidDigit(1)));
 
-    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"+_12345", &OPTIONS);
-    assert_eq!(value, Ok(12345.0));
+    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"+_12345.6", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
 
-    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"+12345e_+23", &OPTIONS);
-    assert_eq!(value, Err(Error::EmptyExponent(8)));
+    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"1.2", &OPTIONS);
+    assert_eq!(value, Ok(1.2));
 
-    let value = f64::from_lexical_with_options::<NO_PREFIX>(b"+12345e+_23", &OPTIONS);
-    assert_eq!(value, Ok(1.2345e27));
+    const OPT_PREFIX: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .base_prefix(num::NonZeroU8::new(b'd'))
+        .internal_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<OPT_PREFIX>(b"1.2", &OPTIONS);
+    assert_eq!(value, Ok(1.2));
+
+    let value = f64::from_lexical_with_options::<OPT_PREFIX>(b"0d1.2", &OPTIONS);
+    assert_eq!(value, Ok(1.2));
 
     const PREFIX: u128 = NumberFormatBuilder::new()
         .digit_separator(num::NonZeroU8::new(b'_'))
         .base_prefix(num::NonZeroU8::new(b'd'))
+        .internal_digit_separator(true)
         .required_base_prefix(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"_+0d12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(0)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+_0d12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0_d12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0d_12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(3)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0d12345.6", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+}
+
+#[test]
+#[cfg(all(feature = "format", feature = "power-of-two"))]
+fn base_prefix_l_digit_separator_test() {
+    use core::num;
+
+    const OPTIONS: Options = Options::new();
+    const PREFIX: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .base_prefix(num::NonZeroU8::new(b'd'))
+        .internal_digit_separator(true)
+        .required_base_prefix(true)
+        .base_prefix_leading_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"_+0d12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(0)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+_0d12345.6", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+__0d12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0_d12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0d_12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(3)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0d12345.6", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+
+    const CONSECUTIVE: u128 = NumberFormatBuilder::rebuild(PREFIX)
+        .base_prefix_consecutive_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<CONSECUTIVE>(b"+__0d12345.6", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+}
+
+#[test]
+#[cfg(all(feature = "format", feature = "power-of-two"))]
+fn base_prefix_i_digit_separator_test() {
+    use core::num;
+
+    const OPTIONS: Options = Options::new();
+    const PREFIX: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .base_prefix(num::NonZeroU8::new(b'd'))
+        .internal_digit_separator(true)
+        .required_base_prefix(true)
+        .base_prefix_internal_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"_+0d12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(0)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+_0d12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0_d12345.6", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0__d12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0d_12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(3)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0d12345.6", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+
+    const CONSECUTIVE: u128 = NumberFormatBuilder::rebuild(PREFIX)
+        .base_prefix_consecutive_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<CONSECUTIVE>(b"+0__d12345.6", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+}
+
+#[test]
+#[cfg(all(feature = "format", feature = "power-of-two"))]
+fn base_prefix_t_digit_separator_test() {
+    use core::num;
+
+    const OPTIONS: Options = Options::new();
+    const PREFIX: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .base_prefix(num::NonZeroU8::new(b'd'))
+        .internal_digit_separator(true)
+        .required_base_prefix(true)
+        .base_prefix_trailing_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"_+0d12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(0)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+_0d12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0_d12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0d_12345.6", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0d__12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(4)));
+
+    let value = f64::from_lexical_with_options::<PREFIX>(b"+0d12345.6", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+
+    // special case: overlap with a leading digit separator
+    const LEADING: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .base_prefix(num::NonZeroU8::new(b'd'))
+        .leading_digit_separator(true)
+        .required_base_prefix(true)
+        .base_prefix_trailing_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<LEADING>(b"+0d_12345.6", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+
+    let value = f64::from_lexical_with_options::<LEADING>(b"+0d__12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(3)));
+
+    const CONSECUTIVE: u128 = NumberFormatBuilder::rebuild(PREFIX)
+        .base_prefix_consecutive_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<CONSECUTIVE>(b"+0d__12345.6", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+}
+
+#[test]
+#[cfg(all(feature = "format", feature = "power-of-two"))]
+fn base_suffix_no_digit_separator_test() {
+    use core::num;
+
+    const OPTIONS: Options = Options::new();
+    const NO_SUFFIX: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
         .leading_digit_separator(true)
         .build_strict();
 
-    let value = f64::from_lexical_with_options::<PREFIX>(b"_+0d12345", &OPTIONS);
-    assert_eq!(value, Err(Error::MissingBasePrefix(1)));
+    let value = f64::from_lexical_with_options::<NO_SUFFIX>(b"_+12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(1)));
 
-    let value = f64::from_lexical_with_options::<PREFIX>(b"+_0d12345", &OPTIONS);
-    assert_eq!(value, Ok(12345.0));
+    let value = f64::from_lexical_with_options::<NO_SUFFIX>(b"+_12345.6", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
 
-    // TODO: This fails
-    let value = f64::from_lexical_with_options::<PREFIX>(b"+0d_12345", &OPTIONS);
-    assert_eq!(value, Ok(12345.0));
+    let value = f64::from_lexical_with_options::<NO_SUFFIX>(b"1.2", &OPTIONS);
+    assert_eq!(value, Ok(1.2));
 
-    // TODO:> Add suffix
+    const OPT_SUFFIX: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .base_suffix(num::NonZeroU8::new(b'd'))
+        .internal_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<OPT_SUFFIX>(b"1.2", &OPTIONS);
+    assert_eq!(value, Ok(1.2));
+
+    let value = f64::from_lexical_with_options::<OPT_SUFFIX>(b"1.2d", &OPTIONS);
+    assert_eq!(value, Ok(1.2));
+
+    const SUFFIX: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .base_suffix(num::NonZeroU8::new(b'd'))
+        .internal_digit_separator(true)
+        .required_base_suffix(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"_+12345.6d", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(0)));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6_d", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(8)));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6d", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6d_", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(9)));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(8)));
+}
+
+#[test]
+#[cfg(all(feature = "format", feature = "power-of-two"))]
+fn base_suffix_l_digit_separator_test() {
+    use core::num;
+
+    const OPTIONS: Options = Options::new();
+    const SUFFIX: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .base_suffix(num::NonZeroU8::new(b'd'))
+        .internal_digit_separator(true)
+        .required_base_suffix(true)
+        .base_suffix_leading_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"_+12345.6d", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(0)));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6_d", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6__d", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(8)));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6d", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6d_", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(9)));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(8)));
+
+    // special case: overlap with a trailing digit separator
+    const TRAILING: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .base_suffix(num::NonZeroU8::new(b'd'))
+        .trailing_digit_separator(true)
+        .required_base_suffix(true)
+        .base_suffix_leading_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<TRAILING>(b"+12345.6_d", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+
+    let value = f64::from_lexical_with_options::<TRAILING>(b"+12345.6__d", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(8)));
+
+    const CONSECUTIVE: u128 = NumberFormatBuilder::rebuild(SUFFIX)
+        .base_suffix_consecutive_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<CONSECUTIVE>(b"+12345.6__d", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+}
+
+#[test]
+#[cfg(all(feature = "format", feature = "power-of-two"))]
+fn base_suffix_t_digit_separator_test() {
+    use core::num;
+
+    const OPTIONS: Options = Options::new();
+    const SUFFIX: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .base_suffix(num::NonZeroU8::new(b'd'))
+        .internal_digit_separator(true)
+        .required_base_suffix(true)
+        .base_suffix_trailing_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"_+12345.6d", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(0)));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6_d", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(8)));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6d", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6d_", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6", &OPTIONS);
+    assert_eq!(value, Err(Error::MissingBaseSuffix(8)));
+
+    let value = f64::from_lexical_with_options::<SUFFIX>(b"+12345.6d__", &OPTIONS);
+    assert_eq!(value, Err(Error::InvalidDigit(10)));
+
+    const CONSECUTIVE: u128 = NumberFormatBuilder::rebuild(SUFFIX)
+        .base_suffix_consecutive_digit_separator(true)
+        .build_strict();
+
+    let value = f64::from_lexical_with_options::<CONSECUTIVE>(b"+12345.6d__", &OPTIONS);
+    assert_eq!(value, Ok(12345.6));
 }

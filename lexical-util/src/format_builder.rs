@@ -1595,6 +1595,8 @@ impl NumberFormatBuilder {
 
     /// Get if the format requires base suffixes.
     ///
+    /// This will override most errors, including all invalid digit errors.
+    ///
     /// # Examples
     ///
     /// Using a base suffix of `x`.
@@ -3627,6 +3629,7 @@ impl NumberFormatBuilder {
 
     /// Set if the format requires base suffixes.
     ///
+    /// This will override most errors, including all invalid digit errors.
     /// Defaults to [`false`].
     ///
     /// # Examples

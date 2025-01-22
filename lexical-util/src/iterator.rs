@@ -465,7 +465,7 @@ pub unsafe trait Iter<'a> {
     ///
     /// Any caller that consumes leading digit separators will need
     /// to ignore it if base prefix trailing digit separators are enabled.
-    fn read_base_prefix(&mut self) -> bool;
+    fn read_base_prefix(&mut self) -> Result<bool>;
 
     /// Read the base suffix, if present, returning if the base suffix
     /// was present.
@@ -474,7 +474,7 @@ pub unsafe trait Iter<'a> {
     /// digits or digit separators, so the total digit count is valid.
     /// Otherwise, it advances the iterator state to the end of the base
     /// suffix, including consuming any trailing digit separators.
-    fn read_base_suffix(&mut self, has_exponent: bool) -> bool;
+    fn read_base_suffix(&mut self, has_exponent: bool) -> Result<bool>;
 }
 
 /// Iterator over a contiguous block of bytes.
