@@ -368,50 +368,6 @@ fn base_prefix_and_suffix_test() {
 }
 
 #[test]
-#[cfg(feature = "format")]
-fn unsupported_test() {
-    const FORMAT: u128 = NumberFormatBuilder::new().supports_parsing_integers(false).build_strict();
-    const OPTIONS: Options = Options::new();
-
-    let integer = "12345";
-    let value = i64::from_lexical_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
-    assert_eq!(value, Err(Error::Unsupported));
-
-    let value = i64::from_lexical_partial_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
-    assert_eq!(value, Err(Error::Unsupported));
-
-    let value = u64::from_lexical_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
-    assert_eq!(value, Err(Error::Unsupported));
-
-    let value = u64::from_lexical_partial_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
-    assert_eq!(value, Err(Error::Unsupported));
-}
-
-#[test]
-#[cfg(feature = "format")]
-fn supported_test() {
-    const FORMAT: u128 = NumberFormatBuilder::new()
-        .supports_parsing_floats(false)
-        .supports_writing_integers(false)
-        .supports_writing_floats(false)
-        .build_strict();
-    const OPTIONS: Options = Options::new();
-
-    let integer = "12345";
-    let value = i64::from_lexical_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
-    assert_eq!(value, Ok(12345));
-
-    let value = i64::from_lexical_partial_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
-    assert_eq!(value, Ok((12345, 5)));
-
-    let value = u64::from_lexical_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
-    assert_eq!(value, Ok(12345));
-
-    let value = u64::from_lexical_partial_with_options::<FORMAT>(integer.as_bytes(), &OPTIONS);
-    assert_eq!(value, Ok((12345, 5)));
-}
-
-#[test]
 #[cfg(all(feature = "format", feature = "power-of-two"))]
 fn require_base_prefix_test() {
     use core::num;

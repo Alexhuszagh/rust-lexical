@@ -1,5 +1,5 @@
 use lexical_util::constants::BUFFER_SIZE;
-#[cfg(any(feature = "format", feature = "power-of-two"))]
+#[cfg(feature = "power-of-two")]
 use lexical_util::format::NumberFormatBuilder;
 use lexical_util::format::STANDARD;
 use lexical_write_float::{Options, ToLexical, ToLexicalWithOptions};
@@ -77,33 +77,6 @@ fn hex_test() {
     let float = 12345.0f64;
     let result = float.to_lexical_with_options::<BASE16_2_10>(&mut buffer, &HEX_OPTIONS);
     assert_eq!(result, b"3.039^12");
-}
-
-#[test]
-#[should_panic]
-#[cfg(feature = "format")]
-fn unsupported_test() {
-    const FORMAT: u128 = NumberFormatBuilder::new().supports_writing_floats(false).build_strict();
-    const OPTIONS: Options = Options::new();
-
-    let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let float = 12345.0f64;
-    _ = float.to_lexical_with_options::<FORMAT>(&mut buffer, &OPTIONS);
-}
-
-#[test]
-#[cfg(feature = "format")]
-fn supported_test() {
-    const FORMAT: u128 = NumberFormatBuilder::new()
-        .supports_parsing_integers(false)
-        .supports_parsing_floats(false)
-        .supports_writing_integers(false)
-        .build_strict();
-    const OPTIONS: Options = Options::new();
-
-    let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let float = 12345.0f64;
-    assert_eq!(b"12345.0", float.to_lexical_with_options::<FORMAT>(&mut buffer, &OPTIONS));
 }
 
 #[test]

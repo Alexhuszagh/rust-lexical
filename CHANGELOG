@@ -17,10 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Re-export `NumberFormat` to our other crates (#204).
 - Added `Options::from_radix` for all options for similar APIs for each (#208).
 - Support for `required_integer_digits_with_exponent`, `required_fraction_digits_with_exponent`, and `required_mantissa_digits_with_exponent`, that is,`1.e5` and `.1e5`, as opposed to just requiring`1e5` (#215).
-- Added `supports_parsing_integers`, `supports_parsing_floats`, `supports_writing_integers`, and `supports_writing_floats` for our number formats (#215).
 - Added `required_base_prefix` and `required_base_suffix` for our number formats, requiring base prefixes and/or suffixes when parsing, and allowing writing base prefixes and/or suffixes (#215).
 - Added `NumberFormatBuilder::none()` for create a format with no flags set (#215).
 - Added in many more digit separator flags for the `NumberFormat`, including for signs, base prefixes, base suffixes, and restricting digit separators at the start of the number (#215).
+- Added many more pre-defined formatting constants (#215).
 
 ### Changed
 

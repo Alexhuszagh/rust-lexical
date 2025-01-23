@@ -385,10 +385,6 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`required_fraction_digits_with_exponent`]: Self::required_fraction_digits_with_exponent\n
 [`required_mantissa_digits_with_exponent`]: Self::required_mantissa_digits_with_exponent\n
 [`case_sensitive_exponent`]: Self::case_sensitive_exponent\n
-[`supports_parsing_integers`]: Self::supports_parsing_integers\n
-[`supports_parsing_floats`]: Self::supports_parsing_floats\n
-[`supports_writing_integers`]: Self::supports_writing_integers\n
-[`supports_writing_floats`]: Self::supports_writing_floats\n
 [`start_digit_separator`]: Self::start_digit_separator\n
 [`integer_sign_digit_separator`]: Self::integer_sign_digit_separator\n
 [`integer_consecutive_sign_digit_separator`]: Self::integer_consecutive_sign_digit_separator\n
@@ -438,10 +434,6 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`required_integer_digits_with_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/0cad692/lexical-util/src/format_builder.rs#L1129\n
 [`required_fraction_digits_with_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/0cad692/lexical-util/src/format_builder.rs#L1149\n
 [`required_mantissa_digits_with_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/47a090d/lexical-util/src/format_builder.rs#L1233\n
-[`supports_parsing_integers`]: https://github.com/Alexhuszagh/rust-lexical/blob/f53fae0/lexical-util/src/format_builder.rs#L1181\n
-[`supports_parsing_floats`]: https://github.com/Alexhuszagh/rust-lexical/blob/f53fae0/lexical-util/src/format_builder.rs#L1191\n
-[`supports_writing_integers`]: https://github.com/Alexhuszagh/rust-lexical/blob/f53fae0/lexical-util/src/format_builder.rs#L1201\n
-[`supports_writing_floats`]: https://github.com/Alexhuszagh/rust-lexical/blob/f53fae0/lexical-util/src/format_builder.rs#L1211\n
 [`case_sensitive_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L765\n
 [`start_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1650\n
 [`integer_sign_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1678\n
@@ -582,10 +574,6 @@ pub struct NumberFormatBuilder {
     no_integer_leading_zeros: bool,
     no_float_leading_zeros: bool,
     required_exponent_notation: bool,
-    supports_parsing_integers: bool,
-    supports_parsing_floats: bool,
-    supports_writing_integers: bool,
-    supports_writing_floats: bool,
     case_sensitive_exponent: bool,
     case_sensitive_base_prefix: bool,
     case_sensitive_base_suffix: bool,
@@ -661,14 +649,6 @@ impl NumberFormatBuilder {
     /// - [`required_integer_digits_with_exponent`][Self::get_required_integer_digits_with_exponent] -`false`
     /// - [`required_fraction_digits_with_exponent`][Self::get_required_fraction_digits_with_exponent] -`false`
     /// - [`required_mantissa_digits_with_exponent`][Self::get_required_mantissa_digits_with_exponent] -`true`
-    /// - [`supports_parsing_integers`][Self::get_supports_parsing_integers] -
-    ///   `true`
-    /// - [`supports_parsing_floats`][Self::get_supports_parsing_floats] -
-    ///   `true`
-    /// - [`supports_writing_integers`][Self::get_supports_writing_integers] -
-    ///   `true`
-    /// - [`supports_writing_floats`][Self::get_supports_writing_floats] -
-    ///   `true`
     /// - [`case_sensitive_exponent`][Self::get_case_sensitive_exponent] -
     ///   `false`
     /// - [`case_sensitive_base_prefix`][Self::get_case_sensitive_base_prefix] -
@@ -736,10 +716,6 @@ impl NumberFormatBuilder {
             required_integer_digits_with_exponent: false,
             required_fraction_digits_with_exponent: false,
             required_mantissa_digits_with_exponent: true,
-            supports_parsing_integers: true,
-            supports_parsing_floats: true,
-            supports_writing_integers: true,
-            supports_writing_floats: true,
             required_base_prefix: false,
             required_base_suffix: false,
             start_digit_separator: cfg!(feature = "format"),
@@ -804,10 +780,6 @@ impl NumberFormatBuilder {
             required_integer_digits_with_exponent: false,
             required_fraction_digits_with_exponent: false,
             required_mantissa_digits_with_exponent: false,
-            supports_parsing_integers: false,
-            supports_parsing_floats: false,
-            supports_writing_integers: false,
-            supports_writing_floats: false,
             required_base_prefix: false,
             required_base_suffix: false,
             start_digit_separator: true,
@@ -1527,46 +1499,6 @@ impl NumberFormatBuilder {
     #[inline(always)]
     pub const fn get_required_mantissa_digits_with_exponent(&self) -> bool {
         self.required_mantissa_digits_with_exponent
-    }
-
-    /// Get if the format supports parsing integers.
-    ///
-    /// # Used For
-    ///
-    /// - Parse Integer
-    #[inline(always)]
-    pub fn get_supports_parsing_integers(&self) -> bool {
-        self.supports_parsing_integers
-    }
-
-    /// Get if the format supports parsing floats.
-    ///
-    /// # Used For
-    ///
-    /// - Parse Float
-    #[inline(always)]
-    pub fn get_supports_parsing_floats(&self) -> bool {
-        self.supports_parsing_floats
-    }
-
-    /// Get if the format supports writing integers.
-    ///
-    /// # Used For
-    ///
-    /// - Write Integer
-    #[inline(always)]
-    pub fn get_supports_writing_integers(&self) -> bool {
-        self.supports_writing_integers
-    }
-
-    /// Get if the format supports writing floats.
-    ///
-    /// # Used For
-    ///
-    /// - Write Float
-    #[inline(always)]
-    pub fn get_supports_writing_floats(&self) -> bool {
-        self.supports_writing_floats
     }
 
     /// Get if the format requires base prefixes.
@@ -3543,62 +3475,6 @@ impl NumberFormatBuilder {
         self
     }
 
-    /// Set if the format supports parsing integers.
-    ///
-    /// Defaults to [`true`].
-    ///
-    /// # Used For
-    ///
-    /// - Parse Integer
-    #[inline(always)]
-    #[cfg(feature = "format")]
-    pub const fn supports_parsing_integers(mut self, flag: bool) -> Self {
-        self.supports_parsing_integers = flag;
-        self
-    }
-
-    /// Set if the format supports parsing floats.
-    ///
-    /// Defaults to [`true`].
-    ///
-    /// # Used For
-    ///
-    /// - Parse Float
-    #[inline(always)]
-    #[cfg(feature = "format")]
-    pub const fn supports_parsing_floats(mut self, flag: bool) -> Self {
-        self.supports_parsing_floats = flag;
-        self
-    }
-
-    /// Set if the format supports writing integers.
-    ///
-    /// Defaults to [`true`].
-    ///
-    /// # Used For
-    ///
-    /// - Write Integer
-    #[inline(always)]
-    #[cfg(feature = "format")]
-    pub const fn supports_writing_integers(mut self, flag: bool) -> Self {
-        self.supports_writing_integers = flag;
-        self
-    }
-
-    /// Set if the format supports writing floats.
-    ///
-    /// Defaults to [`true`].
-    ///
-    /// # Used For
-    ///
-    /// - Write Float
-    #[inline(always)]
-    #[cfg(feature = "format")]
-    pub const fn supports_writing_floats(mut self, flag: bool) -> Self {
-        self.supports_writing_floats = flag;
-        self
-    }
-
     /// Set if the format requires base prefixes.
     ///
     /// Defaults to [`false`].
@@ -5157,10 +5033,6 @@ impl NumberFormatBuilder {
             self.required_integer_digits_with_exponent, REQUIRED_INTEGER_DIGITS_WITH_EXPONENT ;
             self.required_fraction_digits_with_exponent, REQUIRED_FRACTION_DIGITS_WITH_EXPONENT ;
             self.required_mantissa_digits_with_exponent, REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT ;
-            self.supports_parsing_integers, SUPPORTS_PARSING_INTEGERS ;
-            self.supports_parsing_floats, SUPPORTS_PARSING_FLOATS ;
-            self.supports_writing_integers, SUPPORTS_WRITING_INTEGERS ;
-            self.supports_writing_floats, SUPPORTS_WRITING_FLOATS ;
             self.required_base_prefix, REQUIRED_BASE_PREFIX ;
             self.required_base_suffix, REQUIRED_BASE_SUFFIX ;
             self.start_digit_separator, START_DIGIT_SEPARATOR ;
@@ -5281,10 +5153,6 @@ impl NumberFormatBuilder {
                 format,
                 REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT
             ),
-            supports_parsing_integers: has_flag!(format, SUPPORTS_PARSING_INTEGERS),
-            supports_parsing_floats: has_flag!(format, SUPPORTS_PARSING_FLOATS),
-            supports_writing_integers: has_flag!(format, SUPPORTS_WRITING_INTEGERS),
-            supports_writing_floats: has_flag!(format, SUPPORTS_WRITING_FLOATS),
             required_base_prefix: has_flag!(format, REQUIRED_BASE_PREFIX),
             required_base_suffix: has_flag!(format, REQUIRED_BASE_SUFFIX),
             start_digit_separator: has_flag!(format, START_DIGIT_SEPARATOR),

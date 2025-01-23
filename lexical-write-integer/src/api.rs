@@ -2,7 +2,6 @@
 
 #![doc(hidden)]
 
-use lexical_util::error::Error;
 use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::num::SignedInteger;
 use lexical_util::{to_lexical, to_lexical_with_options};
@@ -153,9 +152,7 @@ macro_rules! unsigned_to_lexical {
             {
                 _ = options;
                 let format = NumberFormat::<{ FORMAT }> {};
-                if !format.supports_writing_integers() {
-                    core::panic!("{}", Error::Unsupported.description());
-                } else if !format.is_valid() {
+                if !format.is_valid() {
                     core::panic!("{}", format.error().description());
                 }
                 let len = unsigned::<$t, FORMAT>(self, bytes);
@@ -193,9 +190,7 @@ macro_rules! signed_to_lexical {
             {
                 _ = options;
                 let format = NumberFormat::<{ FORMAT }> {};
-                if !format.supports_writing_integers() {
-                    core::panic!("{}", Error::Unsupported.description());
-                } else if !format.is_valid() {
+                if !format.is_valid() {
                     core::panic!("{}", format.error().description());
                 }
                 let len = signed::<$signed, $unsigned, FORMAT>(self, bytes);

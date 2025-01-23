@@ -7,12 +7,7 @@ use lexical_util::format;
 #[test]
 fn ignore_test() {
     let fmt = format::NumberFormat::<{ format::IGNORE }> {};
-    let expected = format::ALL_DIGIT_SEPARATOR_FLAG_MASK
-        | format::START_DIGIT_SEPARATOR
-        | format::SUPPORTS_PARSING_FLOATS
-        | format::SUPPORTS_PARSING_INTEGERS
-        | format::SUPPORTS_WRITING_FLOATS
-        | format::SUPPORTS_WRITING_INTEGERS;
+    let expected = format::ALL_DIGIT_SEPARATOR_FLAG_MASK | format::START_DIGIT_SEPARATOR;
     assert_eq!(fmt.flags(), expected);
     assert_eq!(fmt.digit_separator(), b'_');
     assert_eq!(fmt.required_integer_digits(), false);
