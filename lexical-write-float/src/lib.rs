@@ -150,7 +150,7 @@
 //! written is as follows:
 //!
 //! ```rust
-//! # #[cfg(feature = "radix")] {
+//! # #[cfg(feature = "format")] {
 //! # use core::str;
 //! use lexical_write_float::{FormattedSize, NumberFormatBuilder, Options, ToLexicalWithOptions};
 //!

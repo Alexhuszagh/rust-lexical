@@ -12,4 +12,3 @@ resolver = "2"
 opt-level = 3
 debug = false
 debug-assertions = false
-lto = true

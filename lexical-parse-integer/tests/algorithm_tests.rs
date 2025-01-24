@@ -4,6 +4,7 @@ mod util;
 
 use lexical_parse_integer::algorithm;
 use lexical_parse_integer::options::SMALL_NUMBERS;
+use lexical_util::error::Error;
 use lexical_util::format::STANDARD;
 use lexical_util::iterator::AsBytes;
 #[cfg(feature = "power-of-two")]
@@ -135,7 +136,7 @@ fn algorithm_test() {
 
     assert_eq!(parse_u32(b"12345"), Ok((12345, 5)));
     assert_eq!(parse_u32(b"+12345"), Ok((12345, 6)));
-    assert_eq!(parse_u32(b"-12345"), Ok((0, 0)));
+    assert_eq!(parse_u32(b"-12345"), Err(Error::Empty(0)));
     assert_eq!(parse_i32(b"12345"), Ok((12345, 5)));
     assert_eq!(parse_i32(b"-12345"), Ok((-12345, 6)));
     assert_eq!(parse_i32(b"+12345"), Ok((12345, 6)));
@@ -170,7 +171,7 @@ fn algorithm_128_test() {
 
     assert_eq!(parse_u128(b"12345"), Ok((12345, 5)));
     assert_eq!(parse_u128(b"+12345"), Ok((12345, 6)));
-    assert_eq!(parse_u128(b"-12345"), Ok((0, 0)));
+    assert_eq!(parse_u128(b"-12345"), Err(Error::Empty(0)));
     assert_eq!(parse_i128(b"12345"), Ok((12345, 5)));
     assert_eq!(parse_i128(b"-12345"), Ok((-12345, 6)));
     assert_eq!(parse_i128(b"+12345"), Ok((12345, 6)));

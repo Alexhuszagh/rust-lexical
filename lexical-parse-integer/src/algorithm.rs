@@ -35,7 +35,7 @@
 use lexical_util::digit::char_to_digit_const;
 use lexical_util::error::Error;
 use lexical_util::format::NumberFormat;
-use lexical_util::iterator::{AsBytes, Bytes, DigitsIter, Iter};
+use lexical_util::iterator::{AsBytes, DigitsIter, Iter};
 use lexical_util::num::{as_cast, Integer};
 use lexical_util::result::Result;
 
@@ -50,22 +50,30 @@ const fn can_try_parse_multidigits<'a, Iter: DigitsIter<'a>, const FORMAT: u128>
 }
 
 // Get if digits are required for the format.
-#[cfg_attr(not(feature = "format"), allow(unused_macros))]
 macro_rules! required_digits {
-    () => {
-        NumberFormat::<FORMAT>::REQUIRED_INTEGER_DIGITS
-            || NumberFormat::<FORMAT>::REQUIRED_MANTISSA_DIGITS
+    () => {{
+        let format = NumberFormat::<FORMAT> {};
+        format.required_integer_digits() || format.required_mantissa_digits()
+    }};
+}
+
+/// If a buffer is empty, return the value or an error.
+macro_rules! maybe_into_empty {
+    ($iter:ident, $into_ok:ident) => {
+        if $iter.is_buffer_empty() {
+            if required_digits!() {
+                into_error!(Empty, $iter.cursor());
+            } else {
+                $into_ok!(T::ZERO, $iter.cursor(), false)
+            }
+        }
     };
 }
 
 /// Return an value for a complete parser.
 macro_rules! into_ok_complete {
-    ($value:expr, $index:expr, $count:expr) => {{
-        #[cfg(not(feature = "format"))]
-        return Ok(as_cast($value));
-
-        #[cfg(feature = "format")]
-        if required_digits!() && $count == 0 {
+    ($value:expr, $index:expr, $any_digits:expr) => {{
+        if required_digits!() && !$any_digits {
             into_error!(Empty, $index);
         } else {
             return Ok(as_cast($value));
@@ -75,12 +83,8 @@ macro_rules! into_ok_complete {
 
 /// Return an value and index for a partial parser.
 macro_rules! into_ok_partial {
-    ($value:expr, $index:expr, $count:expr) => {{
-        #[cfg(not(feature = "format"))]
-        return Ok((as_cast($value), $index));
-
-        #[cfg(feature = "format")]
-        if required_digits!() && $count == 0 {
+    ($value:expr, $index:expr, $any_digits:expr) => {{
+        if required_digits!() && !$any_digits {
             into_error!(Empty, $index);
         } else {
             return Ok((as_cast($value), $index));
@@ -90,7 +94,7 @@ macro_rules! into_ok_partial {
 
 /// Return an error for a complete parser upon an invalid digit.
 macro_rules! invalid_digit_complete {
-    ($value:expr, $index:expr, $count:expr) => {
+    ($value:expr, $index:expr, $any_digits:expr) => {
         // Don't do any overflow checking here: we don't need it.
         into_error!(InvalidDigit, $index - 1)
     };
@@ -99,9 +103,9 @@ macro_rules! invalid_digit_complete {
 /// Return a value for a partial parser upon an invalid digit.
 /// This checks for numeric overflow, and returns the appropriate error.
 macro_rules! invalid_digit_partial {
-    ($value:expr, $index:expr, $count:expr) => {
+    ($value:expr, $index:expr, $any_digits:expr) => {
         // NOTE: The value is already positive/negative
-        into_ok_partial!($value, $index - 1, $count)
+        into_ok_partial!($value, $index - 1, $any_digits)
     };
 }
 
@@ -112,121 +116,34 @@ macro_rules! into_error {
     }};
 }
 
-/// Handle an invalid digit if the format feature is enabled.
-///
-/// This is because we can have special, non-digit characters near
-/// the start or internally. If `$is_end` is set to false, there **MUST**
-/// be elements in the underlying slice after the current iterator.
-#[cfg(feature = "format")]
-macro_rules! fmt_invalid_digit {
-    (
-        $value:ident, $iter:ident, $c:expr, $start_index:ident, $invalid_digit:ident, $is_end:expr
-    ) => {{
-        // NOTE: If we have non-contiguous iterators, we could have a skip character
-        // here at the boundary. This does not affect safety but it does affect
-        // correctness.
-        debug_assert!($iter.is_contiguous() || $is_end);
+// This has a pessimization for the codegen when we can have
+// base prefixes, which causes an inefficient jump to return.
+// So, we separate our suffix and no suffix variants.
+// This is only used **IF** we have a base prefix
 
-        let base_suffix = NumberFormat::<FORMAT>::BASE_SUFFIX;
-        let uncased_base_suffix = NumberFormat::<FORMAT>::CASE_SENSITIVE_BASE_SUFFIX;
-        // Need to check for a base suffix, if so, return a valid value.
-        // We can't have a base suffix at the first value (need at least
-        // 1 digit).
-        if base_suffix != 0 && $iter.cursor() - $start_index > 1 {
-            let is_suffix = if uncased_base_suffix {
-                $c == base_suffix
+/// Handle an invalid digit, with a base suffix.
+macro_rules! on_invalid_digit {
+    (
+        $value:ident,
+        $iter:ident,
+        $start_digits:ident,
+        $into_ok:ident,
+        $invalid_digit:ident,
+        $is_end:expr $(,)?
+    ) => {{
+        let have_any = $iter.digits_since($start_digits) != 0;
+        if cfg!(all(feature = "format", feature = "power-of-two"))
+            && $iter.read_base_suffix(false)?
+        {
+            if $iter.is_buffer_empty() && $is_end {
+                $into_ok!($value, $iter.buffer_length(), have_any)
             } else {
-                $c.eq_ignore_ascii_case(&base_suffix)
-            };
-            // NOTE: If we're using the `take_n` optimization where it can't
-            // be the end, then the iterator cannot be done. So, in that case,
-            // we need to end. `take_n` also can never be used for non-
-            // contiguous iterators.
-            if is_suffix && $is_end && $iter.is_buffer_empty() {
-                // Break out of the loop, we've finished parsing.
-                break;
-            } else if !$iter.is_buffer_empty() {
-                // Haven't finished parsing, so we're going to call
-                // `invalid_digit!`. Need to ensure we include the
-                // base suffix in that.
-
-                // SAFETY: safe since the iterator is not empty, as checked
-                // in `$iter.is_buffer_empty()`. Adding in the check hopefully
-                // will be elided since it's a known constant.
-                unsafe { $iter.step_unchecked() };
+                $invalid_digit!($value, $iter.cursor() + 1, have_any)
             }
+        } else {
+            $invalid_digit!($value, $iter.cursor() + 1, have_any)
         }
-        // Might have handled our base-prefix here.
-        $invalid_digit!($value, $iter.cursor(), $iter.current_count())
     }};
-}
-
-/// Just return an invalid digit
-#[cfg(not(feature = "format"))]
-macro_rules! fmt_invalid_digit {
-    (
-        $value:ident, $iter:ident, $c:expr, $start_index:ident, $invalid_digit:ident, $is_end:expr
-    ) => {{
-        $invalid_digit!($value, $iter.cursor(), $iter.current_count());
-    }};
-}
-
-/// Parse the sign from the leading digits.
-///
-/// This routine does the following:
-///
-/// 1. Parses the sign digit.
-/// 2. Handles if positive signs before integers are not allowed.
-/// 3. Handles negative signs if the type is unsigned.
-/// 4. Handles if the sign is required, but missing.
-/// 5. Handles if the iterator is empty, before or after parsing the sign.
-/// 6. Handles if the iterator has invalid, leading zeros.
-///
-/// Returns if the value is negative, or any values detected when
-/// validating the input.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! parse_sign {
-    (
-        $byte:ident,
-        $is_signed:expr,
-        $no_positive:expr,
-        $required:expr,
-        $invalid_positive:ident,
-        $missing:ident
-    ) => {
-        // NOTE: `read_if` optimizes poorly since we then match after
-        match $byte.integer_iter().first() {
-            Some(&b'+') if !$no_positive => {
-                // SAFETY: We have at least 1 item left since we peaked a value
-                unsafe { $byte.step_unchecked() };
-                Ok(false)
-            },
-            Some(&b'+') if $no_positive => Err(Error::$invalid_positive($byte.cursor())),
-            Some(&b'-') if $is_signed => {
-                // SAFETY: We have at least 1 item left since we peaked a value
-                unsafe { $byte.step_unchecked() };
-                Ok(true)
-            },
-            Some(_) if $required => Err(Error::$missing($byte.cursor())),
-            _ if $required => Err(Error::$missing($byte.cursor())),
-            _ => Ok(false),
-        }
-    };
-}
-
-/// Parse the sign from the leading digits.
-#[cfg_attr(not(feature = "compact"), inline(always))]
-pub fn parse_sign<T: Integer, const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> Result<bool> {
-    let format = NumberFormat::<FORMAT> {};
-    parse_sign!(
-        byte,
-        T::IS_SIGNED,
-        format.no_positive_mantissa_sign(),
-        format.required_mantissa_sign(),
-        InvalidPositiveSign,
-        MissingSign
-    )
 }
 
 // FOUR DIGITS
@@ -391,7 +308,7 @@ where
 /// * `value` - The current parsed value.
 /// * `iter` - An iterator over all bytes in the input.
 /// * `add_op` - The unchecked add/sub op.
-/// * `start_index` - The offset where parsing started.
+/// * `start_digits` - The number of digits where parsing started.
 /// * `invalid_digit` - Behavior when an invalid digit is found.
 /// * `is_end` - If iter corresponds to the full input.
 ///
@@ -401,17 +318,34 @@ macro_rules! parse_1digit_unchecked {
         $value:ident,
         $iter:ident,
         $add_op:ident,
-        $start_index:ident,
+        $start_digits:ident,
+        $into_ok:ident,
         $invalid_digit:ident,
-        $is_end:expr
+        $is_end:expr $(,)?
     ) => {{
         // This is a slower parsing algorithm, going 1 digit at a time, but doing it in
         // an unchecked loop.
-        let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
+        let format = NumberFormat::<FORMAT> {};
+        let radix = format.mantissa_radix();
         while let Some(&c) = $iter.next() {
             let digit = match char_to_digit_const(c, radix) {
                 Some(v) => v,
-                None => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, $is_end),
+                None => {
+                    // This optimizes better for success cases, which is what we want.
+                    // It's an odd hack, but it's tested to work. This **HAS**
+                    // to be used like this to get the correct digit count, even
+                    // if we always increment it later.
+                    // SAFETY: Safe since we must have gotten one digit from next.
+                    unsafe { $iter.set_cursor($iter.cursor() - 1) };
+                    on_invalid_digit!(
+                        $value,
+                        $iter,
+                        $start_digits,
+                        $into_ok,
+                        $invalid_digit,
+                        $is_end
+                    )
+                },
             };
             // multiply first since compilers are good at optimizing things out and will do
             // a fused mul/add We must do this after getting the digit for
@@ -429,7 +363,7 @@ macro_rules! parse_1digit_unchecked {
 /// * `value` - The current parsed value.
 /// * `iter` - An iterator over all bytes in the input.
 /// * `add_op` - The checked add/sub op.
-/// * `start_index` - The offset where parsing started.
+/// * `start_digits` - The number of digits where parsing started.
 /// * `invalid_digit` - Behavior when an invalid digit is found.
 /// * `overflow` - If the error is overflow or underflow.
 ///
@@ -439,25 +373,43 @@ macro_rules! parse_1digit_checked {
         $value:ident,
         $iter:ident,
         $add_op:ident,
-        $start_index:ident,
+        $start_digits:ident,
+        $into_ok:ident,
         $invalid_digit:ident,
-        $overflow:ident
+        $overflow:ident $(,)?
     ) => {{
         // This is a slower parsing algorithm, going 1 digit at a time, but doing it in
         // an unchecked loop.
-        let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
+        let format = NumberFormat::<FORMAT> {};
+        let radix = format.mantissa_radix();
+        let is_end = true;
         while let Some(&c) = $iter.next() {
             let digit = match char_to_digit_const(c, radix) {
                 Some(v) => v,
-                None => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, true),
+                None => {
+                    // This optimizes better for success cases, which is what we want.
+                    // It's an odd hack, but it's tested to work. This **HAS**
+                    // to be used like this to get the correct digit count, even
+                    // if we always increment it later.
+                    // SAFETY: Safe since we must have gotten one digit from next.
+                    unsafe { $iter.set_cursor($iter.cursor() - 1) };
+                    on_invalid_digit!(
+                        $value,
+                        $iter,
+                        $start_digits,
+                        $into_ok,
+                        $invalid_digit,
+                        is_end
+                    )
+                },
             };
             // multiply first since compilers are good at optimizing things out and will do
             // a fused mul/add
-            $value =
-                match $value.checked_mul(as_cast(radix)).and_then(|x| x.$add_op(as_cast(digit))) {
-                    Some(value) => value,
-                    None => into_error!($overflow, $iter.cursor() - 1),
-                }
+            let mul = $value.checked_mul(as_cast(radix));
+            $value = match mul.and_then(|x| x.$add_op(as_cast(digit))) {
+                Some(value) => value,
+                None => into_error!($overflow, $iter.cursor() - 1),
+            }
         }
     }};
 }
@@ -474,7 +426,7 @@ macro_rules! parse_1digit_checked {
 /// * `value` - The current parsed value.
 /// * `iter` - An iterator over all bytes in the input.
 /// * `add_op` - The unchecked add/sub op.
-/// * `start_index` - The offset where parsing started.
+/// * `start_digits` - The number of digits where parsing started.
 /// * `invalid_digit` - Behavior when an invalid digit is found.
 /// * `no_multi_digit` - If to disable multi-digit optimizations.
 /// * `is_end` - If iter corresponds to the full input.
@@ -483,13 +435,14 @@ macro_rules! parse_digits_unchecked {
         $value:ident,
         $iter:ident,
         $add_op:ident,
-        $start_index:ident,
+        $start_digits:ident,
+        $into_ok:ident,
         $invalid_digit:ident,
         $no_multi_digit:expr,
-        $is_end:expr
+        $is_end:expr $(,)?
     ) => {{
         let can_multi = can_try_parse_multidigits::<_, FORMAT>(&$iter);
-        let use_multi = can_multi && !$no_multi_digit;
+        let use_multi = !$no_multi_digit && can_multi;
 
         // these cannot overflow. also, we use at most 3 for a 128-bit float and 1 for a
         // 64-bit float NOTE: Miri will complain about this if we use radices >=
@@ -510,7 +463,15 @@ macro_rules! parse_digits_unchecked {
                 $value = $value.wrapping_mul(radix4).$add_op(value);
             }
         }
-        parse_1digit_unchecked!($value, $iter, $add_op, $start_index, $invalid_digit, $is_end)
+        parse_1digit_unchecked!(
+            $value,
+            $iter,
+            $add_op,
+            $start_digits,
+            $into_ok,
+            $invalid_digit,
+            $is_end
+        )
     }};
 }
 
@@ -524,7 +485,7 @@ macro_rules! parse_digits_unchecked {
 /// * `iter` - An iterator over all bytes in the input.
 /// * `add_op` - The checked add/sub op.
 /// * `add_op_uc` - The unchecked add/sub op for small digit optimizations.
-/// * `start_index` - The offset where parsing started.
+/// * `start_digits` - The number of digits where parsing started.
 /// * `invalid_digit` - Behavior when an invalid digit is found.
 /// * `overflow` - If the error is overflow or underflow.
 /// * `no_multi_digit` - If to disable multi-digit optimizations.
@@ -536,11 +497,12 @@ macro_rules! parse_digits_checked {
         $iter:ident,
         $add_op:ident,
         $add_op_uc:ident,
-        $start_index:ident,
+        $start_digits:ident,
+        $into_ok:ident,
         $invalid_digit:ident,
         $overflow:ident,
         $no_multi_digit:expr,
-        $overflow_digits:expr
+        $overflow_digits:expr $(,)?
     ) => {{
         // Can use the unchecked for the `max_digits` here. If we
         // have a non-contiguous iterator, we could have a case like
@@ -554,7 +516,8 @@ macro_rules! parse_digits_checked {
                     $value,
                     small_iter,
                     $add_op_uc,
-                    $start_index,
+                    $start_digits,
+                    $into_ok,
                     $invalid_digit,
                     $no_multi_digit,
                     false
@@ -563,7 +526,15 @@ macro_rules! parse_digits_checked {
         }
 
         // NOTE: all our multi-digit optimizations have been done here: skip this
-        parse_1digit_checked!($value, $iter, $add_op, $start_index, $invalid_digit, $overflow)
+        parse_1digit_checked!(
+            $value,
+            $iter,
+            $add_op,
+            $start_digits,
+            $into_ok,
+            $invalid_digit,
+            $overflow
+        )
     }};
 }
 
@@ -601,75 +572,45 @@ macro_rules! algorithm {
     // Removes conditional paths, to, which simplifies maintenance.
     // The skip version of the iterator automatically coalesces to
     // the no-skip iterator.
+    let format = NumberFormat::<FORMAT> {};
+    let radix = format.mantissa_radix();
+    debug_assert!(format.is_valid(), "should have already checked for an invalid number format");
+
+    // this is optimized for no-skip iterators, but works well
+    // for skip iterators as well.
     let mut byte = $bytes.bytes::<FORMAT>();
-    let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
-
-    let is_negative = parse_sign::<T, FORMAT>(&mut byte)?;
+    let is_negative = byte.read_integer_sign(T::IS_SIGNED)?;
+    maybe_into_empty!(byte, $into_ok);
     let mut iter = byte.integer_iter();
-    if iter.is_buffer_empty() {
-        // Our default format **ALWAYS** requires significant digits, however,
-        // we can have cases where we don
-        #[cfg(not(feature = "format"))]
-        into_error!(Empty, iter.cursor());
 
-        #[cfg(feature = "format")]
-        if required_digits!() {
-            into_error!(Empty, iter.cursor());
-        } else {
-            $into_ok!(T::ZERO, iter.cursor(), 0)
-        }
+    // skip and validate an optional base prefix
+    let has_base_prefix = cfg!(all(feature = "format", feature = "power-of-two")) && iter.read_base_prefix()?;
+    if cfg!(all(feature = "format", feature = "power-of-two")) && has_base_prefix {
+        maybe_into_empty!(iter, $into_ok);
     }
 
-    // Feature-gate a lot of format-only code here to simplify analysis with our branching
-    // We only want to skip the zeros if have either require a base prefix or we don't
-    // allow integer leading zeros, since the skip is expensive
-    #[allow(unused_variables, unused_mut)]
-    let mut start_index = iter.cursor();
-    #[cfg_attr(not(feature = "format"), allow(unused_variables))]
-    let format = NumberFormat::<FORMAT> {};
-    #[cfg(feature = "format")]
-    if format.has_base_prefix() || format.no_integer_leading_zeros() {
-        // Skip any leading zeros. We want to do our check if it can't possibly overflow after.
-        // For skipping digit-based formats, this approximation is a way over estimate.
+    // NOTE: always do a peek so any leading digit separators
+    // are skipped, and we can get the correct index
+    if cfg!(feature = "format")
+        && format.no_integer_leading_zeros()
+        && !has_base_prefix
+        && iter.peek() == Some(&b'0')
+    {
         // NOTE: Skipping zeros is **EXPENSIVE* so we skip that without our format feature
+        let index = iter.cursor();
         let zeros = iter.skip_zeros();
-        start_index += zeros;
-
-        // Now, check to see if we have a valid base prefix.
-        let mut is_prefix = false;
-        let base_prefix = format.base_prefix();
-        if base_prefix != 0 && zeros == 1 {
-            // Check to see if the next character is the base prefix.
-            // We must have a format like `0x`, `0d`, `0o`. Note:
-            if iter.read_if_value(base_prefix, format.case_sensitive_base_prefix()).is_some() {
-                is_prefix = true;
-                if iter.is_buffer_empty() {
-                    into_error!(Empty, iter.cursor());
-                } else {
-                    start_index += 1;
-                }
-            }
+        if zeros > 1 {
+            into_error!(InvalidLeadingZeros, index);
         }
-
-        // If we have a format that doesn't accept leading zeros,
-        // check if the next value is invalid. It's invalid if the
-        // first is 0, and the next is not a valid digit.
-        if !is_prefix && format.no_integer_leading_zeros() && zeros != 0 {
-            // Cannot have a base prefix and no leading zeros.
-            let index = iter.cursor() - zeros;
-            if zeros > 1 {
-                into_error!(InvalidLeadingZeros, index);
-            }
-            // NOTE: Zeros has to be 0 here, so our index == 1 or 2 (depending on sign)
-            match iter.peek().map(|&c| char_to_digit_const(c, format.radix())) {
-                // Valid digit, we have an invalid value.
-                Some(Some(_)) => into_error!(InvalidLeadingZeros, index),
-                // Have a non-digit character that follows.
-                Some(None) => $invalid_digit!(<T>::ZERO, iter.cursor() + 1, iter.current_count()),
-                // No digits following, has to be ok
-                None => $into_ok!(<T>::ZERO, index, iter.current_count()),
-            };
-        }
+        // NOTE: Zeros has to be 1 here, so our index == 1 or 2 (depending on sign)
+        match iter.peek().map(|&c| char_to_digit_const(c, format.radix())) {
+            // Valid digit, we have an invalid value.
+            Some(Some(_)) => into_error!(InvalidLeadingZeros, index),
+            // Have a non-digit character that follows.
+            Some(None) => $invalid_digit!(<T>::ZERO, iter.cursor() + 1, true),
+            // No digits following, has to be ok
+            None => $into_ok!(<T>::ZERO, index, true),
+        };
     }
 
     // shorter strings cannot possibly overflow so a great optimization
@@ -683,18 +624,71 @@ macro_rules! algorithm {
     //      and even if parsing a 64-bit integer is marginally faster, it
     //      culminates in **way** slower performance overall for simple
     //      integers, and no improvement for large integers.
+    let start_digits = iter.digits();
+
     let mut value = T::ZERO;
-    if cannot_overflow && is_negative {
-        parse_digits_unchecked!(value, iter, wrapping_sub, start_index, $invalid_digit, $no_multi_digit, true);
-    } if cannot_overflow {
-        parse_digits_unchecked!(value, iter, wrapping_add, start_index, $invalid_digit, $no_multi_digit, true);
-    } else if is_negative {
-        parse_digits_checked!(value, iter, checked_sub, wrapping_sub, start_index, $invalid_digit, Underflow, $no_multi_digit, overflow_digits);
+    if cannot_overflow {
+        if !T::IS_SIGNED || !is_negative {
+            parse_digits_unchecked!(
+                value,
+                iter,
+                wrapping_add,
+                start_digits,
+                $into_ok,
+                $invalid_digit,
+                $no_multi_digit,
+                true,
+            );
+        } else {
+            parse_digits_unchecked!(
+                value,
+                iter,
+                wrapping_sub,
+                start_digits,
+                $into_ok,
+                $invalid_digit,
+                $no_multi_digit,
+                true,
+            );
+        }
     } else {
-        parse_digits_checked!(value, iter, checked_add, wrapping_add, start_index, $invalid_digit, Overflow, $no_multi_digit, overflow_digits);
+        if !T::IS_SIGNED || !is_negative {
+            parse_digits_checked!(
+                value,
+                iter,
+                checked_add,
+                wrapping_add,
+                start_digits,
+                $into_ok,
+                $invalid_digit,
+                Overflow,
+                $no_multi_digit,
+                overflow_digits,
+            );
+        } else {
+            parse_digits_checked!(
+                value,
+                iter,
+                checked_sub,
+                wrapping_sub,
+                start_digits,
+                $into_ok,
+                $invalid_digit,
+                Underflow,
+                $no_multi_digit,
+                overflow_digits,
+            );
+        }
     }
 
-    $into_ok!(value, iter.buffer_length(), iter.current_count())
+    if cfg!(all(feature = "format", feature = "power-of-two")) && format.required_base_suffix() {
+        return Err(Error::MissingBaseSuffix(iter.cursor()));
+    }
+
+    // NOTE: This is always true if we don't have digit separators, since checking
+    // for no skip always checks if there's a next digit, which simplifies it.
+    let any_digits = cfg!(not(feature = "format")) || iter.is_contiguous() || iter.digits_since(start_digits) != 0;
+    $into_ok!(value, iter.buffer_length(), any_digits)
 }};
 }
 

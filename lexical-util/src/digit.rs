@@ -11,21 +11,13 @@
 // using a runtime algorithm is preferable.
 
 /// Unchecked, highly optimized algorithm to convert a char to a digit.
-/// This only works if the input character is known to be a valid digit.
+/// This does no input validation: you must check the value is <= radix.
 #[inline(always)]
 pub const fn char_to_valid_digit_const(c: u8, radix: u32) -> u32 {
-    if radix <= 10 {
-        // Optimize for small radixes.
+    if radix <= 10 || c <= b'9' {
         (c.wrapping_sub(b'0')) as u32
     } else {
-        // Fallback, still decently fast.
-        let digit = match c {
-            b'0'..=b'9' => c - b'0',
-            b'A'..=b'Z' => c - b'A' + 10,
-            b'a'..=b'z' => c - b'a' + 10,
-            _ => 0xFF,
-        };
-        digit as u32
+        ((c | 0x20).wrapping_sub(b'a')) as u32 + 10
     }
 }
 
