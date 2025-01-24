@@ -32,12 +32,16 @@ pub enum Error {
     EmptyFraction(usize),
     /// Invalid positive mantissa sign was found.
     InvalidPositiveMantissaSign(usize),
+    /// Invalid negative mantissa sign was found.
+    InvalidNegativeMantissaSign(usize),
     /// Mantissa sign was required(usize), but not found.
     MissingMantissaSign(usize),
     /// Exponent was present but not allowed.
     InvalidExponent(usize),
     /// Invalid positive exponent sign was found.
     InvalidPositiveExponentSign(usize),
+    /// Invalid negative exponent sign was found.
+    InvalidNegativeExponentSign(usize),
     /// Exponent sign was required(usize), but not found.
     MissingExponentSign(usize),
     /// Exponent was present without fraction component.
@@ -159,9 +163,11 @@ impl Error {
             Self::EmptyInteger(_) => "'invalid float with no integer digits'",
             Self::EmptyFraction(_) => "'invalid float with no fraction digits'",
             Self::InvalidPositiveMantissaSign(_) => "'invalid `+` sign before significant digits'",
+            Self::InvalidNegativeMantissaSign(_) => "'invalid `-` sign before significant digits'",
             Self::MissingMantissaSign(_) => "'missing required `+/-` sign for significant digits'",
             Self::InvalidExponent(_) => "'exponent found but not allowed'",
             Self::InvalidPositiveExponentSign(_) => "'invalid `+` sign in exponent'",
+            Self::InvalidNegativeExponentSign(_) => "'invalid `-` sign in exponent'",
             Self::MissingExponentSign(_) => "'missing required `+/-` sign for exponent'",
             Self::ExponentWithoutFraction(_) =>  "'invalid float containing exponent without fraction'",
             Self::ExponentWithoutIntegerDigits(_) =>  "'invalid float containing exponent without integer digits'",
@@ -227,9 +233,11 @@ impl Error {
             Self::EmptyInteger(index) => Some(index),
             Self::EmptyFraction(index) => Some(index),
             Self::InvalidPositiveMantissaSign(index) => Some(index),
+            Self::InvalidNegativeMantissaSign(index) => Some(index),
             Self::MissingMantissaSign(index) => Some(index),
             Self::InvalidExponent(index) => Some(index),
             Self::InvalidPositiveExponentSign(index) => Some(index),
+            Self::InvalidNegativeExponentSign(index) => Some(index),
             Self::MissingExponentSign(index) => Some(index),
             Self::ExponentWithoutFraction(index) => Some(index),
             Self::ExponentWithoutIntegerDigits(index) => Some(index),
@@ -290,9 +298,11 @@ impl Error {
     is_error_type!(is_empty_integer, EmptyInteger(_));
     is_error_type!(is_empty_fraction, EmptyFraction(_));
     is_error_type!(is_invalid_positive_mantissa_sign, InvalidPositiveMantissaSign(_));
+    is_error_type!(is_invalid_negative_mantissa_sign, InvalidNegativeMantissaSign(_));
     is_error_type!(is_missing_mantissa_sign, MissingMantissaSign(_));
     is_error_type!(is_invalid_exponent, InvalidExponent(_));
     is_error_type!(is_invalid_positive_exponent_sign, InvalidPositiveExponentSign(_));
+    is_error_type!(is_invalid_negative_exponent_sign, InvalidNegativeExponentSign(_));
     is_error_type!(is_missing_exponent_sign, MissingExponentSign(_));
     is_error_type!(is_exponent_without_fraction, ExponentWithoutFraction(_));
     is_error_type!(is_invalid_leading_zeros, InvalidLeadingZeros(_));
@@ -380,9 +390,15 @@ impl fmt::Display for Error {
             Self::InvalidPositiveMantissaSign(index) => {
                 write_parse_error!(formatter, description, index)
             },
+            Self::InvalidNegativeMantissaSign(index) => {
+                write_parse_error!(formatter, description, index)
+            },
             Self::MissingMantissaSign(index) => write_parse_error!(formatter, description, index),
             Self::InvalidExponent(index) => write_parse_error!(formatter, description, index),
             Self::InvalidPositiveExponentSign(index) => {
+                write_parse_error!(formatter, description, index)
+            },
+            Self::InvalidNegativeExponentSign(index) => {
                 write_parse_error!(formatter, description, index)
             },
             Self::MissingExponentSign(index) => write_parse_error!(formatter, description, index),

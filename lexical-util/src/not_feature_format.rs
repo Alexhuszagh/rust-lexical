@@ -775,6 +775,102 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
         Self::REQUIRED_BASE_SUFFIX
     }
 
+    /// If a negative sign before an unsigned integer is not allowed.
+    ///
+    /// See [`no_unsigned_negative_sign`][Self::no_unsigned_negative_sign].
+    pub const NO_UNSIGNED_NEGATIVE_SIGN: bool = true;
+
+    /// If a negative sign before an unsigned integer is not allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. This
+    /// does not apply to signed integers or floating point numbers.
+    /// Defaults to [`true`].
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `-12` | ❌ |
+    /// | `+12` | ✔️ |
+    /// | `12` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn no_unsigned_negative_sign(&self) -> bool {
+        Self::NO_UNSIGNED_NEGATIVE_SIGN
+    }
+
+    /// If positive or negative signs before the significant digits are not
+    /// allowed.
+    ///
+    /// See [`no_mantissa_sign`][Self::no_mantissa_sign].
+    pub const NO_MANTISSA_SIGN: bool = false;
+
+    /// If positive or negative signs before the significant digits are not
+    /// allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. if
+    /// enabled, then the type cannot represent negative literal or string
+    /// values (although they may be computed via mathematical operations).
+    /// Defaults to [`false`].
+    ///
+    /// If you only want to disable positive signs, see
+    /// [`no_positive_mantissa_sign`]. If you wish to disable negative signs
+    /// on unsigned integers, see [`no_unsigned_negative_sign`].
+    ///
+    /// [`no_positive_mantissa_sign`]: Self::no_positive_mantissa_sign
+    /// [`no_unsigned_negative_sign`]: Self::no_unsigned_negative_sign
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `-12` | ❌ |
+    /// | `+12` | ❌ |
+    /// | `12` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Integer
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn no_mantissa_sign(&self) -> bool {
+        Self::NO_MANTISSA_SIGN
+    }
+
+    /// If positive or negative signs before an exponent are not allowed.
+    ///
+    /// See [`no_exponent_sign`][Self::no_exponent_sign].
+    pub const NO_EXPONENT_SIGN: bool = false;
+
+    /// If positive or negative signs before an exponent are not allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
+    /// to [`false`].
+    ///
+    /// If you only want to disable positive signs, see
+    /// [`no_positive_exponent_sign`].
+    ///
+    /// [`no_positive_exponent_sign`]: Self::no_positive_exponent_sign
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1.0e-12` | ❌ |
+    /// | `1.0e+12` | ❌ |
+    /// | `1.0e12` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn no_exponent_sign(&self) -> bool {
+        Self::NO_EXPONENT_SIGN
+    }
+
     // DIGIT SEPARATOR FLAGS & MASKS
 
     /// If digit separators are allowed at the absolute start of the number.
@@ -2095,7 +2191,8 @@ pub(crate) const fn radix_error_impl(format: u128) -> Error {
 pub(crate) const fn format_error_impl(format: u128) -> Error {
     let valid_flags = flags::REQUIRED_EXPONENT_DIGITS
         | flags::REQUIRED_MANTISSA_DIGITS
-        | flags::REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT;
+        | flags::REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT
+        | flags::NO_UNSIGNED_NEGATIVE_SIGN;
     if !flags::is_valid_radix(flags::mantissa_radix(format)) {
         Error::InvalidMantissaRadix
     } else if !flags::is_valid_radix(flags::exponent_base(format)) {

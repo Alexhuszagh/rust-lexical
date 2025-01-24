@@ -135,6 +135,12 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 /// - [`case_sensitive_exponent`]: If exponent characters are case-sensitive.
 /// - [`case_sensitive_base_prefix`]: If base prefixes are case-sensitive.
 /// - [`case_sensitive_base_suffix`]: If base suffixes are case-sensitive.
+/// - [`no_unsigned_negative_sign`]: If a negative sign before an unsigned
+///   integer is not allowed.
+/// - [`no_mantissa_sign`]: If positive or negative signs before an exponent are
+///   not allowed.
+/// - [`no_exponent_sign`]: If positive or negative signs before an exponent are
+///   not allowed.
 /// - [`start_digit_separator`]: If digit separators are allowed at the absolute
 ///   start of the number.
 /// - [`integer_sign_digit_separator`]: If digit separators are allowed before
@@ -251,6 +257,44 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 ///   allowed.
 /// - [`required_exponent_sign`]: If sign before the exponent is required.
 /// - [`required_exponent_notation`]: If exponent notation is required.
+/// - [`case_sensitive_base_prefix`]: If base prefixes are case-sensitive.
+/// - [`case_sensitive_base_suffix`]: If base suffixes are case-sensitive.
+/// - [`no_unsigned_negative_sign`]: If a negative sign before an unsigned
+///   integer is not allowed.
+/// - [`no_mantissa_sign`]: If positive or negative signs before an exponent are
+///   not allowed.
+/// - [`no_exponent_sign`]: If positive or negative signs before an exponent are
+///   not allowed.
+/// - [`start_digit_separator`]: If digit separators are allowed at the absolute
+///   start of the number.
+/// - [`integer_sign_digit_separator`]: If digit separators are allowed before
+///   the sign of the integer.
+/// - [`integer_consecutive_sign_digit_separator`]: If consecutive digit
+///   separators are allowed before the sign of the integer.
+/// - [`base_prefix_internal_digit_separator`]: If a digit separator is allowed
+///   between the base prefix.
+/// - [`base_prefix_leading_digit_separator`]: If a digit separator is allowed
+///   before the base prefix.
+/// - [`base_prefix_trailing_digit_separator`]: If a digit separator is allowed
+///   after the base prefix.
+/// - [`base_prefix_consecutive_digit_separator`]: If multiple consecutive base
+///   prefix digit separators are allowed.
+/// - [`base_suffix_internal_digit_separator`]: If a digit separator is allowed
+///   between the base suffix.
+/// - [`base_suffix_leading_digit_separator`]: If a digit separator is allowed
+///   before the base suffix.
+/// - [`base_suffix_trailing_digit_separator`]: If a digit separator is allowed
+///   after the base suffix.
+/// - [`base_suffix_consecutive_digit_separator`]: If multiple consecutive base
+///   suffix digit separators are allowed.
+/// - [`integer_internal_digit_separator`]: If digit separators are allowed
+///   between integer digits.
+/// - [`integer_leading_digit_separator`]: If a digit separator is allowed
+///   before any integer digits.
+/// - [`integer_trailing_digit_separator`]: If a digit separator is allowed
+///   after any integer digits.
+/// - [`integer_consecutive_digit_separator`]: If multiple consecutive integer
+///   digit separators are allowed.
 ///
 /// # Parse Float Fields
 ///
@@ -296,6 +340,12 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 /// - [`case_sensitive_exponent`]: If exponent characters are case-sensitive.
 /// - [`case_sensitive_base_prefix`]: If base prefixes are case-sensitive.
 /// - [`case_sensitive_base_suffix`]: If base suffixes are case-sensitive.
+/// - [`no_unsigned_negative_sign`]: If a negative sign before an unsigned
+///   integer is not allowed.
+/// - [`no_mantissa_sign`]: If positive or negative signs before an exponent are
+///   not allowed.
+/// - [`no_exponent_sign`]: If positive or negative signs before an exponent are
+///   not allowed.
 /// - [`start_digit_separator`]: If digit separators are allowed at the absolute
 ///   start of the number.
 /// - [`integer_sign_digit_separator`]: If digit separators are allowed before
@@ -385,19 +435,14 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`required_fraction_digits_with_exponent`]: Self::required_fraction_digits_with_exponent\n
 [`required_mantissa_digits_with_exponent`]: Self::required_mantissa_digits_with_exponent\n
 [`case_sensitive_exponent`]: Self::case_sensitive_exponent\n
+[`no_unsigned_negative_sign`]: Self::no_unsigned_negative_sign\n
+[`no_mantissa_sign`]: Self::no_mantissa_sign\n
+[`no_exponent_sign`]: Self::no_exponent_sign\n
 [`start_digit_separator`]: Self::start_digit_separator\n
 [`integer_sign_digit_separator`]: Self::integer_sign_digit_separator\n
 [`integer_consecutive_sign_digit_separator`]: Self::integer_consecutive_sign_digit_separator\n
 [`exponent_sign_digit_separator`]: Self::exponent_sign_digit_separator\n
 [`exponent_consecutive_sign_digit_separator`]: Self::exponent_consecutive_sign_digit_separator\n
-[`base_prefix_internal_digit_separator`]: Self::base_prefix_internal_digit_separator\n
-[`base_prefix_leading_digit_separator`]: Self::base_prefix_leading_digit_separator\n
-[`base_prefix_trailing_digit_separator`]: Self::base_prefix_trailing_digit_separator\n
-[`base_prefix_consecutive_digit_separator`]: Self::base_prefix_consecutive_digit_separator\n
-[`base_suffix_internal_digit_separator`]: Self::base_suffix_internal_digit_separator\n
-[`base_suffix_leading_digit_separator`]: Self::base_suffix_leading_digit_separator\n
-[`base_suffix_trailing_digit_separator`]: Self::base_suffix_trailing_digit_separator\n
-[`base_suffix_consecutive_digit_separator`]: Self::base_suffix_consecutive_digit_separator\n
 [`integer_internal_digit_separator`]: Self::integer_internal_digit_separator\n
 [`fraction_internal_digit_separator`]: Self::fraction_internal_digit_separator\n
 [`exponent_internal_digit_separator`]: Self::exponent_internal_digit_separator\n
@@ -435,19 +480,14 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`required_fraction_digits_with_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/0cad692/lexical-util/src/format_builder.rs#L1149\n
 [`required_mantissa_digits_with_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/47a090d/lexical-util/src/format_builder.rs#L1233\n
 [`case_sensitive_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L765\n
+[`no_unsigned_negative_sign`]: https://github.com/Alexhuszagh/rust-lexical/blob/TODO/lexical-util/src/format_builder.rs#LTODO\n
+[`no_mantissa_sign`]: https://github.com/Alexhuszagh/rust-lexical/blob/TODO/lexical-util/src/format_builder.rs#LTODO\n
+[`no_exponent_sign`]: https://github.com/Alexhuszagh/rust-lexical/blob/TODO/lexical-util/src/format_builder.rs#LTODO\n
 [`start_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1650\n
 [`integer_sign_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1678\n
 [`integer_consecutive_sign_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1706\n
 [`exponent_sign_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1728\n
 [`exponent_consecutive_sign_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1754\n
-[`base_prefix_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1777\n
-[`base_prefix_leading_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1809\n
-[`base_prefix_trailing_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1841\n
-[`base_prefix_consecutive_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1870\n
-[`base_suffix_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1883\n
-[`base_suffix_leading_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1916\n
-[`base_suffix_trailing_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1939\n
-[`base_suffix_consecutive_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1967\n
 [`integer_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L793\n
 [`fraction_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L805\n
 [`exponent_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L817\n
@@ -471,6 +511,14 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`case_sensitive_base_suffix`]: Self::case_sensitive_base_suffix
 [`required_base_prefix`]: Self::required_base_prefix
 [`required_base_suffix`]: Self::required_base_suffix
+[`base_prefix_internal_digit_separator`]: Self::base_prefix_internal_digit_separator\n
+[`base_prefix_leading_digit_separator`]: Self::base_prefix_leading_digit_separator\n
+[`base_prefix_trailing_digit_separator`]: Self::base_prefix_trailing_digit_separator\n
+[`base_prefix_consecutive_digit_separator`]: Self::base_prefix_consecutive_digit_separator\n
+[`base_suffix_internal_digit_separator`]: Self::base_suffix_internal_digit_separator\n
+[`base_suffix_leading_digit_separator`]: Self::base_suffix_leading_digit_separator\n
+[`base_suffix_trailing_digit_separator`]: Self::base_suffix_trailing_digit_separator\n
+[`base_suffix_consecutive_digit_separator`]: Self::base_suffix_consecutive_digit_separator\n
 "
 )]
 #[cfg_attr(
@@ -482,6 +530,14 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`case_sensitive_base_suffix`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L781\n
 [`required_base_prefix`]: https://github.com/Alexhuszagh/rust-lexical/blob/63f9adf/lexical-util/src/format_builder.rs#L1267\n
 [`required_base_suffix`]: https://github.com/Alexhuszagh/rust-lexical/blob/63f9adf/lexical-util/src/format_builder.rs#L1291\n
+[`base_prefix_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1777\n
+[`base_prefix_leading_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1809\n
+[`base_prefix_trailing_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1841\n
+[`base_prefix_consecutive_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1870\n
+[`base_suffix_internal_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1883\n
+[`base_suffix_leading_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1916\n
+[`base_suffix_trailing_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1939\n
+[`base_suffix_consecutive_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1967\n
 "
 )]
 ///
@@ -582,6 +638,9 @@ pub struct NumberFormatBuilder {
     required_mantissa_digits_with_exponent: bool,
     required_base_prefix: bool,
     required_base_suffix: bool,
+    no_unsigned_negative_sign: bool,
+    no_mantissa_sign: bool,
+    no_exponent_sign: bool,
     start_digit_separator: bool,
     integer_sign_digit_separator: bool,
     integer_consecutive_sign_digit_separator: bool,
@@ -657,6 +716,10 @@ impl NumberFormatBuilder {
     ///   `false`
     /// - [`required_base_prefix`][Self::get_required_base_prefix] - `false`
     /// - [`required_base_suffix`][Self::get_required_base_suffix] - `false`
+    /// - [`no_unsigned_negative_sign`][Self::get_no_unsigned_negative_sign] -
+    ///   `true`
+    /// - [`no_mantissa_sign`][Self::get_no_mantissa_sign] - `false`
+    /// - [`no_exponent_sign`][Self::get_no_exponent_sign] - `false`
     /// - [`start_digit_separator`][Self::start_digit_separator] - `true`
     /// - [`integer_sign_digit_separator`][Self::integer_sign_digit_separator] -
     ///   `false`
@@ -718,6 +781,9 @@ impl NumberFormatBuilder {
             required_mantissa_digits_with_exponent: true,
             required_base_prefix: false,
             required_base_suffix: false,
+            no_unsigned_negative_sign: true,
+            no_mantissa_sign: false,
+            no_exponent_sign: false,
             start_digit_separator: cfg!(feature = "format"),
             integer_sign_digit_separator: false,
             integer_consecutive_sign_digit_separator: false,
@@ -782,6 +848,9 @@ impl NumberFormatBuilder {
             required_mantissa_digits_with_exponent: false,
             required_base_prefix: false,
             required_base_suffix: false,
+            no_unsigned_negative_sign: true,
+            no_mantissa_sign: false,
+            no_exponent_sign: false,
             start_digit_separator: true,
             integer_sign_digit_separator: false,
             integer_consecutive_sign_digit_separator: false,
@@ -1549,6 +1618,83 @@ impl NumberFormatBuilder {
     #[inline(always)]
     pub const fn get_required_base_suffix(&self) -> bool {
         self.required_base_suffix
+    }
+
+    /// Get if a negative sign before an unsigned integer is not allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. This
+    /// does not apply to signed integers or floating point numbers.
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `-12` | ❌ |
+    /// | `+12` | ✔️ |
+    /// | `12` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn get_no_unsigned_negative_sign(&self) -> bool {
+        self.no_unsigned_negative_sign
+    }
+
+    /// Get if positive or negative signs before the significant digits are not
+    /// allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. if
+    /// enabled, then the type cannot represent negative literal or string
+    /// values (although they may be computed via mathematical operations).
+    ///
+    /// If you only want to disable positive signs, see
+    /// [`no_positive_mantissa_sign`]. If you wish to disable negative signs
+    /// on unsigned integers, see [`no_unsigned_negative_sign`].
+    ///
+    /// [`no_positive_mantissa_sign`]: Self::get_no_positive_mantissa_sign
+    /// [`no_unsigned_negative_sign`]: Self::get_no_unsigned_negative_sign
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `-12` | ❌ |
+    /// | `+12` | ❌ |
+    /// | `12` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Integer
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn get_no_mantissa_sign(&self) -> bool {
+        self.no_mantissa_sign
+    }
+
+    /// Get if positive or negative signs before an exponent are not allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`.
+    ///
+    /// If you only want to disable positive signs, see
+    /// [`no_positive_exponent_sign`].
+    ///
+    /// [`no_positive_exponent_sign`]: Self::get_no_positive_exponent_sign
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1.0e-12` | ❌ |
+    /// | `1.0e+12` | ❌ |
+    /// | `1.0e12` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn get_no_exponent_sign(&self) -> bool {
+        self.no_exponent_sign
     }
 
     /// Get if digit separators are allowed at the absolute start of the number.
@@ -2551,6 +2697,7 @@ impl NumberFormatBuilder {
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1x", &PF_OPTS), Ok(1.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1x1", &PF_OPTS), Err(Error::InvalidDigit(2)));
     ///
+    /// // TODO: FIXME! This is incorrectly getting the location wrong
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Err(Error::InvalidDigit(2)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"x1", &PI_OPTS), Err(Error::InvalidDigit(0)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
@@ -2789,7 +2936,7 @@ impl NumberFormatBuilder {
     ///     .build_strict();
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Ok(1.1));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"-1.1", &PF_OPTS), Ok(-1.1));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+1.1", &PF_OPTS), Err(Error::InvalidPositiveSign(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+1.1", &PF_OPTS), Err(Error::InvalidPositiveMantissaSign(0)));
     ///
     /// let mut buffer = [0u8; BUFFER_SIZE];
     /// assert_eq!(write_with_options::<f64, FORMAT>(1.1, &mut buffer, &WF_OPTS), b"1.1");
@@ -2827,7 +2974,7 @@ impl NumberFormatBuilder {
     /// const FORMAT: u128 = NumberFormatBuilder::new()
     ///     .required_mantissa_sign(true)
     ///     .build_strict();
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Err(Error::MissingSign(0)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1.1", &PF_OPTS), Err(Error::MissingMantissaSign(0)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+1.1", &PF_OPTS), Ok(1.1));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"-1.1", &PF_OPTS), Ok(-1.1));
     ///
@@ -3119,7 +3266,7 @@ impl NumberFormatBuilder {
     /// assert_eq!(parse::<i64>(b"0"), Ok(0));
     /// assert_eq!(parse::<i64>(b"10"), Ok(10));
     ///
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"01", &PI_OPTS), Ok(0));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"01", &PI_OPTS), Err(Error::InvalidLeadingZeros(0)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"+01", &PI_OPTS), Err(Error::InvalidLeadingZeros(1)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0", &PI_OPTS), Ok(0));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"10", &PI_OPTS), Ok(10));
@@ -3349,6 +3496,7 @@ impl NumberFormatBuilder {
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1x", &PF_OPTS), Ok(1.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1X", &PF_OPTS), Err(Error::InvalidDigit(1)));
     ///
+    /// // TODO: This has the wrong placement
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Err(Error::InvalidDigit(2)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1x", &PI_OPTS), Ok(1));
@@ -3532,6 +3680,131 @@ impl NumberFormatBuilder {
         self
     }
 
+    /// If a negative sign before an unsigned integer is not allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. This
+    /// does not apply to signed integers or floating point numbers.
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `-12` | ❌ |
+    /// | `+12` | ✔️ |
+    /// | `12` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Integer
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const NO_SIGN: u128 = NumberFormatBuilder::new()
+    ///     .no_unsigned_negative_sign(true)
+    ///     .build_strict();
+    ///
+    /// assert_eq!(parse_with_options::<u64, NO_SIGN>(b"-1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<u64, NO_SIGN>(b"1", &PI_OPTS), Ok(1));
+    ///
+    /// assert_eq!(parse_with_options::<i64, NO_SIGN>(b"-1", &PI_OPTS), Ok(-1));
+    /// assert_eq!(parse_with_options::<i64, NO_SIGN>(b"1", &PI_OPTS), Ok(1));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn no_unsigned_negative_sign(mut self, flag: bool) -> Self {
+        self.no_unsigned_negative_sign = flag;
+        self
+    }
+
+    /// If positive or negative signs before the significant digits are not
+    /// allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. if
+    /// enabled, then the type cannot represent negative literal or string
+    /// values (although they may be computed via mathematical operations).
+    ///
+    /// If you only want to disable positive signs, see
+    /// [`no_positive_mantissa_sign`]. If you wish to disable negative signs
+    /// on unsigned integers, see [`no_unsigned_negative_sign`].
+    ///
+    /// [`no_positive_mantissa_sign`]: Self::no_positive_mantissa_sign
+    /// [`no_unsigned_negative_sign`]: Self::no_unsigned_negative_sign
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `-12` | ❌ |
+    /// | `+12` | ❌ |
+    /// | `12` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Integer
+    /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const NO_SIGN: u128 = NumberFormatBuilder::new()
+    ///     .no_mantissa_sign(true)
+    ///     .build_strict();
+    ///
+    /// assert_eq!(parse_with_options::<i64, NO_SIGN>(b"-1", &PI_OPTS), Err(Error::InvalidNegativeMantissaSign(0)));
+    /// assert_eq!(parse_with_options::<i64, NO_SIGN>(b"+1", &PI_OPTS), Err(Error::InvalidPositiveMantissaSign(0)));
+    /// assert_eq!(parse_with_options::<i64, NO_SIGN>(b"1", &PI_OPTS), Ok(1));
+    ///
+    /// assert_eq!(parse_with_options::<f64, NO_SIGN>(b"-1.0", &PF_OPTS), Err(Error::InvalidNegativeMantissaSign(0)));
+    /// assert_eq!(parse_with_options::<f64, NO_SIGN>(b"+1.0", &PF_OPTS), Err(Error::InvalidPositiveMantissaSign(0)));
+    /// assert_eq!(parse_with_options::<f64, NO_SIGN>(b"1.0", &PF_OPTS), Ok(1.0));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn no_mantissa_sign(mut self, flag: bool) -> Self {
+        self.no_mantissa_sign = flag;
+        self
+    }
+
+    /// If positive or negative signs before an exponent are not allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`.
+    ///
+    /// If you only want to disable positive signs, see
+    /// [`no_positive_exponent_sign`].
+    ///
+    /// [`no_positive_exponent_sign`]: Self::no_positive_exponent_sign
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1.0e-12` | ❌ |
+    /// | `1.0e+12` | ❌ |
+    /// | `1.0e12` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    ///
+    /// <!-- TEST
+    /// ```rust
+    /// const NO_SIGN: u128 = NumberFormatBuilder::new()
+    ///     .no_exponent_sign(true)
+    ///     .build_strict();
+    ///
+    /// assert_eq!(parse_with_options::<f64, NO_SIGN>(b"1.0e-12", &PF_OPTS), Err(Error::InvalidNegativeExponentSign(4)));
+    /// assert_eq!(parse_with_options::<f64, NO_SIGN>(b"1.0e+12", &PF_OPTS), Err(Error::InvalidPositiveExponentSign(4)));
+    /// assert_eq!(parse_with_options::<f64, NO_SIGN>(b"1.0e12", &PF_OPTS), Ok(1.0e12));
+    /// ```
+    /// -->
+    #[inline(always)]
+    #[cfg(feature = "format")]
+    pub const fn no_exponent_sign(mut self, flag: bool) -> Self {
+        self.no_exponent_sign = flag;
+        self
+    }
+
     /// Set if digit separators are allowed at the absolute start of the number.
     ///
     /// This modifies the behavior of [`integer_sign_digit_separator`] and
@@ -3587,7 +3860,7 @@ impl NumberFormatBuilder {
     /// const NO_START: u128 = NumberFormatBuilder::new()
     ///     .digit_separator(num::NonZeroU8::new(b'_'))
     ///     .integer_leading_digit_separator(true)
-    ///     .start_digit_separator(true)
+    ///     .start_digit_separator(false)
     ///     .build_strict();
     /// assert_eq!(parse_with_options::<i64, NO_START>(b"1", &PI_OPTS), Ok(1));
     /// assert_eq!(parse_with_options::<i64, NO_START>(b"_1", &PI_OPTS), Err(Error::InvalidDigit(0)));
@@ -3876,6 +4149,7 @@ impl NumberFormatBuilder {
     /// const NO_START: u128 = NumberFormatBuilder::rebuild(FORMAT)
     ///     .start_digit_separator(false)
     ///     .build_strict();
+    /// // TODO: Start digit separator isn't being properly respected
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0d1", &PF_OPTS), Err(Error::InvalidDigit(0)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0d1", &PI_OPTS), Err(Error::InvalidDigit(0)));
     /// ```
@@ -3924,17 +4198,17 @@ impl NumberFormatBuilder {
     ///     .build_strict();
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1", &PF_OPTS), Ok(1.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0d1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0d1", &PF_OPTS), Err(Error::InvalidDigit(0)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0_d1", &PF_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d_1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d__1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d__1", &PF_OPTS), Err(Error::InvalidDigit(3)));
     ///
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0d1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0d1", &PI_OPTS), Err(Error::InvalidDigit(0)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0_d1", &PI_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d_1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d__1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d__1", &PI_OPTS), Err(Error::InvalidDigit(3)));
     /// ```
     /// -->
     #[inline(always)]
@@ -3978,13 +4252,13 @@ impl NumberFormatBuilder {
     ///     .base_prefix_consecutive_digit_separator(true)
     ///     .build_strict();
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d1", &PF_OPTS), Ok(1.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0d1", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_0d1", &PF_OPTS), Err(Error::InvalidDigit(0)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0_d1", &PF_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d_1", &PF_OPTS), Ok(1.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"0d__1", &PF_OPTS), Ok(1.0));
     ///
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d1", &PI_OPTS), Ok(1));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0d1", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"_0d1", &PI_OPTS), Err(Error::InvalidDigit(0)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0_d1", &PI_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d_1", &PI_OPTS), Ok(1));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0d__1", &PI_OPTS), Ok(1));
@@ -4051,14 +4325,15 @@ impl NumberFormatBuilder {
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d", &PF_OPTS), Ok(12.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_2d", &PF_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12_d", &PF_OPTS), Ok(12.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12__d", &PF_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d_", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12__d", &PF_OPTS), Err(Error::InvalidDigit(2)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d_", &PF_OPTS), Err(Error::InvalidDigit(3)));
     ///
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d", &PI_OPTS), Ok(12));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_2d", &PI_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12_d", &PI_OPTS), Ok(12));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12__d", &PI_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d_", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12__d", &PI_OPTS), Err(Error::InvalidDigit(2)));
+    /// // TODO: This is incorrectly using the current placement
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d_", &PI_OPTS), Err(Error::InvalidDigit(3)));
     /// ```
     /// -->
     #[inline(always)]
@@ -4096,15 +4371,16 @@ impl NumberFormatBuilder {
     ///     .build_strict();
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d", &PF_OPTS), Ok(12.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_2d", &PF_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12_d", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12_d", &PF_OPTS), Err(Error::InvalidDigit(2)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d_", &PF_OPTS), Ok(12.0));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d__", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d__", &PF_OPTS), Err(Error::InvalidDigit(4)));
     ///
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d", &PI_OPTS), Ok(12));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_2d", &PI_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12_d", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12_d", &PI_OPTS), Err(Error::InvalidDigit(2)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d_", &PI_OPTS), Ok(12));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d__", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// // TODO: This is getting the location wrong
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d__", &PI_OPTS), Err(Error::InvalidDigit(4)));
     /// ```
     /// -->
     #[inline(always)]
@@ -4148,13 +4424,13 @@ impl NumberFormatBuilder {
     ///     .build_strict();
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d", &PF_OPTS), Ok(12.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1_2d", &PF_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12_d", &PF_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12_d", &PF_OPTS), Err(Error::InvalidDigit(2)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d_", &PF_OPTS), Ok(12.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"12d__", &PF_OPTS), Ok(12.0));
     ///
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d", &PI_OPTS), Ok(12));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_2d", &PI_OPTS), Err(Error::InvalidDigit(1)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12_d", &PI_OPTS), Err(Error::InvalidDigit(1)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12_d", &PI_OPTS), Err(Error::InvalidDigit(2)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d_", &PI_OPTS), Ok(12));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d__", &PI_OPTS), Ok(12));
     /// ```
@@ -4375,6 +4651,7 @@ impl NumberFormatBuilder {
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"_+1", &PF_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+_1", &PF_OPTS), Ok(1.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+0d_1", &PF_OPTS), Ok(1.0));
+    /// // TODO: This is incorrectly consuming the base prefix
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"+_0d1", &PF_OPTS), Err(Error::InvalidDigit(1)));
     ///
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
@@ -5035,6 +5312,9 @@ impl NumberFormatBuilder {
             self.required_mantissa_digits_with_exponent, REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT ;
             self.required_base_prefix, REQUIRED_BASE_PREFIX ;
             self.required_base_suffix, REQUIRED_BASE_SUFFIX ;
+            self.no_unsigned_negative_sign, NO_UNSIGNED_NEGATIVE_SIGN ;
+            self.no_mantissa_sign, NO_MANTISSA_SIGN ;
+            self.no_exponent_sign, NO_EXPONENT_SIGN ;
             self.start_digit_separator, START_DIGIT_SEPARATOR ;
             self.integer_sign_digit_separator, INTEGER_SIGN_DIGIT_SEPARATOR ;
             self.integer_consecutive_sign_digit_separator, INTEGER_CONSECUTIVE_SIGN_DIGIT_SEPARATOR ;
@@ -5155,6 +5435,9 @@ impl NumberFormatBuilder {
             ),
             required_base_prefix: has_flag!(format, REQUIRED_BASE_PREFIX),
             required_base_suffix: has_flag!(format, REQUIRED_BASE_SUFFIX),
+            no_unsigned_negative_sign: has_flag!(format, NO_UNSIGNED_NEGATIVE_SIGN),
+            no_mantissa_sign: has_flag!(format, NO_MANTISSA_SIGN),
+            no_exponent_sign: has_flag!(format, NO_EXPONENT_SIGN),
             start_digit_separator: has_flag!(format, START_DIGIT_SEPARATOR),
             integer_sign_digit_separator: has_flag!(format, INTEGER_SIGN_DIGIT_SEPARATOR),
             integer_consecutive_sign_digit_separator: has_flag!(

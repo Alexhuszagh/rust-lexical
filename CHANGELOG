@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `NumberFormatBuilder::none()` for create a format with no flags set (#215).
 - Added in many more digit separator flags for the `NumberFormat`, including for signs, base prefixes, base suffixes, and restricting digit separators at the start of the number (#215).
 - Added many more pre-defined formatting constants (#215).
+- Added additional sign configurations, with `no_unsigned_negative_sign`, `no_mantissa_sign`, and `no_exponent_sign` (#215).
 
 ### Changed
 

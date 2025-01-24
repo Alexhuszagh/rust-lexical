@@ -25,7 +25,7 @@
 //!
 //! 16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-//! |e/P|e/S|I/E|F/E|r/P|r/S|M/E|                                   |
+//! |e/P|e/S|I/E|F/E|r/P|r/S|M/E|-/U|-/M|-/E|                       |
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 //!
 //! 32  33  34  35  36  37  38  39  40  41 42  43  44  45  46  47   48
@@ -63,6 +63,9 @@
 //!         r/P = Require base prefixes.
 //!         r/S = Require base suffixes.
 //!         M/E = Require mantissa digits with exponent.
+//!         -/U = No unsigned integer negative sign.
+//!         -/M = No mantissa positive or negative sign.
+//!         -/E = No exponent positive or negative sign.
 //!
 //!     Digit Separator Flags:
 //!         I/I = Integer internal digit separator.
@@ -373,6 +376,15 @@ pub const REQUIRED_BASE_SUFFIX: u128 = 1 << 21;
 /// If any significant digits are required with exponent notation.
 pub const REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT: u128 = 1 << 22;
 
+/// If a negative sign before an unsigned integer is not allowed.
+pub const NO_UNSIGNED_NEGATIVE_SIGN: u128 = 1 << 23;
+
+/// If positive or negative signs before the significant digits are not allowed.
+pub const NO_MANTISSA_SIGN: u128 = 1 << 24;
+
+/// If positive or negative signs before an exponent are not allowed.
+pub const NO_EXPONENT_SIGN: u128 = 1 << 25;
+
 // Non-digit separator flags.
 const _: () = assert!(REQUIRED_INTEGER_DIGITS == 1);
 check_subsequent_flags!(REQUIRED_INTEGER_DIGITS, REQUIRED_FRACTION_DIGITS);
@@ -398,6 +410,9 @@ check_subsequent_flags!(REQUIRED_INTEGER_DIGITS_WITH_EXPONENT, REQUIRED_FRACTION
 check_subsequent_flags!(REQUIRED_FRACTION_DIGITS_WITH_EXPONENT, REQUIRED_BASE_PREFIX);
 check_subsequent_flags!(REQUIRED_BASE_PREFIX, REQUIRED_BASE_SUFFIX);
 check_subsequent_flags!(REQUIRED_BASE_SUFFIX, REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT);
+check_subsequent_flags!(REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT, NO_UNSIGNED_NEGATIVE_SIGN);
+check_subsequent_flags!(NO_UNSIGNED_NEGATIVE_SIGN, NO_MANTISSA_SIGN);
+check_subsequent_flags!(NO_MANTISSA_SIGN, NO_EXPONENT_SIGN);
 
 // DIGIT SEPARATOR FLAGS & MASKS
 // -----------------------------
@@ -624,6 +639,9 @@ pub const FLAG_MASK: u128 =
     CASE_SENSITIVE_BASE_SUFFIX |
     REQUIRED_BASE_PREFIX |
     REQUIRED_BASE_SUFFIX |
+    NO_UNSIGNED_NEGATIVE_SIGN |
+    NO_MANTISSA_SIGN |
+    NO_EXPONENT_SIGN |
     START_DIGIT_SEPARATOR_FLAG_MASK |
     ALL_DIGIT_SEPARATOR_FLAG_MASK;
 
@@ -693,6 +711,7 @@ pub const EXPONENT_FLAG_MASK: u128 =
     REQUIRED_INTEGER_DIGITS_WITH_EXPONENT |
     REQUIRED_FRACTION_DIGITS_WITH_EXPONENT |
     REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT |
+    NO_EXPONENT_SIGN |
     EXPONENT_INTERNAL_DIGIT_SEPARATOR |
     EXPONENT_LEADING_DIGIT_SEPARATOR |
     EXPONENT_TRAILING_DIGIT_SEPARATOR |
