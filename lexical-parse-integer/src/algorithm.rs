@@ -138,7 +138,7 @@ macro_rules! on_invalid_digit {
             if $iter.is_buffer_empty() && $is_end {
                 $into_ok!($value, $iter.buffer_length(), have_any)
             } else {
-                $invalid_digit!($value, $iter.cursor(), have_any)
+                $invalid_digit!($value, $iter.cursor() + 1, have_any)
             }
         } else {
             $invalid_digit!($value, $iter.cursor() + 1, have_any)
@@ -332,7 +332,9 @@ macro_rules! parse_1digit_unchecked {
                 Some(v) => v,
                 None => {
                     // This optimizes better for success cases, which is what we want.
-                    // It's an odd hack, but it's tested to work.
+                    // It's an odd hack, but it's tested to work. This **HAS**
+                    // to be used like this to get the correct digit count, even
+                    // if we always increment it later.
                     // SAFETY: Safe since we must have gotten one digit from next.
                     unsafe { $iter.set_cursor($iter.cursor() - 1) };
                     on_invalid_digit!(
@@ -386,7 +388,9 @@ macro_rules! parse_1digit_checked {
                 Some(v) => v,
                 None => {
                     // This optimizes better for success cases, which is what we want.
-                    // It's an odd hack, but it's tested to work.
+                    // It's an odd hack, but it's tested to work. This **HAS**
+                    // to be used like this to get the correct digit count, even
+                    // if we always increment it later.
                     // SAFETY: Safe since we must have gotten one digit from next.
                     unsafe { $iter.set_cursor($iter.cursor() - 1) };
                     on_invalid_digit!(

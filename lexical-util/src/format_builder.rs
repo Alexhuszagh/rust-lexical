@@ -480,9 +480,9 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 [`required_fraction_digits_with_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/0cad692/lexical-util/src/format_builder.rs#L1149\n
 [`required_mantissa_digits_with_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/47a090d/lexical-util/src/format_builder.rs#L1233\n
 [`case_sensitive_exponent`]: https://github.com/Alexhuszagh/rust-lexical/blob/c6c5052/lexical-util/src/format_builder.rs#L765\n
-[`no_unsigned_negative_sign`]: https://github.com/Alexhuszagh/rust-lexical/blob/TODO/lexical-util/src/format_builder.rs#LTODO\n
-[`no_mantissa_sign`]: https://github.com/Alexhuszagh/rust-lexical/blob/TODO/lexical-util/src/format_builder.rs#LTODO\n
-[`no_exponent_sign`]: https://github.com/Alexhuszagh/rust-lexical/blob/TODO/lexical-util/src/format_builder.rs#LTODO\n
+[`no_unsigned_negative_sign`]: https://github.com/Alexhuszagh/rust-lexical/blob/36599c3/lexical-util/src/format_builder.rs#L1640\n
+[`no_mantissa_sign`]: https://github.com/Alexhuszagh/rust-lexical/blob/36599c3/lexical-util/src/format_builder.rs#L1671\n
+[`no_exponent_sign`]: https://github.com/Alexhuszagh/rust-lexical/blob/36599c3/lexical-util/src/format_builder.rs#L1696\n
 [`start_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1650\n
 [`integer_sign_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1678\n
 [`integer_consecutive_sign_digit_separator`]: https://github.com/Alexhuszagh/rust-lexical/blob/27ca418/lexical-util/src/format_builder.rs#L1706\n
@@ -2697,9 +2697,8 @@ impl NumberFormatBuilder {
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1x", &PF_OPTS), Ok(1.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1x1", &PF_OPTS), Err(Error::InvalidDigit(2)));
     ///
-    /// // TODO: FIXME! This is incorrectly getting the location wrong
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Err(Error::InvalidDigit(2)));
-    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"x1", &PI_OPTS), Err(Error::InvalidDigit(0)));
+    /// assert_eq!(parse_with_options::<i64, FORMAT>(b"x1", &PI_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1x", &PI_OPTS), Ok(1));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1x1", &PI_OPTS), Err(Error::InvalidDigit(2)));
@@ -3496,7 +3495,6 @@ impl NumberFormatBuilder {
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1x", &PF_OPTS), Ok(1.0));
     /// assert_eq!(parse_with_options::<f64, FORMAT>(b"1X", &PF_OPTS), Err(Error::InvalidDigit(1)));
     ///
-    /// // TODO: This has the wrong placement
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"0x1", &PI_OPTS), Err(Error::InvalidDigit(2)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1", &PI_OPTS), Ok(1));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1x", &PI_OPTS), Ok(1));
@@ -4332,7 +4330,6 @@ impl NumberFormatBuilder {
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_2d", &PI_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12_d", &PI_OPTS), Ok(12));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12__d", &PI_OPTS), Err(Error::InvalidDigit(2)));
-    /// // TODO: This is incorrectly using the current placement
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d_", &PI_OPTS), Err(Error::InvalidDigit(3)));
     /// ```
     /// -->
@@ -4379,7 +4376,6 @@ impl NumberFormatBuilder {
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"1_2d", &PI_OPTS), Err(Error::InvalidDigit(1)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12_d", &PI_OPTS), Err(Error::InvalidDigit(2)));
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d_", &PI_OPTS), Ok(12));
-    /// // TODO: This is getting the location wrong
     /// assert_eq!(parse_with_options::<i64, FORMAT>(b"12d__", &PI_OPTS), Err(Error::InvalidDigit(4)));
     /// ```
     /// -->
