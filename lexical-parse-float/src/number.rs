@@ -74,7 +74,7 @@ impl Number<'_> {
         // function takes care of setting the precision on architectures which
         // require setting it by changing the global state (like the control word of the
         // x87 FPU).
-        let _cw: () = set_precision::<F>();
+        let _cw = set_precision::<F>();
 
         if self.is_fast_path::<F, FORMAT>() {
             let radix = format.radix();
