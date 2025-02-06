@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- CI with OSS-Fuzz for the deprecated `actions/upload-artifact@v3` (#221).
 - Bug where the `radix` feature wasn't enabling `power-of-two` in `lexical-core` or `lexical` (#204).
 - Fixed performance issues due to a lack of inlining on the Eisel-Lemire algorithm (#210).
 - Issue with parsing non-decimal exponent radixes when using a decimal mantissa radix for floating-point numbers (#212).
