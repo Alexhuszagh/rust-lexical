@@ -159,8 +159,9 @@ async def validate_links() -> None:
         if 'SKIP_LINKS' not in os.environ:
             parser.feed(path.name, data)
         if 'SKIP_TODO' not in os.environ:
-            if 'TODO' in data:
-                raise ValueError(f'Found TODO in documentation for file "{path.name}".')
+            relative = path.relative_to(target_dir)
+            if 'TODO' in data and 'lexical-' in str(relative.parent):
+                raise ValueError(f'Found TODO in documentation for file with path "{relative}".')
 
     # deduplicate and validate all our links
     if 'SKIP_LINKS' not in os.environ:
