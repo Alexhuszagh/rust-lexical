@@ -24,6 +24,8 @@ jobs:
           - aarch64-unknown-linux-gnu
           - arm-unknown-linux-gnueabi
           - armv7-unknown-linux-gnueabihf
+          # NOTE: Required for issue #218
+          - i586-unknown-linux-gnu
           - i686-unknown-linux-gnu
           - i686-unknown-linux-musl
           # NOTE: This fails on cross v0.2.1, which is unusual since
