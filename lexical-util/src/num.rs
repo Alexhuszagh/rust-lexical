@@ -392,38 +392,45 @@ pub trait Number:
 {
     /// If the number can hold negative values.
     const IS_SIGNED: bool;
+
+    /// If the number is a floating-point number.
+    const IS_FLOAT: bool;
+
+    /// If the number is an integer.
+    const IS_INTEGER: bool = !Self::IS_FLOAT;
 }
 
 macro_rules! number_impl {
-    ($($t:tt $is_signed:literal ; )*) => ($(
+    ($($t:tt $is_signed:literal $is_float:literal ; )*) => ($(
         impl Number for $t {
             const IS_SIGNED: bool = $is_signed;
+            const IS_FLOAT: bool = $is_float;
         }
     )*)
 }
 
 number_impl! {
-    u8 false ;
-    u16 false ;
-    u32 false ;
-    u64 false ;
-    u128 false ;
-    usize false ;
-    i8 true ;
-    i16 true ;
-    i32 true ;
-    i64 true ;
-    i128 true ;
-    isize true ;
-    f32 true ;
-    f64 true ;
-    // f128 true
+    u8 false false ;
+    u16 false false ;
+    u32 false false ;
+    u64 false false ;
+    u128 false false ;
+    usize false false ;
+    i8 true false ;
+    i16 true false ;
+    i32 true false ;
+    i64 true false ;
+    i128 true false ;
+    isize true false ;
+    f32 true true ;
+    f64 true true ;
+    // f128 true true ;
 }
 
 #[cfg(feature = "f16")]
 number_impl! {
-    f16 true ;
-    bf16 true ;
+    f16 true true ;
+    bf16 true true ;
 }
 
 // INTEGER
@@ -686,15 +693,21 @@ pub trait Integer:
         !self.is_odd()
     }
 
-    /// Get the maximum number of digits before the slice will overflow.
+    /// Get the maximum number of digits before the slice could overflow.
     ///
     /// This is effectively the `floor(log(2^BITS-1, radix))`, but we can
     /// try to go a bit lower without worrying too much.
     #[inline(always)]
     fn overflow_digits(radix: u32) -> usize {
         // this is heavily optimized for base10 and it's a way under estimate
-        // that said, it's fast and works.
-        if radix <= 16 {
+        // that said, it's fast and works. the radix is **known** at compile
+        // time so we can optimize this further.
+        if cfg!(not(feature = "power-of-two")) || radix == 10 {
+            // NOTE: We generally want powers-of-two since it makes the comparison
+            // faster (it can just look for the upper bits being set), and luckily
+            // for radices of 10 we can always use `2 * bytes`.
+            mem::size_of::<Self>() * 2
+        } else if radix <= 16 {
             mem::size_of::<Self>() * 2 - Self::IS_SIGNED as usize
         } else {
             // way under approximation but always works and is fast

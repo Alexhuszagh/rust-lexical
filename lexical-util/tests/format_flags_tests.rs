@@ -39,12 +39,20 @@ fn test_is_valid_digit_separator() {
 }
 
 #[cfg(all(feature = "power-of-two", feature = "format"))]
-fn is_valid_punctuation(digit_separator: u8, base_prefix: u8, base_suffix: u8) -> bool {
+fn is_valid_punctuation(
+    digit_separator: u8,
+    base_prefix: u8,
+    base_suffix: u8,
+    required_base_prefix: bool,
+    required_base_suffix: bool,
+) -> bool {
     let fmt = format::NumberFormatBuilder::new()
         .digit_separator(num::NonZeroU8::new(digit_separator))
         .digit_separator_flags(true)
         .base_prefix(num::NonZeroU8::new(base_prefix))
         .base_suffix(num::NonZeroU8::new(base_suffix))
+        .required_base_prefix(required_base_prefix)
+        .required_base_suffix(required_base_suffix)
         .build_unchecked();
     format::is_valid_punctuation(fmt)
 }
@@ -52,9 +60,15 @@ fn is_valid_punctuation(digit_separator: u8, base_prefix: u8, base_suffix: u8) -
 #[test]
 #[cfg(all(feature = "power-of-two", feature = "format"))]
 fn test_is_valid_punctuation() {
-    assert_eq!(is_valid_punctuation(b'_', b'h', 0), true);
-    assert_eq!(is_valid_punctuation(b'e', b'h', 0), true);
-    assert_eq!(is_valid_punctuation(b'^', b'h', 0), true);
-    assert_eq!(is_valid_punctuation(b'\'', b'h', 0), true);
-    assert_eq!(is_valid_punctuation(b'\'', b'h', b'h'), false);
+    assert_eq!(is_valid_punctuation(b'_', b'h', 0, false, false), true);
+    assert_eq!(is_valid_punctuation(b'e', b'h', 0, false, false), true);
+    assert_eq!(is_valid_punctuation(b'^', b'h', 0, false, false), true);
+    assert_eq!(is_valid_punctuation(b'\'', b'h', 0, false, false), true);
+    assert_eq!(is_valid_punctuation(b'\'', b'h', b'h', false, false), false);
+
+    assert_eq!(is_valid_punctuation(b'e', b'h', 0, true, false), true);
+    assert_eq!(is_valid_punctuation(b'e', 0, 0, true, false), false);
+    assert_eq!(is_valid_punctuation(b'e', 0, b'h', false, true), true);
+    assert_eq!(is_valid_punctuation(b'e', 0, 0, true, true), false);
+    assert_eq!(is_valid_punctuation(b'e', 0, 0, false, false), true);
 }
