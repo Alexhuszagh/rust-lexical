@@ -115,106 +115,110 @@ macro_rules! literal {
     };
 }
 
-literal!(RUST_LITERAL, None, "A Rust literal number (uses default options).");
+literal!(RUST_LITERAL, None, "A `Rust` literal number (uses default options).");
 // RUST_STRING
-literal!(PYTHON_LITERAL, None, "A Python literal number (uses default options).");
+literal!(PYTHON_LITERAL, None, "A `Python` literal number (uses default options).");
 // PYTHON_STRING
-literal!(CXX_LITERAL_NAN, b"NAN", "A C++ literal NaN (`NAN`).");
-literal!(CXX_LITERAL_INF, b"INFINITY", "A C++ literal short infinity (`INFINITY`).");
-literal!(CXX_LITERAL_INFINITY, b"INFINITY", "A C++ literal long infinity (`INFINITY`).");
+literal!(CXX_LITERAL_NAN, b"NAN", "A `C++` literal NaN (`NAN`).");
+literal!(CXX_LITERAL_INF, b"INFINITY", "A `C++` literal short infinity (`INFINITY`).");
+literal!(CXX_LITERAL_INFINITY, b"INFINITY", "A `C++` literal long infinity (`INFINITY`).");
 // CXX_STRING
-literal!(C_LITERAL_NAN, b"NAN", "A C literal NaN (`NAN`).");
-literal!(C_LITERAL_INF, b"INFINITY", "A C literal short infinity (`INFINITY`).");
-literal!(C_LITERAL_INFINITY, b"INFINITY", "A C literal long infinity (`INFINITY`).");
+literal!(C_LITERAL_NAN, b"NAN", "A `C` literal NaN (`NAN`).");
+literal!(C_LITERAL_INF, b"INFINITY", "A `C` literal short infinity (`INFINITY`).");
+literal!(C_LITERAL_INFINITY, b"INFINITY", "A `C` literal long infinity (`INFINITY`).");
 // RUBY_LITERAL
-literal!(RUBY_LITERAL_NAN, b"NaN", "A Ruby literal NaN (`NaN`).");
-literal!(RUBY_LITERAL_INF, b"Infinity", "A C literal short infinity (`Infinity`).");
-literal!(RUBY_STRING_NONE, None, "A Ruby string (uses default options).");
+literal!(RUBY_LITERAL_NAN, b"NaN", "A `Ruby` literal NaN (`NaN`).");
+literal!(RUBY_LITERAL_INF, b"Infinity", "A `Ruby` literal short infinity (`Infinity`).");
+literal!(RUBY_STRING_NONE, None, "A `Ruby` string (uses default options).");
 // C_STRING
-literal!(SWIFT_LITERAL, None, "A Swift literal number (uses default options).");
+literal!(SWIFT_LITERAL, None, "A `Swift` literal number (uses default options).");
 // SWIFT_STRING
-literal!(GO_LITERAL, None, "A Golang literal number (uses default options).");
+literal!(GO_LITERAL, None, "A `Golang` literal number (uses default options).");
 // GO_STRING
-literal!(HASKELL_LITERAL, None, "A Haskell literal number (uses default options).");
-literal!(HASKELL_STRING_INF, b"Infinity", "A Haskell string short infinity (`Infinity`).");
-literal!(HASKELL_STRING_INFINITY, b"Infinity", "A Haskell string long infinity (`Infinity`).");
-literal!(JAVASCRIPT_INF, b"Infinity", "A JavaScript string short infinity (`Infinity`).");
-literal!(JAVASCRIPT_INFINITY, b"Infinity", "A JavaScript string long infinity (`Infinity`).");
-literal!(PERL_LITERAL, None, "A Perl literal literal (uses default options).");
+literal!(HASKELL_LITERAL, None, "A `Haskell` literal number (uses default options).");
+literal!(HASKELL_STRING_INF, b"Infinity", "A `Haskell` string short infinity (`Infinity`).");
+literal!(HASKELL_STRING_INFINITY, b"Infinity", "A `Haskell` string long infinity (`Infinity`).");
+literal!(JAVASCRIPT_INF, b"Infinity", "A `JavaScript` string short infinity (`Infinity`).");
+literal!(JAVASCRIPT_INFINITY, b"Infinity", "A `JavaScript` string long infinity (`Infinity`).");
+literal!(PERL_LITERAL, None, "A `Perl` literal literal (uses default options).");
 // PERL_STRING
-literal!(PHP_LITERAL_NAN, b"NAN", "A PHP literal NaN (`NAN`).");
-literal!(PHP_LITERAL_INF, b"INF", "A PHP literal short infinity (`INF`).");
-literal!(PHP_LITERAL_INFINITY, b"INF", "A PHP literal long infinity (`INF`).");
+literal!(PHP_LITERAL_NAN, b"NAN", "A `PHP` literal NaN (`NAN`).");
+literal!(PHP_LITERAL_INF, b"INF", "A `PHP` literal short infinity (`INF`).");
+literal!(PHP_LITERAL_INFINITY, b"INF", "A `PHP` literal long infinity (`INF`).");
 // PHP_STRING
-literal!(JAVA_LITERAL, None, "A Java literal number (uses default options).");
-literal!(JAVA_STRING_INF, b"Infinity", "A Java string short infinity (`Infinity`).");
-literal!(JAVA_STRING_INFINITY, b"Infinity", "A Java string long infinity (`Infinity`).");
-literal!(R_LITERAL_INF, b"Inf", "An R literal short infinity (`Inf`).");
-literal!(R_LITERAL_INFINITY, b"Inf", "An R literal long infinity (`Inf`).");
+literal!(JAVA_LITERAL, None, "A `Java` literal number (uses default options).");
+literal!(JAVA_STRING_INF, b"Infinity", "A `Java` string short infinity (`Infinity`).");
+literal!(JAVA_STRING_INFINITY, b"Infinity", "A `Java` string long infinity (`Infinity`).");
+literal!(R_LITERAL_INF, b"Inf", "An `R` literal short infinity (`Inf`).");
+literal!(R_LITERAL_INFINITY, b"Inf", "An `R` literal long infinity (`Inf`).");
 // R_STRING
-literal!(KOTLIN_LITERAL, None, "A Kotlin literal number (uses default options).");
-literal!(KOTLIN_STRING_INF, b"Infinity", "A Kotlin string short infinity (`Infinity`).");
-literal!(KOTLIN_STRING_INFINITY, b"Infinity", "A Kotlin string long infinity (`Infinity`).");
-literal!(JULIA_LITERAL_INF, b"Inf", "A Julia string short infinity (`Inf`).");
-literal!(JULIA_LITERAL_INFINITY, b"Inf", "A Julia string long infinity (`Inf`).");
+literal!(KOTLIN_LITERAL, None, "A `Kotlin` literal number (uses default options).");
+literal!(KOTLIN_STRING_INF, b"Infinity", "A `Kotlin` string short infinity (`Infinity`).");
+literal!(KOTLIN_STRING_INFINITY, b"Infinity", "A `Kotlin` string long infinity (`Infinity`).");
+literal!(JULIA_LITERAL_INF, b"Inf", "A `Julia` string short infinity (`Inf`).");
+literal!(JULIA_LITERAL_INFINITY, b"Inf", "A `Julia` string long infinity (`Inf`).");
 // JULIA_STRING
-literal!(CSHARP_LITERAL, None, "A C# literal number (uses default options).");
-literal!(CSHARP_STRING_INF, b"Infinity", "A C# string short infinity (`Infinity`).");
-literal!(CSHARP_STRING_INFINITY, b"Infinity", "A C# string long infinity (`Infinity`).");
-literal!(KAWA, None, "A Kawa (List) literal number (uses default options).");
-literal!(GAMBITC, None, "A Gambit-C (List) literal number (uses default options).");
-literal!(GUILE, None, "A Guile (List) literal number (uses default options).");
-literal!(CLOJURE_LITERAL, None, "A Clojure (Lisp) literal number (uses default options).");
-literal!(CLOJURE_STRING_INF, b"Infinity", "A Clojure string short infinity (`Infinity`).");
-literal!(CLOJURE_STRING_INFINITY, b"Infinity", "A Clojure string long infinity (`Infinity`).");
-literal!(ERLANG_LITERAL_NAN, b"nan", "An Erlang literal NaN (`nan`).");
-literal!(ERLANG_STRING, None, "An Erlang string number (uses default options).");
-literal!(ELM_LITERAL, None, "An Elm literal number (uses default options).");
-literal!(ELM_STRING_NAN, None, "An Elm stromg NaN (uses default options).");
-literal!(ELM_STRING_INF, b"Infinity", "An Elm string short infinity (`Infinity`).");
-literal!(ELM_STRING_INFINITY, b"Infinity", "An Elm string long infinity (`Infinity`).");
-literal!(SCALA_LITERAL, None, "A Scala literal number (uses default options).");
-literal!(SCALA_STRING_INF, b"Infinity", "A Scala string short infinity (`Infinity`).");
-literal!(SCALA_STRING_INFINITY, b"Infinity", "A Scala string long infinity (`Infinity`).");
-literal!(ELIXIR, None, "An Elixir number (uses default options).");
-literal!(FORTRAN_LITERAL, None, "A FORTRAN literal number (uses default options).");
+literal!(CSHARP_LITERAL, None, "A `C#` literal number (uses default options).");
+literal!(CSHARP_STRING_INF, b"Infinity", "A `C#` string short infinity (`Infinity`).");
+literal!(CSHARP_STRING_INFINITY, b"Infinity", "A `C#` string long infinity (`Infinity`).");
+literal!(KAWA, None, "A `Kawa` (Lisp) literal number (uses default options).");
+literal!(GAMBITC, None, "A `Gambit-C` (Lisp) literal number (uses default options).");
+literal!(GUILE, None, "A `Guile` (Lisp) literal number (uses default options).");
+literal!(CLOJURE_LITERAL, None, "A `Clojure` (Lisp) literal number (uses default options).");
+literal!(CLOJURE_STRING_INF, b"Infinity", "A `Clojure` string short infinity (`Infinity`).");
+literal!(CLOJURE_STRING_INFINITY, b"Infinity", "A `Clojure` string long infinity (`Infinity`).");
+literal!(ERLANG_LITERAL_NAN, b"nan", "An `Erlang` literal NaN (`nan`).");
+literal!(ERLANG_STRING, None, "An `Erlang` string number (uses default options).");
+literal!(ELM_LITERAL, None, "An `Elm` literal number (uses default options).");
+literal!(ELM_STRING_NAN, None, "An `Elm` strong NaN (uses default options).");
+literal!(ELM_STRING_INF, b"Infinity", "An `Elm` string short infinity (`Infinity`).");
+literal!(ELM_STRING_INFINITY, b"Infinity", "An `Elm` string long infinity (`Infinity`).");
+literal!(SCALA_LITERAL, None, "A `Scala` literal number (uses default options).");
+literal!(SCALA_STRING_INF, b"Infinity", "A `Scala` string short infinity (`Infinity`).");
+literal!(SCALA_STRING_INFINITY, b"Infinity", "A `Scala` string long infinity (`Infinity`).");
+literal!(ELIXIR, None, "An `Elixir` number (uses default options).");
+literal!(FORTRAN_LITERAL, None, "A `FORTRAN` literal number (uses default options).");
 // FORTRAN_STRING
-literal!(D_LITERAL, None, "A D-Lang literal number (uses default options).");
+literal!(D_LITERAL, None, "A `D-Lang` literal number (uses default options).");
 // D_STRING
-literal!(COFFEESCRIPT_INF, b"Infinity", "A CoffeeScript string short infinity (`Infinity`).");
-literal!(COFFEESCRIPT_INFINITY, b"Infinity", "A CoffeeScript string long infinity (`Infinity`).");
-literal!(COBOL, None, "A COBOL literal number (uses default options).");
-literal!(FSHARP_LITERAL_NAN, b"nan", "An F# literal NaN (`nan`).");
-literal!(FSHARP_LITERAL_INF, b"infinity", "An F# literal short infinity (`infinity`).");
-literal!(FSHARP_LITERAL_INFINITY, b"infinity", "An F# literal long infinity (`infinity`).");
+literal!(COFFEESCRIPT_INF, b"Infinity", "A `CoffeeScript` string short infinity (`Infinity`).");
+literal!(COFFEESCRIPT_INFINITY, b"Infinity", "A `CoffeeScript` string long infinity (`Infinity`).");
+literal!(COBOL, None, "A `COBOL` literal number (uses default options).");
+literal!(FSHARP_LITERAL_NAN, b"nan", "An `F#` literal NaN (`nan`).");
+literal!(FSHARP_LITERAL_INF, b"infinity", "An `F#` literal short infinity (`infinity`).");
+literal!(FSHARP_LITERAL_INFINITY, b"infinity", "An `F#` literal long infinity (`infinity`).");
 // FSHARP_STRING
-literal!(VB_LITERAL, None, "A Visual Basic literal number (uses default options)");
-literal!(VB_STRING_INF, None, "A Visual Basic short string infinity (uses default options)");
-literal!(VB_STRING_INFINITY, None, "A Visual Basic long string number (uses default options)");
-literal!(OCAML_LITERAL_NAN, b"nan", "An OCAML literal NaN (`nan`).");
-literal!(OCAML_LITERAL_INF, b"infinity", "An OCAML literal short infinity (`infinity`).");
-literal!(OCAML_LITERAL_INFINITY, b"infinity", "An OCAML literal long infinity (`infinity`).");
+literal!(VB_LITERAL, None, "A `Visual Basic` literal number (uses default options)");
+literal!(VB_STRING_INF, None, "A `Visual Basic` short string infinity (uses default options)");
+literal!(VB_STRING_INFINITY, None, "A `Visual Basic` long string number (uses default options)");
+literal!(OCAML_LITERAL_NAN, b"nan", "An `OCAML` literal NaN (`nan`).");
+literal!(OCAML_LITERAL_INF, b"infinity", "An `OCAML` literal short infinity (`infinity`).");
+literal!(OCAML_LITERAL_INFINITY, b"infinity", "An `OCAML` literal long infinity (`infinity`).");
 // OCAML_STRING
-literal!(OBJECTIVEC, None, "An Objective-C number (uses default options).");
-literal!(REASONML_LITERAL_NAN, b"nan", "A ReasonML literal NaN (`nan`).");
-literal!(REASONML_LITERAL_INF, b"infinity", "A ReasonML literal short infinity (`infinity`).");
-literal!(REASONML_LITERAL_INFINITY, b"infinity", "A ReasonML literal long infinity (`infinity`).");
+literal!(OBJECTIVEC, None, "An `Objective-C` number (uses default options).");
+literal!(REASONML_LITERAL_NAN, b"nan", "A `ReasonML` literal NaN (`nan`).");
+literal!(REASONML_LITERAL_INF, b"infinity", "A `ReasonML` literal short infinity (`infinity`).");
+literal!(
+    REASONML_LITERAL_INFINITY,
+    b"infinity",
+    "A `ReasonML` literal long infinity (`infinity`)."
+);
 // REASONML_STRING
-literal!(MATLAB_LITERAL_INF, b"inf", "A MATLAB literal short infinity (`inf`).");
-literal!(MATLAB_LITERAL_INFINITY, b"Inf", "A MATLAB literal long infinity (`Inf`).");
+literal!(MATLAB_LITERAL_INF, b"inf", "A `MATLAB` literal short infinity (`inf`).");
+literal!(MATLAB_LITERAL_INFINITY, b"Inf", "A `MATLAB` literal long infinity (`Inf`).");
 // MATLAB_STRING
-literal!(ZIG_LITERAL, None, "A Zig literal number (uses default options).");
+literal!(ZIG_LITERAL, None, "A `Zig` literal number (uses default options).");
 // ZIG_STRING
-literal!(SAGE_LITERAL_INF, b"infinity", "A SageMath literal short infinity (`infinity`).");
-literal!(SAGE_LITERAL_INFINITY, b"Infinity", "A SageMath literal long infinity (`Infinity`).");
+literal!(SAGE_LITERAL_INF, b"infinity", "A `SageMath` literal short infinity (`infinity`).");
+literal!(SAGE_LITERAL_INFINITY, b"Infinity", "A `SageMath` literal long infinity (`Infinity`).");
 // SAGE_STRING
-literal!(JSON, None, "A JSON number (uses default options).");
-literal!(TOML, None, "A TOML number (uses default options).");
-literal!(YAML, None, "A YAML number (uses default options).");
-literal!(XML_INF, None, "An XML short infinity (uses default options).");
-literal!(XML_INFINITY, None, "An XML short infinity (uses default options).");
-literal!(SQLITE, None, "A SQLite number (uses default options).");
-literal!(POSTGRESQL, None, "A PostgreSQL number (uses default options).");
-literal!(MYSQL, None, "A MySQL number (uses default options).");
-literal!(MONGODB_INF, b"Infinity", "A MongoDB short infinity (`Infinity`).");
-literal!(MONGODB_INFINITY, b"Infinity", "A MongoDB long infinity (`Infinity`).");
+literal!(JSON, None, "A `JSON` number (uses default options).");
+literal!(TOML, None, "A `TOML` number (uses default options).");
+literal!(YAML, None, "A `YAML` number (uses default options).");
+literal!(XML_INF, None, "An `XML` short infinity (uses default options).");
+literal!(XML_INFINITY, None, "An `XML` short infinity (uses default options).");
+literal!(SQLITE, None, "A `SQLite` number (uses default options).");
+literal!(POSTGRESQL, None, "A `PostgreSQL` number (uses default options).");
+literal!(MYSQL, None, "A `MySQL` number (uses default options).");
+literal!(MONGODB_INF, b"Infinity", "A `MongoDB` short infinity (`Infinity`).");
+literal!(MONGODB_INFINITY, b"Infinity", "A `MongoDB` long infinity (`Infinity`).");

@@ -635,7 +635,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
     /// Create a reverse view of the vector for indexing.
     #[must_use]
     #[inline(always)]
-    pub fn rview(&self) -> ReverseView<Limb> {
+    pub fn rview(&self) -> ReverseView<'_, Limb> {
         ReverseView {
             inner: self,
         }

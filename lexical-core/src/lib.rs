@@ -686,8 +686,7 @@
     clippy::unnecessary_safety_comment,
     clippy::semicolon_if_nothing_returned,
     clippy::unwrap_used,
-    clippy::as_underscore,
-    clippy::doc_markdown
+    clippy::as_underscore
 )]
 #![allow(
     // used when concepts are logically separate

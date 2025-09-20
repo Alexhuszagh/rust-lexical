@@ -19,7 +19,14 @@ macro_rules! gen_vec {
             let value = fastrand::$i($exp_mask..);
             // NOTE: We want mem::transmute, not from_bits because we
             // don't want the special handling of from_bits
-            #[allow(clippy::transmute_int_to_float)]
+            // FIXME: Move to `to_bits` in 1.83.0+ (const stable)
+            // FIXME: change to `unnecessary_transmutes` when supported.
+            #[allow(
+                renamed_and_removed_lints,
+                unknown_lints,
+                clippy::transmute_int_to_float,
+                unnecessary_transmutes
+            )]
             vec.push(unsafe { mem::transmute::<$i, $f>(value) });
         }
         vec

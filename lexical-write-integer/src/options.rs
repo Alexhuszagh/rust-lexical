@@ -78,7 +78,15 @@ impl OptionsBuilder {
         Options {}
     }
 
-    /// Build the [`Options`] struct. This can never panic.
+    /// Build the [`Options`] struct.
+    ///
+    /// This can never panic.
+    ///
+    /// <!-- # Panics
+    ///
+    /// If the built options are not valid. This should always
+    /// be used within a const context to avoid panics at runtime.
+    /// -->
     #[inline(always)]
     pub const fn build_strict(&self) -> Options {
         match self.build() {
