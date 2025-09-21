@@ -9,7 +9,7 @@ license = "MIT/Apache-2.0"
 name = "lexical-util"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
-version = "1.0.6"
+version = "1.0.7"
 rust-version = "1.60.0"
 exclude = [
     "assets/*",
@@ -63,16 +63,6 @@ lint = []
 # Enable support for 16-bit floats.
 # Enable support for 128-bit floats.
 f128 = ["parse-floats", "write-floats"]
-
-# DEPRECATED
-# ----------
-# These were never supported, however, they exist in case existing code
-# uses them. They should not be used under any circumstances and should
-# be removed.
-parse = ["parse-integers", "parse-floats"]
-write = ["write-integers", "write-floats"]
-integers = ["parse-integers", "write-integers"]
-floats = ["parse-floats", "write-floats"]
 
 [package.metadata.docs.rs]
 features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats", "f16"]
