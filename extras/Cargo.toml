@@ -19,3 +19,7 @@ opt-level = 3
 debug = false
 debug-assertions = false
 lto = true
+
+# FIXME: Support 0.61.0+ when we only support Rustc 1.71.0+.
+[patch.crates-io]
+windows-sys = { git = "https://github.com/microsoft/windows-rs.git", rev = "308e08e" }
