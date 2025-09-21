@@ -64,7 +64,6 @@ pub trait RawFloat: Float + ExactFloat + MaxDigits {
     #[must_use]
     #[inline(always)]
     fn int_pow_fast_path(exponent: usize, radix: u32) -> u64 {
-        // SAFETY: safe as long as the exponent is smaller than the radix table.
         #[cfg(not(feature = "compact"))]
         return get_small_int_power(exponent, radix);
 
@@ -76,7 +75,6 @@ pub trait RawFloat: Float + ExactFloat + MaxDigits {
 impl RawFloat for f32 {
     #[inline(always)]
     fn pow_fast_path(exponent: usize, radix: u32) -> Self {
-        // SAFETY: safe as long as the exponent is smaller than the radix table.
         #[cfg(not(feature = "compact"))]
         return get_small_f32_power(exponent, radix);
 
@@ -88,7 +86,6 @@ impl RawFloat for f32 {
 impl RawFloat for f64 {
     #[inline(always)]
     fn pow_fast_path(exponent: usize, radix: u32) -> Self {
-        // SAFETY: safe as long as the exponent is smaller than the radix table.
         #[cfg(not(feature = "compact"))]
         return get_small_f64_power(exponent, radix);
 

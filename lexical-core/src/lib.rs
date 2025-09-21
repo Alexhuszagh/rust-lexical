@@ -629,6 +629,11 @@
 //! [`lexical-write-float`], and [`lexical-write-integer`]) could cause those
 //! safety invariants to be broken.
 //!
+//! [`lexical-parse-float`]: https://crates.io/crates/lexical-parse-float
+//! [`lexical-parse-integer`]: https://crates.io/crates/lexical-parse-integer
+//! [`lexical-write-float`]: https://crates.io/crates/lexical-write-float
+//! [`lexical-write-integer`]: https://crates.io/crates/lexical-write-integer
+//!
 //! <!-- Spacer for Rustfmt -->
 #![cfg_attr(
     any(feature = "write-floats", feature = "write-integers"),
@@ -686,8 +691,7 @@
     clippy::unnecessary_safety_comment,
     clippy::semicolon_if_nothing_returned,
     clippy::unwrap_used,
-    clippy::as_underscore,
-    clippy::doc_markdown
+    clippy::as_underscore
 )]
 #![allow(
     // used when concepts are logically separate

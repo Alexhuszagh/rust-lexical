@@ -23,8 +23,9 @@ default-features = false
 #  Issue:   https://github.com/BurntSushi/quickcheck/issues/295
 #  Fix:     https://github.com/BurntSushi/quickcheck/pull/296
 quickcheck = { git = "https://github.com/Alexhuszagh/quickcheck/", branch = "i32min-shrink-bound-legacy" }
-proptest = ">=1.5.0"
 rustversion = ">=1.0.18"
+# FIXME: Support 1.7.0+ when we only support Rustc 1.66.0+.
+proptest = ">=1.5.0, <1.7.0"
 
 [features]
 default = ["std"]

@@ -3277,7 +3277,8 @@ impl NumberFormatBuilder {
     ///
     /// # Panics
     ///
-    /// If the built format is not valid.
+    /// If the built format is not valid. This should always
+    /// be used within a const context to avoid panics at runtime.
     #[inline(always)]
     pub const fn build_strict(&self) -> u128 {
         use crate::format::format_error_impl;
