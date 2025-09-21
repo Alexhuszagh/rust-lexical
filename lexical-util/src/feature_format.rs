@@ -59,6 +59,74 @@ macro_rules! from_flag {
 /// assert!(!format.no_exponent_notation());
 /// # }
 /// ```
+///
+/// # Number Details
+///
+/// This assumes a number that follows the following conventions. You should
+/// design custom number formats using these assumptions.
+///
+/// #### Integers
+///
+/// ```text
+/// +--1--+--2--+--3--+--4--+--5--+--6--+--7--+--8--+--9--+--10-+--11-+
+/// | __  | +/- | __  | 0x  | __  | 12  | __  | 34  | __  |  h  | __  |
+/// +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
+/// ```
+///
+/// Where the components are:
+/// 1. Sign digit separators (rarely, if ever, used)
+/// 2. Sign
+/// 3. Leading base prefix digit separators
+/// 4. Base prefix (always `0` + a character)
+/// 5. Leading integer digit separators
+/// 6. Integer digits
+/// 7. Internal integer digit separators
+/// 8. Integer digits
+/// 9. Trailing integer digit separators
+/// 10. Base suffix (such as `h` for X86 assembly)
+/// 11. Trailing base suffix digit separators
+///
+/// #### Floats
+///
+/// This has all the same components as integers, with many additional
+/// ones.
+///
+/// ```text
+/// +--1--+--2--+--3--+--4--+--5--+--6--+--7--+--8--+--9--+-10--+-11--+-12--+-13--+-14--+-15--+
+/// | __  | +/- | __  | 0x  | __  | 12  | __  | 34  | __  |  .  | __  | 56  | __  | 78  | __  |
+/// +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
+///
+/// +-16--+-17--+-18--+-19--+-20--+-21--+-22--+-23--+-24--+-25--+-----+-----+-----+-----+-----+
+/// |  e  | __  | +/- |  __ | 90  | __  | 12  | __  |  h  | __  |     |     |     |     |     |
+/// +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
+/// ```
+///
+/// Where the components are:
+/// 1. Mantissa sign digit separators (rarely, if ever, used)
+/// 2. Mantissa sign
+/// 3. Leading base prefix digit separators
+/// 4. Base prefix (always `0` + a character)
+/// 5. Leading integer digit separators
+/// 6. Integer digits
+/// 7. Internal integer digit separators
+/// 8. Integer digits
+/// 9. Trailing integer digit separators
+/// 10. Decimal point
+/// 11. Leading fraction digit separators
+/// 12. Fraction digits
+/// 13. Internal fraction digit separators
+/// 14. Fraction digits
+/// 15. Trailing fraction digit separators
+/// 16. Exponent symbol
+/// 17. Exponent sign digit separators (rarely, if ever, used)
+/// 18. Exponent sign
+/// 19. Leading exponent digit separators
+/// 20. Exponent digits
+/// 21. Internal exponent digit separators
+/// 22. Exponent digits
+/// 23. Trailing exponent digit separators
+/// 24. Base suffix (such as `h` for X86 assembly)
+/// 25. Trailing base suffix digit separators
 pub struct NumberFormat<const FORMAT: u128>;
 
 #[rustfmt::skip]
@@ -448,16 +516,20 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
 
     /// Get if leading zeros before an integer are not allowed.
     ///
-    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
-    /// to [`false`].
+    /// Can only be modified with [`feature`][crate#features] `format`. This
+    /// only applies if there is no base prefix: that is, the zeros are
+    /// at the absolute start of the number. Defaults to [`false`].
     ///
     /// # Examples
+    ///
+    /// With a base prefix of `x`.
     ///
     /// | Input | Valid? |
     /// |:-:|:-:|
     /// | `01` | ❌ |
     /// | `0` | ✔️ |
     /// | `10` | ✔️ |
+    /// | `0x01` | ✔️ |
     ///
     /// # Used For
     ///
@@ -476,10 +548,13 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     ///
     /// This is before the significant digits of the float, that is, if there is
     /// 1 or more digits in the integral component and the leading digit is 0,
-    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
-    /// to [`false`].
+    /// Can only be modified with [`feature`][crate#features] `format`. This
+    /// only applies if there is no base prefix: that is, the zeros are
+    /// at the absolute start of the number. Defaults to [`false`].
     ///
     /// # Examples
+    ///
+    /// With a base prefix of `x`.
     ///
     /// | Input | Valid? |
     /// |:-:|:-:|
@@ -487,6 +562,7 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// | `01.0` | ❌ |
     /// | `0` | ✔️ |
     /// | `10` | ✔️ |
+    /// | `0x01.0` | ✔️ |
     /// | `0.1` | ✔️ |
     ///
     /// # Used For
@@ -554,12 +630,17 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// If set to [`true`], then the base prefix `x` would be considered the
     /// different from `X`. Can only be modified with
     /// [`feature`][crate#features] `power-of-two` or `radix` along with
-    /// `format`. Defaults to [`false`].
+    /// `format`. Defaults to [`false`]. This is only used for writing numbers
+    /// if [`required_base_prefix`] is [`true`].
     ///
     /// # Used For
     ///
     /// - Parse Float
     /// - Parse Integer
+    /// - Write Float
+    /// - Write Integer
+    ///
+    /// [`required_base_prefix`]: Self::required_base_prefix
     #[inline(always)]
     pub const fn case_sensitive_base_prefix(&self) -> bool {
         Self::CASE_SENSITIVE_BASE_PREFIX
@@ -575,18 +656,716 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// If set to [`true`], then the base suffix `x` would be considered the
     /// different from `X`. Can only be modified with
     /// [`feature`][crate#features] `power-of-two` or `radix` along with
-    /// `format`. Defaults to [`false`].
+    /// `format`. Defaults to [`false`]. This is only used for writing numbers
+    /// if [`required_base_suffix`] is [`true`].
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    /// - Write Float
+    /// - Write Integer
+    ///
+    /// [`required_base_suffix`]: Self::required_base_suffix
+    #[inline(always)]
+    pub const fn case_sensitive_base_suffix(&self) -> bool {
+        Self::CASE_SENSITIVE_BASE_SUFFIX
+    }
+
+    /// If digits are required before the decimal point with exponent notation.
+    ///
+    /// See [`required_integer_digits_with_exponent`][Self::required_integer_digits_with_exponent].
+    pub const REQUIRED_INTEGER_DIGITS_WITH_EXPONENT: bool = from_flag!(FORMAT, REQUIRED_INTEGER_DIGITS_WITH_EXPONENT);
+
+    /// Get if digits are required before the decimal point with exponent notation.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
+    /// to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `.1e5` | ❌ |
+    /// | `.e5` | ❌ |
+    /// | `1.e5` | ✔️ |
+    /// | `1.0e5` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn required_integer_digits_with_exponent(&self) -> bool {
+        Self::REQUIRED_INTEGER_DIGITS_WITH_EXPONENT
+    }
+
+    /// If digits are required after the decimal point with exponent notation,
+    /// if the decimal point is present.
+    ///
+    /// See [`required_fraction_digits_with_exponent`][Self::required_fraction_digits_with_exponent].
+    pub const REQUIRED_FRACTION_DIGITS_WITH_EXPONENT: bool = from_flag!(FORMAT, REQUIRED_FRACTION_DIGITS_WITH_EXPONENT);
+
+    /// Get if digits are required after the decimal point with exponent
+    /// notation, if the decimal point is present.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
+    /// to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `.1e5` | ✔️ |
+    /// | `.e5` | ❌ |
+    /// | `1.e5` | ❌ |
+    /// | `1.0e5` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn required_fraction_digits_with_exponent(&self) -> bool {
+        Self::REQUIRED_FRACTION_DIGITS_WITH_EXPONENT
+    }
+
+    /// If any significant digits are required with exponent notation.
+    ///
+    /// See [`required_mantissa_digits_with_exponent`][Self::required_mantissa_digits_with_exponent].
+    pub const REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT: bool = from_flag!(FORMAT, REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT);
+
+    /// Get if any significant digits are required with exponent notation.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
+    /// to [`true`].
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `.1e5` | ✔️ |
+    /// | `.e5` | ❌ |
+    /// | `1.e5` | ✔️ |
+    /// | `1.0e5` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn required_mantissa_digits_with_exponent(&self) -> bool {
+        Self::REQUIRED_MANTISSA_DIGITS_WITH_EXPONENT
+    }
+
+    /// If the format requires base prefixes.
+    ///
+    /// See [`required_base_prefix`][Self::required_base_prefix].
+    pub const REQUIRED_BASE_PREFIX: bool = from_flag!(FORMAT, REQUIRED_BASE_PREFIX);
+
+    /// Get if the format requires base prefixes.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
+    /// to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a base prefix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `4d2` | ❌ |
+    /// | `x4d2` | ❌ |
+    /// | `4d2x` | ❌ |
+    /// | `0x4d2` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Write Float
+    /// - Write Integer
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn required_base_prefix(&self) -> bool {
+        Self::REQUIRED_BASE_PREFIX
+    }
+
+    /// If the format requires base suffixes.
+    ///
+    /// See [`required_base_suffix`][Self::required_base_suffix].
+    pub const REQUIRED_BASE_SUFFIX: bool = from_flag!(FORMAT, REQUIRED_BASE_SUFFIX);
+
+    /// Get if the format requires base suffixes.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. This will
+    /// override most errors, including all invalid digit errors. Defaults to
+    /// [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a base suffix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `4d2` | ❌ |
+    /// | `x4d2` | ❌ |
+    /// | `4d2x` | ✔️ |
+    /// | `0x4d2` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Write Float
+    /// - Write Integer
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn required_base_suffix(&self) -> bool {
+        Self::REQUIRED_BASE_SUFFIX
+    }
+
+    /// If a negative sign before an unsigned integer is not allowed.
+    ///
+    /// See [`no_unsigned_negative_sign`][Self::no_unsigned_negative_sign].
+    pub const NO_UNSIGNED_NEGATIVE_SIGN: bool = from_flag!(FORMAT, NO_UNSIGNED_NEGATIVE_SIGN);
+
+    /// If a negative sign before an unsigned integer is not allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. This does
+    /// not apply to signed integers or floating point numbers. Defaults to [`true`].
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `-12` | ❌ |
+    /// | `+12` | ✔️ |
+    /// | `12` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn no_unsigned_negative_sign(&self) -> bool {
+        Self::NO_UNSIGNED_NEGATIVE_SIGN
+    }
+
+    /// If positive or negative signs before the significant digits are not allowed.
+    ///
+    /// See [`no_mantissa_sign`][Self::no_mantissa_sign].
+    pub const NO_MANTISSA_SIGN: bool = from_flag!(FORMAT, NO_MANTISSA_SIGN);
+
+    /// If positive or negative signs before the significant digits are not allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. if enabled, then
+    /// the type cannot represent negative literal or string values (although they may
+    /// be computed via mathematical operations). Defaults to [`false`].
+    ///
+    /// If you only want to disable positive signs, see [`no_positive_mantissa_sign`].
+    /// If you wish to disable negative signs on unsigned integers, see
+    /// [`no_unsigned_negative_sign`].
+    ///
+    /// [`no_positive_mantissa_sign`]: Self::no_positive_mantissa_sign
+    /// [`no_unsigned_negative_sign`]: Self::no_unsigned_negative_sign
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `-12` | ❌ |
+    /// | `+12` | ❌ |
+    /// | `12` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Integer
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn no_mantissa_sign(&self) -> bool {
+        Self::NO_MANTISSA_SIGN
+    }
+
+    /// If positive or negative signs before an exponent are not allowed.
+    ///
+    /// See [`no_exponent_sign`][Self::no_exponent_sign].
+    pub const NO_EXPONENT_SIGN: bool = from_flag!(FORMAT, NO_EXPONENT_SIGN);
+
+    /// If positive or negative signs before an exponent are not allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`. Defaults
+    /// to [`false`].
+    ///
+    /// If you only want to disable positive signs, see [`no_positive_exponent_sign`].
+    ///
+    /// [`no_positive_exponent_sign`]: Self::no_positive_exponent_sign
+    ///
+    /// # Examples
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1.0e-12` | ❌ |
+    /// | `1.0e+12` | ❌ |
+    /// | `1.0e12` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn no_exponent_sign(&self) -> bool {
+        Self::NO_EXPONENT_SIGN
+    }
+
+    // DIGIT SEPARATOR FLAGS & MASKS
+
+    /// If digit separators are allowed at the absolute start of the number.
+    ///
+    /// See [`start_digit_separator`][Self::start_digit_separator].
+    pub const START_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, START_DIGIT_SEPARATOR);
+
+    /// Get if digit separators are allowed at the absolute start of the number.
+    ///
+    /// This modifies the behavior of [`integer_sign_digit_separator`] and
+    /// [`integer_leading_digit_separator`] so that the digit separators can
+    /// occur at the absolute start and not just internal to the number.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`.
+    /// Defaults to [`false`].
+    ///
+    /// [`integer_sign_digit_separator`]: Self::integer_sign_digit_separator
+    /// [`integer_leading_digit_separator`]: Self::integer_leading_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, integer leading digit separators enabled,
+    /// and starting digit separators enabled.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `_1` | ✔️ |
+    /// | `_+1` | ❌ |
+    /// | `+_1` | ✔️ |
+    /// | `+0x_1` | ✔️ |
+    /// | `+_0x1` | ❌ |
+    ///
+    /// Using a digit separator of `_`, integer leading digit separators enabled,
+    /// and starting digit separators disabled.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `_1` | ❌ |
+    /// | `_+1` | ❌ |
+    /// | `+_1` | ✔️ |
+    /// | `+0x_1` | ✔️ |
+    /// | `+_0x1` | ❌ |
     ///
     /// # Used For
     ///
     /// - Parse Float
     /// - Parse Integer
     #[inline(always)]
-    pub const fn case_sensitive_base_suffix(&self) -> bool {
-        Self::CASE_SENSITIVE_BASE_SUFFIX
+    pub const fn start_digit_separator(&self) -> bool {
+        Self::START_DIGIT_SEPARATOR
     }
 
-    // DIGIT SEPARATOR FLAGS & MASKS
+    /// If digit separators are allowed before the sign of the integer.
+    ///
+    /// See [`integer_sign_digit_separator`][Self::integer_sign_digit_separator].
+    pub const INTEGER_SIGN_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, INTEGER_SIGN_DIGIT_SEPARATOR);
+
+    /// Get if digit separators are allowed before the sign of the integer.
+    ///
+    /// You can disable support for digit separators at the absolute start
+    /// using the [`start_digit_separator`] flag.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`.
+    /// Defaults to [`false`].
+    ///
+    /// [`start_digit_separator`]: Self::start_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `_` | ❌ |
+    /// | `_1` | ❌ |
+    /// | `_+1` | ✔️ |
+    /// | `+_1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn integer_sign_digit_separator(&self) -> bool {
+        Self::INTEGER_SIGN_DIGIT_SEPARATOR
+    }
+
+    /// If consecutive digit separators are allowed before the sign of the integer.
+    ///
+    /// See [`integer_consecutive_sign_digit_separator`][Self::integer_consecutive_sign_digit_separator].
+    pub const INTEGER_CONSECUTIVE_SIGN_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, INTEGER_CONSECUTIVE_SIGN_DIGIT_SEPARATOR);
+
+    /// Get if consecutive digit separators are allowed before the sign of the
+    /// integer.
+    ///
+    /// That is, using `_` as a digit separator `__` would be allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`.
+    /// Defaults to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `_` | ❌ |
+    /// | `_1` | ❌ |
+    /// | `_+1` | ✔️ |
+    /// | `__+1` | ✔️ |
+    /// | `+_1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn integer_consecutive_sign_digit_separator(&self) -> bool {
+        Self::INTEGER_CONSECUTIVE_SIGN_DIGIT_SEPARATOR
+    }
+
+    /// If digit separators are allowed before the sign of the exponent.
+    ///
+    /// See [`exponent_sign_digit_separator`][Self::exponent_sign_digit_separator].
+    pub const EXPONENT_SIGN_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, EXPONENT_SIGN_DIGIT_SEPARATOR);
+
+    /// Get if digit separators are allowed before the sign of the exponent.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`.
+    /// Defaults to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1.0e1` | ✔️ |
+    /// | `1.0e_` | ❌ |
+    /// | `1.0e_1` | ❌ |
+    /// | `1.0e_+1` | ✔️ |
+    /// | `1.0e+_1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn exponent_sign_digit_separator(&self) -> bool {
+        Self::EXPONENT_SIGN_DIGIT_SEPARATOR
+    }
+
+    /// If consecutive digit separators are allowed before the sign of the exponent.
+    ///
+    /// See [`exponent_consecutive_sign_digit_separator`][Self::exponent_consecutive_sign_digit_separator].
+    pub const EXPONENT_CONSECUTIVE_SIGN_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, EXPONENT_CONSECUTIVE_SIGN_DIGIT_SEPARATOR);
+
+    /// Get if consecutive digit separators are allowed before the sign of the exponent.
+    ///
+    /// That is, using `_` as a digit separator `__` would be allowed.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`.
+    /// Defaults to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1.0e1` | ✔️ |
+    /// | `1.0e_` | ❌ |
+    /// | `1.0e_1` | ❌ |
+    /// | `1.0e_+1` | ✔️ |
+    /// | `1.0e__+1` | ✔️ |
+    /// | `1.0e+_1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    #[inline(always)]
+    pub const fn exponent_consecutive_sign_digit_separator(&self) -> bool {
+        Self::EXPONENT_CONSECUTIVE_SIGN_DIGIT_SEPARATOR
+    }
+
+    /// If a digit separator is allowed between the `0` and the base prefix.
+    ///
+    /// See [`base_prefix_internal_digit_separator`][Self::base_prefix_internal_digit_separator].
+    pub const BASE_PREFIX_INTERNAL_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, BASE_PREFIX_INTERNAL_DIGIT_SEPARATOR);
+
+    /// Get if a digit separator is allowed between the `0` and the base prefix.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`.
+    /// Defaults to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, and a base prefix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `0x1` | ✔️ |
+    /// | `_0x1` | ❌ |
+    /// | `0x_1` | ❌ |
+    /// | `0_x1` | ✔️ |
+    /// | `+0_x1` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn base_prefix_internal_digit_separator(&self) -> bool {
+        Self::BASE_PREFIX_INTERNAL_DIGIT_SEPARATOR
+    }
+
+    /// If a digit separator is allowed before the base prefix.
+    ///
+    /// See [`base_prefix_leading_digit_separator`][Self::base_prefix_leading_digit_separator].
+    pub const BASE_PREFIX_LEADING_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, BASE_PREFIX_LEADING_DIGIT_SEPARATOR);
+
+    /// Get if a digit separator is allowed before the base prefix.
+    ///
+    /// This is taken **after** the sign and therefore  may be at the absolute
+    /// start of the number or internal to it. You can disable support for
+    /// digit separators at the absolute start using the
+    /// [`start_digit_separator`] flag.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`.
+    /// Defaults to [`false`].
+    ///
+    /// [`start_digit_separator`]: Self::start_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, a base prefix of `x`, and starting digit
+    /// separators enabled.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `0x1` | ✔️ |
+    /// | `_0x1` | ✔️ |
+    /// | `0x_1` | ❌ |
+    /// | `0_x1` | ❌ |
+    /// | `+_0x1` | ✔️ |
+    /// | `_+0x1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn base_prefix_leading_digit_separator(&self) -> bool {
+        Self::BASE_PREFIX_LEADING_DIGIT_SEPARATOR
+    }
+
+    /// If a digit separator is allowed after the base prefix.
+    ///
+    /// See [`base_prefix_trailing_digit_separator`][Self::base_prefix_trailing_digit_separator].
+    pub const BASE_PREFIX_TRAILING_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, BASE_PREFIX_TRAILING_DIGIT_SEPARATOR);
+
+    /// Get if a digit separator is allowed after the base prefix.
+    ///
+    /// If a base prefix is present, then [`integer_leading_digit_separator`] overlaps
+    /// with this functionality, and either being enabled, as well as consecutive
+    /// digit separators, will consider it to be valid. If both are set and neither
+    /// enables consecutive digit separators, then `0x__1` is not valid.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`.
+    /// Defaults to [`false`].
+    ///
+    /// [`integer_leading_digit_separator`]: Self::integer_leading_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_` and a base prefix of `x`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `0x1` | ✔️ |
+    /// | `_0x1` | ❌ |
+    /// | `0_x1` | ❌ |
+    /// | `0x_1` | ✔️ |
+    /// | `0x__1` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn base_prefix_trailing_digit_separator(&self) -> bool {
+        Self::BASE_PREFIX_TRAILING_DIGIT_SEPARATOR
+    }
+
+    /// If multiple consecutive base prefix digit separators are allowed.
+    ///
+    /// See [`base_prefix_consecutive_digit_separator`][Self::base_prefix_consecutive_digit_separator].
+    pub const BASE_PREFIX_CONSECUTIVE_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, BASE_PREFIX_CONSECUTIVE_DIGIT_SEPARATOR);
+
+    /// Get if multiple consecutive base prefix digit separators are allowed.
+    ///
+    /// That is, using `_` as a digit separator `__` would be allowed where any
+    /// digit separators (leading, trailing, internal) are allowed in the
+    /// base prefix.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`.
+    /// Defaults to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, a base prefix of `x`, and trailing base
+    /// prefix digit separators.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `1` | ✔️ |
+    /// | `0x1` | ✔️ |
+    /// | `_0x1` | ❌ |
+    /// | `0_x1` | ❌ |
+    /// | `0x_1` | ✔️ |
+    /// | `0x__1` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn base_prefix_consecutive_digit_separator(&self) -> bool {
+        Self::BASE_PREFIX_CONSECUTIVE_DIGIT_SEPARATOR
+    }
+
+    /// If a digit separator is allowed between the base suffix.
+    ///
+    /// See [`base_suffix_internal_digit_separator`][Self::base_suffix_internal_digit_separator].
+    pub const BASE_SUFFIX_INTERNAL_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, BASE_SUFFIX_INTERNAL_DIGIT_SEPARATOR);
+
+    /// Get if a digit separator is allowed between the base suffix.
+    ///
+    /// This is currently unused, since base suffixes are a single character.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`.
+    /// Defaults to [`false`].
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn base_suffix_internal_digit_separator(&self) -> bool {
+        Self::BASE_SUFFIX_INTERNAL_DIGIT_SEPARATOR
+    }
+
+    /// If a digit separator is allowed before the base suffix.
+    ///
+    /// See [`base_suffix_leading_digit_separator`][Self::base_suffix_leading_digit_separator].
+    pub const BASE_SUFFIX_LEADING_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, BASE_SUFFIX_LEADING_DIGIT_SEPARATOR);
+
+    /// Get if a digit separator is allowed before the base suffix.
+    ///
+    /// If a base suffix is present, then [`integer_trailing_digit_separator`]
+    /// or [`exponent_trailing_digit_separator`] may overlap
+    /// with this functionality (depending on the number components), and either
+    /// being enabled, as well as consecutive digit separators, will
+    /// consider it to be valid. If both are set and neither
+    /// enables consecutive digit separators, then `1__h` is not valid.
+    ///
+    /// Can only be modified with [`feature`][crate#features] `format`.
+    /// Defaults to [`false`].
+    ///
+    /// [`integer_trailing_digit_separator`]: Self::integer_trailing_digit_separator
+    /// [`exponent_trailing_digit_separator`]: Self::exponent_trailing_digit_separator
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_` and a base suffix of `h`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `12h` | ✔️ |
+    /// | `1_2h` | ❌ |
+    /// | `12_h` | ✔️ |
+    /// | `12__h` | ✔️ |
+    /// | `12h_` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn base_suffix_leading_digit_separator(&self) -> bool {
+        Self::BASE_SUFFIX_LEADING_DIGIT_SEPARATOR
+    }
+
+    /// If a digit separator is allowed after the base suffix.
+    ///
+    /// See [`base_suffix_trailing_digit_separator`][Self::base_suffix_trailing_digit_separator].
+    pub const BASE_SUFFIX_TRAILING_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, BASE_SUFFIX_TRAILING_DIGIT_SEPARATOR);
+
+    /// Get if a digit separator is allowed after the base suffix.
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_` and a base suffix of `h`.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `12h` | ✔️ |
+    /// | `1_2h` | ❌ |
+    /// | `12_h` | ❌ |
+    /// | `12h_` | ✔️ |
+    /// | `12h__` | ❌ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn base_suffix_trailing_digit_separator(&self) -> bool {
+        Self::BASE_SUFFIX_TRAILING_DIGIT_SEPARATOR
+    }
+
+    /// If multiple consecutive base suffix digit separators are allowed.
+    ///
+    /// See [`base_suffix_consecutive_digit_separator`][Self::base_suffix_consecutive_digit_separator].
+    pub const BASE_SUFFIX_CONSECUTIVE_DIGIT_SEPARATOR: bool = from_flag!(FORMAT, BASE_SUFFIX_CONSECUTIVE_DIGIT_SEPARATOR);
+
+    /// Get if multiple consecutive base suffix digit separators are allowed.
+    ///
+    /// That is, using `_` as a digit separator `__` would be allowed where any
+    /// digit separators (leading, trailing, internal) are allowed in the
+    /// base suffix. Defaults to [`false`].
+    ///
+    /// # Examples
+    ///
+    /// Using a digit separator of `_`, a base suffix of `h`, and trailing base
+    /// suffix digit separators.
+    ///
+    /// | Input | Valid? |
+    /// |:-:|:-:|
+    /// | `12h` | ✔️ |
+    /// | `1_2h` | ❌ |
+    /// | `12_h` | ❌ |
+    /// | `12h_` | ✔️ |
+    /// | `12h__` | ✔️ |
+    ///
+    /// # Used For
+    ///
+    /// - Parse Float
+    /// - Parse Integer
+    #[inline(always)]
+    pub const fn base_suffix_consecutive_digit_separator(&self) -> bool {
+        Self::BASE_SUFFIX_CONSECUTIVE_DIGIT_SEPARATOR
+    }
 
     /// If digit separators are allowed between integer digits.
     ///
@@ -732,13 +1511,27 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
 
     /// Get if a digit separator is allowed before any integer digits.
     ///
+    /// This is taken **after** any signs and base prefixes, and therefore
+    /// may be at the absolute start of the number or internal to it. You
+    /// can disable support for digit separators at the absolute start
+    /// using the [`start_digit_separator`] flag. For only those before or after
+    /// a base prefix, see [`base_prefix_leading_digit_separator`] and
+    /// [`base_prefix_trailing_digit_separator`], respectively. For only those
+    /// prior to a sign, see [`integer_sign_digit_separator`].
+    ///
     /// This will consider an input of only the digit separator
     /// to be a identical to empty input. Can only be modified with
     /// [`feature`][crate#features] `format`. Defaults to [`false`].
     ///
+    /// [`start_digit_separator`]: Self::start_digit_separator
+    /// [`base_prefix_leading_digit_separator`]: Self::base_prefix_leading_digit_separator
+    /// [`base_prefix_trailing_digit_separator`]: Self::base_prefix_trailing_digit_separator
+    /// [`integer_sign_digit_separator`]: Self::integer_sign_digit_separator
+    ///
     /// # Examples
     ///
-    /// Using a digit separator of `_`.
+    /// Using a digit separator of `_`, and an optional base prefix of
+    /// `x` and starting digit separators enabled.
     ///
     /// | Input | Valid? |
     /// |:-:|:-:|
@@ -747,6 +1540,10 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// | `1_1` | ❌ |
     /// | `1_` | ❌ |
     /// | `_1` | ✔️ |
+    /// | `_+1` | ❌ |
+    /// | `+_1` | ✔️ |
+    /// | `+0x_1` | ✔️ |
+    /// | `+_0x1` | ❌ |
     ///
     /// # Used For
     ///
@@ -1130,7 +1927,13 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// setting the base prefix to `x` means that a leading `0x` will
     /// be ignore, if present. Can only be modified with
     /// [`feature`][crate#features] `power-of-two` or `radix` along with
-    /// `format`. Defaults to `0`, or no base prefix allowed.
+    /// `format`. Defaults to `0`, or no base prefix allowed. This is
+    /// only used for writing numbers if [`required_base_prefix`]
+    /// is [`true`]. This is ignored for special floating-point numbers.
+    ///
+    /// Note that base prefixes are not allowed for the exponent digits
+    /// of a float: the prefix (such as `0x`) must come before any other
+    /// significant digits, optionally with digit separators present.
     ///
     /// # Examples
     ///
@@ -1148,6 +1951,10 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     ///
     /// - Parse Float
     /// - Parse Integer
+    /// - Write Float
+    /// - Write Integer
+    ///
+    /// [`required_base_prefix`]: Self::required_base_prefix
     #[inline(always)]
     pub const fn base_prefix(&self) -> u8 {
         Self::BASE_PREFIX
@@ -1170,7 +1977,15 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     /// setting the base prefix to `x` means that a trailing `x` will
     /// be ignored, if present.  Can only be modified with
     /// [`feature`][crate#features] `power-of-two` or `radix` along with
-    /// `format`. Defaults to `0`, or no base suffix allowed.
+    /// `format`. Defaults to `0`, or no base suffix allowed. This is
+    /// only used for writing numbers if [`required_base_suffix`]
+    /// is [`true`]. This is ignored for special floating-point numbers.
+    ///
+    /// Note that base suffixes are not allowed for the exponent digits
+    /// of a float: the suffix, if it's present, will always refer to the
+    /// float as a whole, optionally with digit separators present. For
+    /// example, `4d2p0101x` would have the `x` refer to the full float,
+    /// not the exponent of `0101`.
     ///
     /// # Examples
     ///
@@ -1186,6 +2001,10 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     ///
     /// - Parse Float
     /// - Parse Integer
+    /// - Write Float
+    /// - Write Integer
+    ///
+    /// [`required_base_suffix`]: Self::required_base_suffix
     #[inline(always)]
     pub const fn base_suffix(&self) -> u8 {
         Self::BASE_SUFFIX

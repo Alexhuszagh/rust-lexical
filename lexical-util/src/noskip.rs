@@ -9,7 +9,8 @@ use core::{mem, ptr};
 
 use crate::digit::char_is_digit_const;
 use crate::format::NumberFormat;
-use crate::iterator::{DigitsIter, Iter};
+use crate::iterator::{self, DigitsIter, Iter};
+use crate::result::Result;
 
 // AS DIGITS
 // ---------
@@ -125,17 +126,6 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
         self.index = index;
     }
 
-    /// Get the current number of digits returned by the iterator.
-    ///
-    /// For contiguous iterators, this can include the sign character, decimal
-    /// point, and the exponent sign (that is, it is always the cursor). For
-    /// non-contiguous iterators, this must always be the only the number of
-    /// digits returned.
-    #[inline(always)]
-    fn current_count(&self) -> usize {
-        self.index
-    }
-
     #[inline(always)]
     #[allow(clippy::assertions_on_constants)] // reason="ensuring safety invariants are valid"
     unsafe fn step_by_unchecked(&mut self, count: usize) {
@@ -152,6 +142,32 @@ unsafe impl<'a, const __: u128> Iter<'a> for Bytes<'a, __> {
 
         // SAFETY: safe as long as the slice has at least count elements.
         unsafe { ptr::read_unaligned::<V>(self.as_ptr() as *const _) }
+    }
+
+    #[inline(always)]
+    fn read_integer_sign(&mut self, is_signed: bool) -> Result<bool> {
+        iterator::read_integer_sign(self, self.cursor(), is_signed)
+    }
+
+    #[inline(always)]
+    fn read_mantissa_sign(&mut self) -> Result<bool> {
+        iterator::read_mantissa_sign(self, self.cursor())
+    }
+
+    #[inline(always)]
+    fn read_exponent_sign(&mut self) -> Result<bool> {
+        iterator::read_exponent_sign(self, self.cursor())
+    }
+
+    #[inline(always)]
+    fn read_base_prefix(&mut self) -> Result<bool> {
+        Ok(false)
+    }
+
+    #[inline(always)]
+    fn read_base_suffix(&mut self, has_exponent: bool) -> Result<bool> {
+        _ = has_exponent;
+        Ok(false)
     }
 }
 
@@ -218,11 +234,6 @@ unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> 
     }
 
     #[inline(always)]
-    fn current_count(&self) -> usize {
-        self.byte.current_count()
-    }
-
-    #[inline(always)]
     unsafe fn step_by_unchecked(&mut self, count: usize) {
         debug_assert!(self.as_slice().len() >= count);
         // SAFETY: safe as long as `slc.len() >= count`.
@@ -235,6 +246,31 @@ unsafe impl<'a: 'b, 'b, const __: u128> Iter<'a> for DigitsIterator<'a, 'b, __> 
         // SAFETY: safe as long as the slice has at least count elements.
         unsafe { self.byte.peek_many_unchecked() }
     }
+
+    #[inline(always)]
+    fn read_integer_sign(&mut self, is_signed: bool) -> Result<bool> {
+        self.byte.read_integer_sign(is_signed)
+    }
+
+    #[inline(always)]
+    fn read_mantissa_sign(&mut self) -> Result<bool> {
+        self.byte.read_mantissa_sign()
+    }
+
+    #[inline(always)]
+    fn read_exponent_sign(&mut self) -> Result<bool> {
+        self.byte.read_exponent_sign()
+    }
+
+    #[inline(always)]
+    fn read_base_prefix(&mut self) -> Result<bool> {
+        self.byte.read_base_prefix()
+    }
+
+    #[inline(always)]
+    fn read_base_suffix(&mut self, has_exponent: bool) -> Result<bool> {
+        self.byte.read_base_suffix(has_exponent)
+    }
 }
 
 impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for DigitsIterator<'a, 'b, FORMAT> {
@@ -246,6 +282,11 @@ impl<'a: 'b, 'b, const FORMAT: u128> DigitsIter<'a> for DigitsIterator<'a, 'b, F
     // Always a no-op
     #[inline(always)]
     fn increment_count(&mut self) {
+    }
+
+    #[inline(always)]
+    fn digits(&self) -> usize {
+        self.cursor()
     }
 
     #[inline(always)]

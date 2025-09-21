@@ -9,10 +9,128 @@
 use core::mem;
 
 // Re-export our digit iterators.
+use crate::error::Error;
+use crate::format::NumberFormat;
 #[cfg(not(feature = "format"))]
 pub use crate::noskip::{AsBytes, Bytes};
+use crate::result::Result;
 #[cfg(feature = "format")]
 pub use crate::skip::{AsBytes, Bytes};
+
+/// Converts the sign parser to return a result and handles increment the
+/// internal state.
+///
+/// 1. Parses the sign digit.
+/// 2. Handles if positive signs before integers are not allowed.
+/// 3. Handles negative signs if the type is unsigned.
+/// 4. Handles if the sign is required, but missing.
+/// 5. Handles if the iterator is empty, before or after parsing the sign.
+/// 6. Handles if the iterator has invalid, leading zeros.
+///
+/// This does not handle missing digits: it is assumed the caller will.
+///
+/// It assumes the next digit is the sign character, that is,
+/// leading and trailing digits **HAVE** been handled for non-
+/// contiguous iterators.
+macro_rules! read_sign {
+    (
+        $byte:ident,
+        $index:ident,
+        $is_signed:expr,
+        $no_positive:expr,
+        $required:expr,
+        $invalid_positive:ident,
+        $missing:ident $(,)?
+    ) => {{
+        let (is_negative, have_sign) = match $byte.get_buffer().get($index) {
+            Some(&b'+') => (false, true),
+            Some(&b'-') => (true, true),
+            _ => (false, false),
+        };
+        match (is_negative, have_sign) {
+            (false, true) if !$no_positive => {
+                // SAFETY: We have at least 1 item left since we peaked a value
+                unsafe { $byte.set_cursor($index + 1) };
+                Ok(false)
+            },
+            (false, true) if $no_positive => Err(Error::$invalid_positive($byte.cursor())),
+            (true, true) if $is_signed => {
+                // SAFETY: We have at least 1 item left since we peaked a value
+                unsafe { $byte.set_cursor($index + 1) };
+                Ok(true)
+            },
+            _ if $required => Err(Error::$missing($byte.cursor())),
+            _ => Ok(false),
+        }
+    }};
+}
+
+/// Parse the sign from the leading integer digits.
+///
+/// It assumes the next digit is the sign character, that is,
+/// leading and trailing digits **HAVE** been handled for non-
+/// contiguous iterators.
+#[cfg_attr(not(feature = "compact"), inline(always))]
+pub(crate) fn read_integer_sign<const FORMAT: u128>(
+    byte: &mut Bytes<'_, FORMAT>,
+    index: usize,
+    is_signed: bool,
+) -> Result<bool> {
+    let format = NumberFormat::<FORMAT> {};
+    read_sign!(
+        byte,
+        index,
+        is_signed,
+        format.no_positive_mantissa_sign(),
+        format.required_mantissa_sign(),
+        InvalidPositiveSign,
+        MissingSign,
+    )
+}
+
+/// Parse the sign from the leading mantissa digits.
+///
+/// It assumes the next digit is the sign character, that is,
+/// leading and trailing digits **HAVE** been handled for non-
+/// contiguous iterators.
+#[cfg_attr(not(feature = "compact"), inline(always))]
+pub(crate) fn read_mantissa_sign<const FORMAT: u128>(
+    byte: &mut Bytes<'_, FORMAT>,
+    index: usize,
+) -> Result<bool> {
+    let format = NumberFormat::<FORMAT> {};
+    read_sign!(
+        byte,
+        index,
+        true,
+        format.no_positive_mantissa_sign(),
+        format.required_mantissa_sign(),
+        InvalidPositiveMantissaSign,
+        MissingMantissaSign,
+    )
+}
+
+/// Parse the sign from the leading exponent digits.
+///
+/// It assumes the next digit is the sign character, that is,
+/// leading and trailing digits **HAVE** been handled for non-
+/// contiguous iterators.
+#[cfg_attr(not(feature = "compact"), inline(always))]
+pub(crate) fn read_exponent_sign<const FORMAT: u128>(
+    byte: &mut Bytes<'_, FORMAT>,
+    index: usize,
+) -> Result<bool> {
+    let format = NumberFormat::<FORMAT> {};
+    read_sign!(
+        byte,
+        index,
+        true,
+        format.no_positive_exponent_sign(),
+        format.required_exponent_sign(),
+        InvalidPositiveExponentSign,
+        MissingExponentSign,
+    )
+}
 
 /// A trait for working with iterables of bytes.
 ///
@@ -97,22 +215,38 @@ pub unsafe trait Iter<'a> {
     /// pass if the cursor was set between the two.
     unsafe fn set_cursor(&mut self, index: usize);
 
-    /// Get the current number of digits returned by the iterator.
-    ///
-    /// For contiguous iterators, this can include the sign character, decimal
-    /// point, and the exponent sign (that is, it is always the cursor). For
-    /// non-contiguous iterators, this must always be the only the number of
-    /// digits returned.
-    ///
-    /// This is never used for indexing but will be used for API detection.
-    fn current_count(&self) -> usize;
-
     // PROPERTIES
 
-    /// Determine if the buffer is contiguous.
+    /// Determine if the iterator is contiguous.
+    ///
+    /// For digits iterators, this may mean that only that component
+    /// of the number if contiguous, but the rest is not: that is,
+    /// digit separators may be allowed in the integer but not the
+    /// fraction, and the integer iterator would be contiguous but
+    /// the fraction would not.
     #[inline(always)]
     fn is_contiguous(&self) -> bool {
         Self::IS_CONTIGUOUS
+    }
+
+    /// Get a value at an index without stepping to it from the underlying
+    /// buffer.
+    ///
+    /// This does **NOT** skip digits, and directly fetches the item
+    /// from the underlying buffer, relative to the current cursor.
+    #[inline(always)]
+    fn get(&self, index: usize) -> Option<&'a u8> {
+        self.get_buffer().get(self.cursor() + index)
+    }
+
+    /// Check if two values are equal, with optional case sensitivity.
+    #[inline(always)]
+    fn is_value_equal(lhs: u8, rhs: u8, is_cased: bool) -> bool {
+        if is_cased {
+            lhs == rhs
+        } else {
+            lhs.eq_ignore_ascii_case(&rhs)
+        }
     }
 
     /// Get the next value available without consuming it.
@@ -121,10 +255,11 @@ pub unsafe trait Iter<'a> {
     /// from the underlying buffer.
     #[inline(always)]
     fn first(&self) -> Option<&'a u8> {
-        self.get_buffer().get(self.cursor())
+        self.get(0)
     }
 
-    /// Check if the next element is a given value.
+    /// Check if the next element is a given value, in a case-
+    /// sensitive manner.
     #[inline(always)]
     fn first_is_cased(&self, value: u8) -> bool {
         Some(&value) == self.first()
@@ -167,6 +302,10 @@ pub unsafe trait Iter<'a> {
     /// [`increment_count`] afterwards or else the internal count will
     /// be incorrect.
     ///
+    /// This does not skip digit separators and so if used incorrectly,
+    /// the buffer may be in an invalid state, such as setting the next
+    /// return value to a digit separator it should have skipped.
+    ///
     /// [`increment_count`]: DigitsIter::increment_count
     ///
     /// # Panics
@@ -183,12 +322,15 @@ pub unsafe trait Iter<'a> {
 
     /// Advance the internal slice by 1 element.
     ///
-    ///
     /// This does not increment the count of items: returns: this only
     /// increments the index, not the total digits returned. You must
     /// use this carefully: if stepping over a digit, you must then call
     /// [`increment_count`] afterwards or else the internal count will
     /// be incorrect.
+    ///
+    /// This does not skip digit separators and so if used incorrectly,
+    /// the buffer may be in an invalid state, such as setting the next
+    /// return value to a digit separator it should have skipped.
     ///
     /// [`increment_count`]: DigitsIter::increment_count
     ///
@@ -233,6 +375,7 @@ pub unsafe trait Iter<'a> {
     /// Try to read a the next four bytes as a u32.
     ///
     /// This does not advance the internal state of the iterator.
+    /// This will only return a value for contiguous iterators.
     #[inline(always)]
     fn peek_u32(&self) -> Option<u32> {
         if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u32>() {
@@ -257,6 +400,81 @@ pub unsafe trait Iter<'a> {
             None
         }
     }
+
+    /// Parse the sign from an integer (not for floats).
+    ///
+    /// If this allows leading digit separators, it will handle
+    /// those internally and advance the state as needed. This
+    /// returned if the value is negative, or any error found when parsing the
+    /// sign. This does not handle missing digits: it is assumed the caller
+    /// will. This internally increments the count to right after the sign.
+    ///
+    /// The default implementation does not support digit separators.
+    ///
+    /// 1. Parses the sign digit.
+    /// 2. Handles if positive signs are not allowed.
+    /// 3. Handles negative signs if the type is unsigned.
+    /// 4. Handles if the sign is required, but missing.
+    /// 5. Handles if the iterator is empty, before or after parsing the sign.
+    /// 6. Handles if the iterator has invalid, leading zeros.
+    fn read_integer_sign(&mut self, is_signed: bool) -> Result<bool>;
+
+    /// Parse the sign from a mantissa (only for floats).
+    ///
+    /// If this allows leading digit separators, it will handle
+    /// those internally and advance the state as needed. This
+    /// returned if the value is negative, or any error found when parsing the
+    /// sign. This does not handle missing digits: it is assumed the caller
+    /// will. This internally increments the count to right after the sign.
+    ///
+    /// The default implementation does not support digit separators.
+    ///
+    /// 1. Parses the sign digit.
+    /// 2. Handles if positive signs are not allowed.
+    /// 3. Handles negative signs if the type is unsigned.
+    /// 4. Handles if the sign is required, but missing.
+    /// 5. Handles if the iterator is empty, before or after parsing the sign.
+    /// 6. Handles if the iterator has invalid, leading zeros.
+    fn read_mantissa_sign(&mut self) -> Result<bool>;
+
+    /// Parse the sign from an exponent.
+    ///
+    /// If this allows leading digit separators, it will handle
+    /// those internally and advance the state as needed. This
+    /// returned if the value is negative, or any error found when parsing the
+    /// sign. This does not handle missing digits: it is assumed the caller
+    /// will. This internally increments the count to right after the sign.
+    ///
+    /// The default implementation does not support digit separators.
+    ///
+    /// 1. Parses the sign digit.
+    /// 2. Handles if positive signs are not allowed.
+    /// 3. Handles negative signs if the type is unsigned.
+    /// 4. Handles if the sign is required, but missing.
+    /// 5. Handles if the iterator is empty, before or after parsing the sign.
+    /// 6. Handles if the iterator has invalid, leading zeros.
+    fn read_exponent_sign(&mut self) -> Result<bool>;
+
+    /// Read the base prefix, if present, returning if the base prefix
+    /// was present.
+    ///
+    /// If the base prefix was not present, it does not consume any
+    /// leading zeroes or digit separators, so they can be processed afterwards.
+    /// Otherwise, it advances the iterator state to the end of the base
+    /// prefix, including consuming any trailing digit separators.
+    ///
+    /// Any caller that consumes leading digit separators will need
+    /// to ignore it if base prefix trailing digit separators are enabled.
+    fn read_base_prefix(&mut self) -> Result<bool>;
+
+    /// Read the base suffix, if present, returning if the base suffix
+    /// was present.
+    ///
+    /// If the base suffix was not present, it does not consume any
+    /// digits or digit separators, so the total digit count is valid.
+    /// Otherwise, it advances the iterator state to the end of the base
+    /// suffix, including consuming any trailing digit separators.
+    fn read_base_suffix(&mut self, has_exponent: bool) -> Result<bool>;
 }
 
 /// Iterator over a contiguous block of bytes.
@@ -303,15 +521,60 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     /// this increments the count by 1.
     fn increment_count(&mut self);
 
+    /// Get the number of digits the iterator has encountered.
+    ///
+    /// This is always relative to the start of the iterator: recreating
+    /// the iterator will reset this count. The absolute value of this
+    /// is not defined: only the relative value between 2 calls. For
+    /// consecutive digit separators, this is based on the index in the
+    /// buffer. For non-consecutive iterators, the count is internally
+    /// incremented.
+    fn digits(&self) -> usize;
+
+    /// Get number of digits returned relative to a previous state.
+    ///
+    /// This allows you to determine how many digits were returned
+    /// since a previous state, but is meant to be strongish-ly
+    /// typed so the caller knows it only works within a single
+    /// iterator. Calling this on an iterator other than the one
+    /// used at the start may lead to unpredictable results.
+    #[inline(always)]
+    fn digits_since(&self, start: usize) -> usize {
+        self.digits() - start
+    }
+
     /// Peek the next value of the iterator, without consuming it.
     ///
     /// Note that this can modify the internal state, by skipping digits
     /// for iterators that find the first non-zero value, etc. We optimize
     /// this for the case where we have contiguous iterators, since
     /// non-contiguous iterators already have a major performance penalty.
+    ///
+    /// That is, say we have the following buffer and are skipping `_`
+    /// characters, peek will advance the internal index to `2` if it
+    /// can skip characters there.
+    ///
+    /// +---+---+---+---+---+        +---+---+---+---+
+    /// | _ | 2 | _ | _ | 3 |   ->   | 2 | _ | _ | 3 |
+    /// +---+---+---+---+---+        +---+---+---+---+
+    ///
+    /// For implementation reasons, where digit separators may not be
+    /// allowed afterwards that character, it must stop right there.
     fn peek(&mut self) -> Option<Self::Item>;
 
     /// Peek the next value of the iterator, and step only if it exists.
+    ///
+    /// This will always advance to one byte past the peek value, since
+    /// we may need to know internally if the next character is a digit
+    /// separator.
+    ///
+    /// That is, say we have the following buffer and are skipping `_`
+    /// characters, peek will advance the internal index to `_` if it
+    /// can skip characters there.
+    ///
+    /// +---+---+---+---+---+        +---+---+---+
+    /// | _ | 2 | _ | _ | 3 |   ->   | _ | _ | 3 |
+    /// +---+---+---+---+---+        +---+---+---+
     #[inline(always)]
     fn try_read(&mut self) -> Option<Self::Item> {
         if let Some(value) = self.peek() {
@@ -323,13 +586,15 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         }
     }
 
-    /// Check if the next element is a given value.
+    /// Check if the next element is a given value, in a case-
+    /// sensitive manner.
     #[inline(always)]
     fn peek_is_cased(&mut self, value: u8) -> bool {
         Some(&value) == self.peek()
     }
 
-    /// Check if the next element is a given value without case sensitivity.
+    /// Check if the next element is a given value without case
+    /// sensitivity.
     #[inline(always)]
     fn peek_is_uncased(&mut self, value: u8) -> bool {
         if let Some(&c) = self.peek() {
@@ -351,7 +616,7 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
     }
 
     /// Peek the next value and consume it if the read value matches the
-    /// expected one.
+    /// expected one using a custom predicate.
     #[inline(always)]
     fn read_if<Pred: FnOnce(u8) -> bool>(&mut self, pred: Pred) -> Option<u8> {
         // NOTE: This was implemented to remove usage of unsafe throughout to code
@@ -370,7 +635,8 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         }
     }
 
-    /// Read a value if the value matches the provided one.
+    /// Read a value if the value matches the provided one, in a case-
+    /// sensitive manner.
     #[inline(always)]
     fn read_if_value_cased(&mut self, value: u8) -> Option<u8> {
         if self.peek() == Some(&value) {
@@ -389,7 +655,8 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         self.read_if(|x| x.eq_ignore_ascii_case(&value))
     }
 
-    /// Read a value if the value matches the provided one.
+    /// Read a value if the value matches the provided one, with optional
+    /// case sensitivity.
     #[inline(always)]
     fn read_if_value(&mut self, value: u8, is_cased: bool) -> Option<u8> {
         if is_cased {
@@ -399,14 +666,14 @@ pub trait DigitsIter<'a>: Iterator<Item = &'a u8> + Iter<'a> {
         }
     }
 
-    /// Skip zeros from the start of the iterator
+    /// Skip zeros from the start of the iterator.
     #[inline(always)]
     fn skip_zeros(&mut self) -> usize {
-        let start = self.current_count();
+        let start = self.digits();
         while self.read_if_value_cased(b'0').is_some() {
             self.increment_count();
         }
-        self.current_count() - start
+        self.digits_since(start)
     }
 
     /// Determine if the character is a digit.

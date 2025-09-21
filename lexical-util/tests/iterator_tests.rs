@@ -24,13 +24,13 @@ fn digits_iterator_test() {
     assert_eq!(u32::from_le(iter.peek_u32().unwrap()), 0x34333231);
     assert_eq!(iter.buffer_length(), 5);
     assert_eq!(iter.cursor(), 0);
-    assert_eq!(iter.current_count(), 0);
+    assert_eq!(iter.digits(), 0);
     unsafe {
         iter.step_by_unchecked(4);
     }
     assert_eq!(iter.buffer_length(), 5);
     assert_eq!(iter.cursor(), 4);
-    assert_eq!(iter.current_count(), 4);
+    assert_eq!(iter.digits(), 4);
     assert_eq!(iter.peek(), Some(&b'5'));
     assert_eq!(iter.peek(), Some(&b'5'));
     assert_eq!(iter.next(), Some(&b'5'));
@@ -84,13 +84,13 @@ fn skip_iterator_test() {
     assert_eq!(iter.is_buffer_empty(), false);
     assert_eq!(iter.buffer_length(), 6);
     assert_eq!(iter.cursor(), 0);
-    assert_eq!(iter.current_count(), 0);
+    assert_eq!(iter.digits(), 0);
     unsafe { iter.step_unchecked() };
     assert_eq!(iter.cursor(), 1);
-    assert_eq!(iter.current_count(), 0);
+    assert_eq!(iter.digits(), 0);
     iter.next();
     assert_eq!(iter.cursor(), 2);
-    assert_eq!(iter.current_count(), 1);
+    assert_eq!(iter.digits(), 1);
 
     let mut byte = digits.bytes::<{ FORMAT }>();
     let mut iter = byte.integer_iter();
@@ -100,10 +100,10 @@ fn skip_iterator_test() {
     assert_eq!(iter.next(), Some(&b'2'));
     assert_eq!(iter.next(), Some(&b'3'));
     assert_eq!(iter.cursor(), 3);
-    assert_eq!(iter.current_count(), 3);
+    assert_eq!(iter.digits(), 3);
     assert_eq!(iter.next(), Some(&b'4'));
     assert_eq!(iter.cursor(), 5);
-    assert_eq!(iter.current_count(), 4);
+    assert_eq!(iter.digits(), 4);
     assert_eq!(iter.next(), Some(&b'5'));
     assert_eq!(iter.next(), None);
 

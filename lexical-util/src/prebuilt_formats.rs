@@ -1,4 +1,10 @@
 //! Pre-built formats for each programming language,
+//!
+//! The specifications for all of this code can be found
+//! in [`lexical-float-format`], with sample code and
+//! the logic to parse and validate the numbers.
+//!
+//! [`lexical-float-format`]: https://github.com/Alexhuszagh/lexical-float-format
 
 #![cfg(feature = "format")]
 
@@ -6,7 +12,8 @@ use core::num;
 
 use crate::format::NumberFormatBuilder;
 
-// FIXME
+// TEST CODE
+// ---------
 
 // Sample test code for each language used:
 //
@@ -706,9 +713,17 @@ use crate::format::NumberFormatBuilder;
 #[rustfmt::skip]
 pub const RUST_LITERAL: u128 = NumberFormatBuilder::new()
     .digit_separator(num::NonZeroU8::new(b'_'))
-    .required_digits(true)
+    .required_integer_digits(true)
+    .required_mantissa_digits(true)
     .no_positive_mantissa_sign(true)
     .no_special(true)
+    .required_exponent_digits(true)
+    .required_integer_digits_with_exponent(true)
+    .required_fraction_digits_with_exponent(true)
+    .supports_parsing_floats(true)
+    .supports_parsing_integers(true)
+    .supports_writing_floats(true)
+    .supports_writing_integers(true)
     .internal_digit_separator(true)
     .trailing_digit_separator(true)
     .consecutive_digit_separator(true)
