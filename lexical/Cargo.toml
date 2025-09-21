@@ -60,6 +60,16 @@ lint = ["lexical-core/lint"]
 #   https://github.com/Alexhuszagh/rust-lexical/issues/46
 f128 = ["lexical-core/f128"]
 
+# DEPRECATED
+# ----------
+# These were never supported, however, they exist in case existing code
+# uses them. They should not be used under any circumstances and should
+# be removed.
+parse = ["parse-integers", "parse-floats"]
+write = ["write-integers", "write-floats"]
+integers = ["parse-integers", "write-integers"]
+floats = ["parse-floats", "write-floats"]
+
 [package.metadata.docs.rs]
 features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats", "f16"]
 rustdoc-args = ["--cfg", "docsrs"]

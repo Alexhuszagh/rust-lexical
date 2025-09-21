@@ -78,16 +78,17 @@ check() {
     check_test "write-integer"
 
     # ensure our partial features aren't allowed, as are unsupported features
-    cd "${home}/lexical-core"
-    partial=(parse write floats integers)
-    for feature in "${partial[@]}"; do
-        check_error "${feature}"
-    done
-
-    cd "${home}/lexical"
-    for feature in "${partial[@]}"; do
-        check_error "${feature}"
-    done
+    # FIXME: Restore once we remove our partial features
+    # cd "${home}/lexical-core"
+    # partial=(parse write floats integers)
+    # for feature in "${partial[@]}"; do
+    #     check_error "${feature}"
+    # done
+    #
+    # cd "${home}/lexical"
+    # for feature in "${partial[@]}"; do
+    #     check_error "${feature}"
+    # done
 
     cd "${home}"
 }
