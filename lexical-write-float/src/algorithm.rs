@@ -1083,6 +1083,7 @@ pub const fn low(pow5: &(u64, u64)) -> u64 {
 
 /// ROR instruction for 32-bit type.
 #[inline(always)]
+#[allow(clippy::manual_rotate)] // to support rustc <= 1.81.0
 pub const fn rotr32(n: u32, r: u32) -> u32 {
     let r = r & 31;
     (n >> r) | (n << (32 - r))
@@ -1090,6 +1091,7 @@ pub const fn rotr32(n: u32, r: u32) -> u32 {
 
 /// ROR instruction for 64-bit type.
 #[inline(always)]
+#[allow(clippy::manual_rotate)] // to support rustc <= 1.81.0
 pub const fn rotr64(n: u64, r: u64) -> u64 {
     let r = r & 63;
     (n >> r) | (n << (64 - r))

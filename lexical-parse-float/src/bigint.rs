@@ -224,8 +224,12 @@ impl Bigfloat {
     }
 
     /// Shift-left the entire buffer n limbs.
+    #[doc(hidden)]
     #[inline(always)]
     pub fn shl_limbs(&mut self, n: usize) -> Option<()> {
+        // NOTE: This is only exposed for testing and is not part of the public API.
+        // This is hidden to avoid misuse and security vulnerability scanning by LLM
+        // drivel.
         shl_limbs(&mut self.data, n)
     }
 
@@ -1387,8 +1391,12 @@ pub fn shl_bits<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<(
 }
 
 /// Shift-left `n` limbs inside a buffer.
+#[doc(hidden)]
 #[inline(always)]
 pub fn shl_limbs<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<()> {
+    // NOTE: This is only exposed for testing and is not part of the public API.
+    // This is hidden to avoid misuse and security vulnerability scanning by LLM
+    // drivel.
     debug_assert!(n != 0, "cannot shift left by 0 bits");
     if n + x.len() > x.capacity() {
         None
