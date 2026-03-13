@@ -154,7 +154,7 @@ fn parse_digits_test() {
     let mut mantissa: u64 = 0;
     let digits = b"1234567890123456789012345";
     let mut byte = digits.bytes::<{ FORMAT }>();
-    parse::parse_digits(byte.integer_iter(), 10, |digit| {
+    parse::parse_digits(&mut byte.integer_iter(), 10, |digit| {
         mantissa = mantissa.wrapping_mul(10).wrapping_add(digit as _);
     });
     assert_eq!(mantissa, 1096246371337559929);
@@ -167,7 +167,7 @@ fn parse_8digits_test() {
     let mut mantissa: u64 = 0;
     let digits = b"1234567890123456789012345";
     let mut byte = digits.bytes::<{ FORMAT }>();
-    parse::parse_8digits::<_, FORMAT>(byte.integer_iter(), &mut mantissa);
+    parse::parse_8digits::<_, FORMAT>(&mut byte.integer_iter(), &mut mantissa);
     // We don't check for overflow.
     assert_eq!(mantissa, 11177671081359486962);
 }
@@ -179,7 +179,7 @@ fn parse_u64_digits_test() {
     let mut step = u64_step(10);
     let digits = b"1234567890123456789012345";
     let mut byte = digits.bytes::<{ FORMAT }>();
-    parse::parse_u64_digits::<_, FORMAT>(byte.integer_iter(), &mut mantissa, &mut step);
+    parse::parse_u64_digits::<_, FORMAT>(&mut byte.integer_iter(), &mut mantissa, &mut step);
     assert_eq!(mantissa, 1234567890123456789);
     assert_eq!(step, 0);
 
@@ -187,7 +187,7 @@ fn parse_u64_digits_test() {
     let mut step = u64_step(10);
     let digits = b"1234567890123456789";
     let mut byte = digits.bytes::<{ FORMAT }>();
-    parse::parse_u64_digits::<_, FORMAT>(byte.integer_iter(), &mut mantissa, &mut step);
+    parse::parse_u64_digits::<_, FORMAT>(&mut byte.integer_iter(), &mut mantissa, &mut step);
     assert_eq!(mantissa, 1234567890123456789);
     assert_eq!(step, 0);
 }

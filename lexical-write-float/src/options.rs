@@ -1346,6 +1346,16 @@ impl Options {
         // default formatting size, no matter what, just as a precaution.
         count = max!(count, formatted_size);
 
+        // need to add in extras for the base prefix and suffix, if present
+        if cfg!(all(feature = "format", feature = "power-of-two")) && format.required_base_prefix()
+        {
+            count += 2;
+        }
+        if cfg!(all(feature = "format", feature = "power-of-two")) && format.required_base_suffix()
+        {
+            count += 1;
+        }
+
         count
     }
 

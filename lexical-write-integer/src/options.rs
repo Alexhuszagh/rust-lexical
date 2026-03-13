@@ -160,11 +160,24 @@ impl Options {
     /// depending on the radix.
     #[inline(always)]
     pub const fn buffer_size_const<T: FormattedSize, const FORMAT: u128>(&self) -> usize {
-        if (NumberFormat::<FORMAT> {}.radix()) == 10 {
+        let format = NumberFormat::<FORMAT> {};
+        let mut count = if format.mantissa_radix() == 10 {
             T::FORMATTED_SIZE_DECIMAL
         } else {
             T::FORMATTED_SIZE
+        };
+
+        // need to add in extras for the base prefix and suffix, if present
+        if cfg!(all(feature = "format", feature = "power-of-two")) && format.required_base_prefix()
+        {
+            count += 2;
         }
+        if cfg!(all(feature = "format", feature = "power-of-two")) && format.required_base_suffix()
+        {
+            count += 1;
+        }
+
+        count
     }
 
     // BUILDERS

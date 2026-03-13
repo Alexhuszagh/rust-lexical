@@ -107,7 +107,7 @@ pub trait WriteFloat: RawFloat + FormattedSize {
             }
         }
 
-        let (float, count, bytes) = if self.needs_negative_sign() {
+        let (float, mut count, mut bytes) = if self.needs_negative_sign() {
             bytes[0] = b'-';
             (-self, 1, &mut bytes[1..])
         } else if cfg!(feature = "format") && format.required_mantissa_sign() {
@@ -119,40 +119,56 @@ pub trait WriteFloat: RawFloat + FormattedSize {
 
         // Handle special values.
         if !self.is_special() {
+            let written: usize;
+            if cfg!(all(feature = "format", feature = "power-of-two"))
+                && format.required_base_prefix()
+            {
+                bytes[0] = b'0';
+                bytes[1] = format.base_prefix();
+                bytes = &mut bytes[2..];
+                count += 2;
+            }
             #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
             {
                 let radix = format.radix();
                 let exponent_base = format.exponent_base();
-                count
-                    + if radix == 10 {
-                        write_float_decimal::<_, FORMAT>(float, bytes, options)
-                    } else if radix != exponent_base {
-                        hex::write_float::<_, FORMAT>(float, bytes, options)
-                    } else {
-                        binary::write_float::<_, FORMAT>(float, bytes, options)
-                    }
+                written = if radix == 10 {
+                    write_float_decimal::<_, FORMAT>(float, bytes, options)
+                } else if radix != exponent_base {
+                    hex::write_float::<_, FORMAT>(float, bytes, options)
+                } else {
+                    binary::write_float::<_, FORMAT>(float, bytes, options)
+                };
             }
 
             #[cfg(feature = "radix")]
             {
                 let radix = format.radix();
                 let exponent_base = format.exponent_base();
-                count
-                    + if radix == 10 {
-                        write_float_decimal::<_, FORMAT>(float, bytes, options)
-                    } else if radix != exponent_base {
-                        hex::write_float::<_, FORMAT>(float, bytes, options)
-                    } else if matches!(radix, 2 | 4 | 8 | 16 | 32) {
-                        binary::write_float::<_, FORMAT>(float, bytes, options)
-                    } else {
-                        radix::write_float::<_, FORMAT>(float, bytes, options)
-                    }
+                written = if radix == 10 {
+                    write_float_decimal::<_, FORMAT>(float, bytes, options)
+                } else if radix != exponent_base {
+                    hex::write_float::<_, FORMAT>(float, bytes, options)
+                } else if matches!(radix, 2 | 4 | 8 | 16 | 32) {
+                    binary::write_float::<_, FORMAT>(float, bytes, options)
+                } else {
+                    radix::write_float::<_, FORMAT>(float, bytes, options)
+                };
             }
 
             #[cfg(not(feature = "power-of-two"))]
             {
-                count + write_float_decimal::<_, FORMAT>(float, bytes, options)
+                written = write_float_decimal::<_, FORMAT>(float, bytes, options);
             }
+
+            if cfg!(all(feature = "format", feature = "power-of-two"))
+                && format.required_base_suffix()
+            {
+                bytes[written] = format.base_suffix();
+                count += 1;
+            }
+
+            count + written
         } else if self.is_nan() {
             write_nan(bytes, options, count)
         } else {
