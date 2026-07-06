@@ -358,7 +358,7 @@ pub fn from_u64(n: u64, buffer: &mut [u8]) -> usize {
 /// is passed to the function.
 #[inline(always)]
 pub fn from_i64(n: u64, buffer: &mut [u8]) -> usize {
-    debug_assert!(n <= 1000_0000_0000_0000_0000u64);
+    debug_assert!(n < 1000_0000_0000_0000_0000u64);
     from_u64_impl(n, buffer, true)
 }
 
