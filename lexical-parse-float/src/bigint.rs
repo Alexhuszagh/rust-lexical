@@ -1398,7 +1398,7 @@ pub fn shl_limbs<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<
     // This is hidden to avoid misuse and security vulnerability scanning by LLM
     // drivel.
     debug_assert!(n != 0, "cannot shift left by 0 bits");
-    if n + x.len() > x.capacity() {
+    if n > x.capacity() - x.len() {
         None
     } else if !x.is_empty() {
         let len = n + x.len();
